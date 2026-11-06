@@ -50,6 +50,7 @@
     margin: 0 auto;
     display: flex;
     flex-direction: column;
+    justify-content: center;
     gap: 10px;
     min-height: 0;
   }
@@ -179,6 +180,7 @@
     position: relative;
     flex: 1 1 auto;
     min-height: 0;
+    max-height: calc(min(100vw - 32px, 760px) * 1.85); /* very tall screens (full-screen app) do not stretch the field */
     border-radius: 22px;
     overflow: hidden;
     background: var(--bg-deep);
@@ -375,6 +377,9 @@
   .speed input { width: 70px; accent-color: var(--accent); }
   .swatch.mix { background-size: cover; background-position: center; border-color: var(--accent); }
   .swatch[hidden] { display: none; }
+  @media (max-width: 520px) {
+    #viewBtn .vl { display: none; }
+  }
   @media (max-width: 420px) {
     .tchip { height: 30px; font-size: 12px; padding: 0 6px; }
     .tool { width: 38px; height: 44px; border-radius: 12px; font-size: 20px; }
@@ -384,7 +389,6 @@
     #toolRow { gap: 6px; }
     h1 { font-size: 19px; }
     .stats { gap: 6px; }
-    #viewBtn .vl { display: none; }
     #viewBtn { font-size: 16px; padding: 5px 9px; }
     .row-label { display: none; } /* the controls explain themselves, and the play field keeps its height */
     #objRow { gap: 6px; }
