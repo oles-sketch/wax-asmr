@@ -4,11 +4,7 @@
   "description": "Окунай предметы в воск, ломай и слушай",
   "start_url": "./",
   "scope": "./",
-  "display": "fullscreen",
-  "display_override": [
-    "fullscreen",
-    "standalone"
-  ],
+  "display": "standalone",
   "orientation": "portrait",
   "background_color": "#1d1627",
   "theme_color": "#2b2236",
