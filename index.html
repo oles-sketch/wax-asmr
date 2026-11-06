@@ -31,6 +31,10 @@
     color-scheme: dark;
   }
   html, body { height: 100%; }
+  /* installed app: the height stays the full screen even while the system bars slide in over it, so nothing jumps */
+  @supports (height: 100lvh) {
+    @media (display-mode: fullscreen), (display-mode: standalone) { html, body { height: 100lvh; } }
+  }
   body {
     margin: 0;
     background: var(--bg);
