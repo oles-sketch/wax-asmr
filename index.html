@@ -4009,7 +4009,7 @@ function refreshBar() {
   const dot = wrap.firstChild;
   dot.style.setProperty('--c', mix ? rgbHex(MIX.avg) : c.c); dot.style.setProperty('--c2', c.c2);
   dot.style.backgroundImage = mix && MIX.url ? 'url(' + MIX.url + ')' : '';
-  document.getElementById('icoType').textContent = mix ? '🌀' : ['●', '✨', '🧊', '🌈', '🦄', '🌌'][G.typeIdx];
+  document.getElementById('icoType').textContent = mix ? '🌀' : ['●', '✨', '🧊', '🌈', '🦄', '🌌', '🏆'][G.typeIdx];
   document.querySelector('#barType .blbl').textContent = mix ? 'Микс' : WAX_TYPES[G.typeIdx].n;
   if (typeof ST !== 'undefined' && ST.lastStir) {
     icoFor(document.getElementById('icoStir'), ST.lastStir);
