@@ -978,7 +978,8 @@ const WAX_TYPES = [
   { id: 'glass', n: 'Прозрачный' },
   { id: 'grad', n: 'Градиент' },
   { id: 'rainbow', n: 'Радужный', rw: 'pours' },
-  { id: 'cosmos', n: 'Космос', rw: 'effects' }
+  { id: 'cosmos', n: 'Космос', rw: 'effects' },
+  { id: 'gold', n: 'Золотой', rw: 'kinds' }
 ];
 function hsl2rgb(h, s, l) {
   h = ((h % 360) + 360) % 360; const a = s * Math.min(l, 1 - l);
@@ -1135,8 +1136,32 @@ function buildLayerShape(sil, S, r, layer, bot) {
       const gr = g.createLinearGradient(0, MARGIN, 0, MARGIN + bot);
       gr.addColorStop(0, '#2a1a6e'); gr.addColorStop(0.55, '#4a2288'); gr.addColorStop(1, '#14285c');
       g.fillStyle = gr;
+    } else if (layer.type === 'gold') {
+      const gr = g.createLinearGradient(MARGIN, MARGIN, MARGIN + S, MARGIN + bot);
+      [[0, '#8a5a0c'], [0.14, '#e9b63c'], [0.27, '#fff3b0'], [0.4, '#d9a021'], [0.55, '#9a640e'], [0.7, '#f2cb58'], [0.82, '#fff0b0'], [0.92, '#c98f1c'], [1, '#8a5a0c']].forEach(a => gr.addColorStop(a[0], a[1]));
+      g.fillStyle = gr;
     } else g.fillStyle = color;
     g.fillRect(0, 0, C, C);
+    if (layer.type === 'gold' && G.sprite) {
+      // the object's own details come through as relief, so it reads as a golden statuette and not a blob
+      const t = mkCanvas(C, C), tg = t.getContext('2d');
+      try { tg.filter = 'grayscale(1) contrast(1.3) brightness(1.08)'; } catch (err) { }
+      tg.drawImage(G.sprite, MARGIN, MARGIN);
+      g.globalCompositeOperation = 'multiply'; g.globalAlpha = 0.6; g.drawImage(t, 0, 0);
+      g.globalCompositeOperation = 'soft-light'; g.globalAlpha = 0.7; g.drawImage(t, 0, 0);
+      g.globalAlpha = 1; g.globalCompositeOperation = 'source-over';
+    }
+    if (layer.type === 'gold') {
+      // bevel: bright rim on the lit (top-left) edges, dark rim on the far edges, so the shape reads as cast metal
+      const edge = (dx, dy, col) => {
+        const t = mkCanvas(C, C), tg = t.getContext('2d');
+        tg.drawImage(c, 0, 0); tg.globalCompositeOperation = 'destination-out'; tg.drawImage(c, dx, dy);
+        tg.globalCompositeOperation = 'source-in'; tg.fillStyle = col; tg.fillRect(0, 0, C, C);
+        g.globalCompositeOperation = 'source-atop'; g.drawImage(t, 0, 0);
+      };
+      const w = Math.max(2, Math.round(S / 70));
+      edge(w, w, 'rgba(255,250,210,0.95)'); edge(-w, -w, 'rgba(90,50,0,0.7)');
+    }
     if (layer.type === 'cosmos') {
       // nebula clouds and a faint milky way, painted only inside the wax
       g.globalCompositeOperation = 'source-atop';
@@ -1283,6 +1308,13 @@ function cosmosFill(ctx, w, h, t) {
     ctx.fillStyle = rg; ctx.fillRect(0, 0, w, h);
   }
   glintFill(ctx, w, h, t, 34, 1, '#dfe9ff');
+}
+// gold wax: a polished sheen that sweeps across now and then, plus warm glints
+function goldFill(ctx, w, h, t) {
+  const ph = ((t * 0.35) % 2.6) - 0.8, gx = w * ph, gr = ctx.createLinearGradient(gx - w * 0.16, 0, gx + w * 0.16, h * 0.6);
+  gr.addColorStop(0, 'rgba(255,248,200,0)'); gr.addColorStop(0.5, 'rgba(255,250,215,0.75)'); gr.addColorStop(1, 'rgba(255,248,200,0)');
+  ctx.fillStyle = gr; ctx.fillRect(0, 0, w, h);
+  glintFill(ctx, w, h, t, 22, 1, '#fff7d0');
 }
 function glintFill(ctx, w, h, t, n, k, col) {
   ctx.save(); ctx.fillStyle = col;
@@ -1511,7 +1543,7 @@ function buildShell(sil, S, layers, bot) {
     }
     return m;
   };
-  shell.rm = typeMask('rainbow'); shell.cm = typeMask('cosmos');
+  shell.rm = typeMask('rainbow'); shell.cm = typeMask('cosmos'); shell.gm = typeMask('gold');
   return shell;
 }
 
@@ -1846,6 +1878,7 @@ function newLayer(cov, cost, t) {
   }
   const c = COLORS[G.colorIdx], type = WAX_TYPES[G.typeIdx].id;
   if (type === 'rainbow') { const hh = (time * 40) % 360; return { color: rgbHex(hsl2rgb(hh, 0.9, 0.72)), color2: rgbHex(hsl2rgb(hh + 90, 0.9, 0.72)), type, src: 'pot', sp: 0, seed: (Math.random() * 1e9) | 0, cov, t, cost }; }
+  if (type === 'gold') return { color: '#e2ac34', color2: '#8a5a0c', type, src: 'pot', sp: 0, seed: (Math.random() * 1e9) | 0, cov, t, cost };
   if (type === 'cosmos') return { color: '#3d2a8a', color2: '#1a1048', type, src: 'pot', sp: 1, spCols: ['#ffffff', '#bfe6ff', '#ffd9f0', '#e4dcff'], seed: (Math.random() * 1e9) | 0, cov, t, cost };
   return { color: c.c, color2: c.c2, type, src: 'pot', sp: type === 'sparkle' ? 1 : 0, seed: (Math.random() * 1e9) | 0, cov, t, cost };
 }
@@ -1950,7 +1983,7 @@ WAX_TYPES.forEach((t, i) => {
     colorRow.dataset.type = t.id;
     refreshBar();
     [...typeRow.querySelectorAll('.tchip')].forEach((s, j) => s.setAttribute('aria-pressed', j === i ? 'true' : 'false'));
-    if (t.id === 'sparkle' || t.id === 'cosmos' || t.id === 'rainbow') Snd.chime(0); else Snd.squish(0);
+    if (t.id === 'sparkle' || t.id === 'cosmos' || t.id === 'rainbow' || t.id === 'gold') Snd.chime(0); else Snd.squish(0);
   });
   typeRow.appendChild(b);
 });
@@ -3155,7 +3188,7 @@ function stUpdate(dt) {
             for (let q = 0; q < tool.teeth; q++) { const off = (q - (tool.teeth - 1) / 2) * tool.sp; stSplat(px + nx * off, py + ny * off, vx, vy, tool.r); }
           } else if (fxk === 'whisk') {
             stSplat(px, py, vx + rnd(-0.9, 0.9), vy + rnd(-0.9, 0.9), tool.r);
-            stSmooth(px, py, tool.r * 1.6, 0.3);
+            stSmooth(px, py, tool.r * 1.4, 0.12);
           } else if (fxk === 'brush') {
             stSplat(px, py, vx, vy, tool.r);
             const here = stColorAt(px, py);
@@ -4106,7 +4139,7 @@ function layerFx(L) {
   if (L.sp > 0.15) f.push('glitter');
   if (L.ex) { if (L.ex.foil > 0.1) f.push('foil'); if (L.ex.sugar > 0.1) f.push('sugar'); if (L.ex.confetti > 0.1) f.push('confetti'); if (L.ex.flake > 0.1) f.push('flake'); if (L.ex.foam > 0.1) f.push('foam'); if (L.ex.eyes > 0.1) f.push('eyes'); }
   if (L.pearl > 0.1) f.push('pearl'); if (L.gloss > 0.1) f.push('gloss'); if (L.neon > 0.1) f.push('neon'); if (L.oil > 0.2) f.push('scent'); if (L.charm) f.push('charm');
-  if (L.type === 'glass') f.push('glass'); if (L.type === 'grad') f.push('grad'); if (L.type === 'rainbow') f.push('rainbow'); if (L.type === 'cosmos') f.push('cosmos');
+  if (L.type === 'glass') f.push('glass'); if (L.type === 'grad') f.push('grad'); if (L.type === 'rainbow') f.push('rainbow'); if (L.type === 'cosmos') f.push('cosmos'); if (L.type === 'gold') f.push('gold');
   return f;
 }
 function shellInfo() {
@@ -4313,7 +4346,7 @@ function renderQuest() {
     top.appendChild(h('span', 'ach-n', a.e + ' ' + a.n));
     const dots = h('span', 'ach-dots'); for (let i = 0; i < a.st.length; i++) dots.appendChild(h('i', i < s ? 'on' : '')); top.appendChild(dots);
     card.appendChild(top);
-    const rwd = { pours: '🌈 радужный воск', effects: '🌌 космический воск', drained: '🕳️ чёрная дыра вместо мусорки', shells: '🔨 золотой молоток', finds: '👑 редкие сюрпризы: корона и алмаз', tools: '💣 бомба и 🔦 лазер для ломания', orders: '🖼 золотая рамка и ⭐ VIP-заказы (награда ×3)' }[a.id];
+    const rwd = { pours: '🌈 радужный воск', effects: '🌌 космический воск', drained: '🕳️ чёрная дыра вместо мусорки', kinds: '✨ золотой воск (предмет как золотая статуэтка)', shells: '🔨 золотой молоток', finds: '👑 редкие сюрпризы: корона и алмаз', tools: '💣 бомба и 🔦 лазер для ломания', orders: '🖼 золотая рамка и ⭐ VIP-заказы (награда ×3)' }[a.id];
     if (rwd) card.appendChild(h('div', 'opt-note', '🎁 За последний этап: ' + rwd));
     card.appendChild(h('div', 'opt-note', a.d + ': ' + (last ? 'всё, ты легенда (' + v + ')' : v + ' / ' + nxt)));
     const bar = h('div', 'ach-bar'), fill = h('i'); fill.style.width = (last ? 100 : Math.min(100, (v - prevT) / (nxt - prevT) * 100)) + '%'; bar.appendChild(fill); card.appendChild(bar);
@@ -4850,7 +4883,7 @@ function update(dt) {
 
   // pot wax drifts toward the chosen colour
   const tid = WAX_TYPES[G.typeIdx].id;
-  potWax = mixRgb(potWax, G.src === 'mix' ? MIX.avg : tid === 'rainbow' ? hsl2rgb(time * 40, 0.9, 0.7) : tid === 'cosmos' ? [74, 46, 150] : hexRgb(COLORS[G.colorIdx].c), 1 - Math.exp(-dt * (tid === 'rainbow' && G.src !== 'mix' ? 12 : 4)));
+  potWax = mixRgb(potWax, G.src === 'mix' ? MIX.avg : tid === 'rainbow' ? hsl2rgb(time * 40, 0.9, 0.7) : tid === 'cosmos' ? [74, 46, 150] : tid === 'gold' ? [226, 172, 52] : hexRgb(COLORS[G.colorIdx].c), 1 - Math.exp(-dt * (tid === 'rainbow' && G.src !== 'mix' ? 12 : 4)));
 
   // released: the string pulls the object back up to rest
   if (!G.held) {
@@ -5311,7 +5344,7 @@ function drawEyes(C) {
 let shimCv = null, shimG = null;
 function drawShimmer(C) {
   const sh = G.shell;
-  if (!sh || (!sh.pm && !sh.rm && !sh.cm && !(sh.gk > 0.05)) || G.cool < 0.6) return;
+  if (!sh || (!sh.pm && !sh.rm && !sh.cm && !sh.gm && !(sh.gk > 0.05)) || G.cool < 0.6) return;
   if (!shimCv || shimCv.width !== C) { shimCv = mkCanvas(C, C); shimG = shimCv.getContext('2d'); }
   const a = clamp((G.cool - 0.6) / 0.3, 0, 1), pz = G.pieces && G.pieces.comp;
   // the effect is drawn first and then cut out by the mask, so only the sheen lands on the object (never the mask's own colours)
@@ -5326,6 +5359,7 @@ function drawShimmer(C) {
   if (sh.pm) pass(sh.pm, (c) => pearlFill(c, 0, 0, C, C, sh.pk, sh.ptint, time, 36));
   if (sh.rm) pass(sh.rm, (c) => rainbowFill(c, C, C, time));
   if (sh.cm) pass(sh.cm, (c) => cosmosFill(c, C, C, time));
+  if (sh.gm) pass(sh.gm, (c) => goldFill(c, C, C, time));
   if (sh.gk > 0.05) pass(sh, (c) => {
     const ph = (time * 0.3) % 2.2 - 0.6, gx = C * ph, gr = c.createLinearGradient(gx - C * 0.1, 0, gx + C * 0.1, C * 0.5);
     gr.addColorStop(0, 'rgba(255,255,255,0)'); gr.addColorStop(0.5, 'rgba(255,255,255,' + 0.5 * sh.gk + ')'); gr.addColorStop(1, 'rgba(255,255,255,0)');
