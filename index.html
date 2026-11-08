@@ -1839,22 +1839,38 @@ function potInner(y) {
   const t = clamp((y - rimY) / Math.max(1, potBottom - 22 - rimY), 0, 1);
   return (potRx - 8) * (1 - t) + (potRx * 0.92 - 8) * t - 3;
 }
+// sideways room for the object, with its outline turned by the current swing (it hangs from its top, so the lower part swings out)
+function potRange(tTop, sw, e) {
+  let lo = -potRx * 0.45, hi = potRx * 0.45;
+  const P = G.prof; if (!P || !P.length) return [lo, hi];
+  const c = Math.cos(sw), s = Math.sin(sw);
+  for (const q of P) {
+    const r = q[0];
+    const lx = -(q[1] + e) * c - r * s, ly = -(q[1] + e) * s + r * c;
+    const rx2 = (q[2] + e) * c - r * s, ry2 = (q[2] + e) * s + r * c;
+    const yl = tTop + ly, yr = tTop + ry2;
+    if (yl > rimY - 4) lo = Math.max(lo, -potInner(Math.max(rimY, yl)) - lx);
+    if (yr > rimY - 4) hi = Math.min(hi, potInner(Math.max(rimY, yr)) - rx2);
+  }
+  return [lo, hi];
+}
 // keeps the hanging object inside the walls and above the floor, thick wax coat included
 function clampToPot() {
   const e = edgeThickness() + 2;
-  const floorTop = potBottom - 5 - (G.bot || S) - edgeThickness();
+  const floorTop = potBottom - 10 - (G.bot || S) - edgeThickness();
   // the floor stops the object, but never so early that its tip stays above the wax: let a little coat sink past it instead
   const tipTop = Math.min(waxY + 4, floorTop + 22);
   G.tTop = Math.min(G.tTop, Math.max(minTop, floorTop, tipTop));
-  const P = G.prof;
-  if (!P || !P.length) return;
-  let lo = -potRx * 0.45, hi = potRx * 0.45;
-  for (const q of P) {
-    const y = Math.max(rimY, G.tTop + q[0]), wl = potInner(y);
-    lo = Math.max(lo, -wl + q[1] + e); hi = Math.min(hi, wl - q[2] - e);
-  }
+  if (!G.prof || !G.prof.length) return;
+  // judge by the lower of where the object is and where it is heading, since it trails its target
+  const yy = Math.max(G.tTop, G.oy || 0);
+  let r = potRange(yy, G.swing, e);
+  // no room for the current swing: calm the pendulum until the outline fits
+  for (let n = 0; r[0] > r[1] && n < 10; n++) { G.swing *= 0.6; G.swingV *= 0.5; r = potRange(yy, G.swing, e); }
+  let [lo, hi] = r;
   if (lo > hi) lo = hi = (lo + hi) / 2;
   G.tX = clamp(G.tX, lo, hi);
+  if (typeof G.ox === 'number') G.ox = clamp(G.ox, potCx + lo, potCx + hi); // the wall stops it at once, no trailing through it
 }
 
 // where the object may hang and how far it may sink, from its real outline
@@ -4935,6 +4951,7 @@ function update(dt) {
   const target = clamp(-G.vx * 0.0011, -0.4, 0.4);
   G.swingV += (45 * (target - G.swing) - 4.5 * G.swingV) * dt;
   G.swing = clamp(G.swing + G.swingV * dt, -0.45, 0.45);
+  clampToPot();
 
   if (lvl('mix') < 0.01) MIX.charms = {};
   ragStep(dt);
