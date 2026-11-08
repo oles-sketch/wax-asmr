@@ -107,7 +107,7 @@
   #ordBtn { position: relative; }
   #ordBtn .dot { position: absolute; top: -3px; right: -3px; width: 10px; height: 10px; border-radius: 50%; background: #ff6b8b; border: 2px solid var(--bg, #2b2236); }
   #ordBtn .dot[hidden] { display: none; }
-  #ordBtn[aria-expanded="true"], #setBtn[aria-expanded="true"] { border-color: var(--accent); background: #4a3a5c; }
+  #ordBtn[aria-expanded="true"], #setBtn[aria-expanded="true"], #shelfBtn[aria-expanded="true"] { border-color: var(--accent); background: #4a3a5c; box-shadow: 0 0 0 1px var(--accent), 0 0 12px 1px var(--accent); }
   .settings {
     position: absolute; right: 0; top: calc(100% + 8px); z-index: 7; min-width: 220px;
     background: var(--panel); border: 1px solid var(--panel-line); border-radius: 18px;
@@ -310,6 +310,8 @@
     display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
   }
   .bbtn[aria-expanded="true"], .bbtn[aria-pressed="true"] { border-color: var(--accent); background: #4a3a5c; }
+  .bbtn[aria-expanded="true"], #ordBtn[aria-expanded="true"], #setBtn[aria-expanded="true"], #shelfBtn[aria-expanded="true"] { position: relative; z-index: 6; }
+  .bbtn[aria-expanded="true"] { box-shadow: 0 0 0 1px var(--accent), 0 0 12px 1px var(--accent); }
   .bico { height: 30px; display: grid; place-items: center; font-size: 24px; line-height: 1; }
   .bico img { height: 30px; max-width: 36px; object-fit: contain; display: block; }
   .bico img.round { width: 30px; border-radius: 50%; }
@@ -1767,11 +1769,13 @@ function layout() {
   potCx = W / 2;
   potRx = Math.min(W * 0.36, 210);
   potRy = Math.max(14, potRx * 0.2);
-  rimY = H * 0.66;
   potBottom = H - 12;
   // small size wobbles (browser bars sliding in and out) keep the object size, so cracks are not lost
   const wantS = Math.round(clamp(Math.min(W * 0.34, H * 0.21), 92, 170));
   const newS = baseS && Math.abs(wantS - baseS) <= 8 ? baseS : wantS;
+  // the bucket must be deep enough for the tallest object plus a thick wax coat, so on short screens it grows upward
+  const needDepth = 1.25 * newS + 52;
+  rimY = clamp(potBottom - needDepth, H * 0.5, H * 0.66);
   minTop = 56;
   panW = clamp(W * 0.19, 62, 80);
   panCx = W - 32 - panW / 2;
@@ -1839,7 +1843,9 @@ function potInner(y) {
 function clampToPot() {
   const e = edgeThickness() + 2;
   const floorTop = potBottom - 5 - (G.bot || S) - edgeThickness();
-  G.tTop = Math.min(G.tTop, Math.max(minTop, floorTop));
+  // the floor stops the object, but never so early that its tip stays above the wax: let a little coat sink past it instead
+  const tipTop = Math.min(waxY + 4, floorTop + 22);
+  G.tTop = Math.min(G.tTop, Math.max(minTop, floorTop, tipTop));
   const P = G.prof;
   if (!P || !P.length) return;
   let lo = -potRx * 0.45, hi = potRx * 0.45;
@@ -2132,11 +2138,18 @@ function toggleMelt() {
   Snd.ignite(pn);
 }
 
+// ordinary wax can't be poured out, so when the bucket is low and there are no chunks of it to melt, offer a top-up
+function potRefillable() {
+  return G.src === 'pot' && G.level < 0.995 && !(tray.chunks || []).some(c => c.src !== 'mix') && !(tray.melting && (tray.src || 'pot') !== 'mix');
+}
+function askRefill() {
+  askConfirm('Долить воск до 100%? Бесплатно.', () => { Snd.init(); setLvl('pot', 1); Snd.pour(false); Snd.chime(0); Snd.squish(0.5); saveNow(); });
+}
 function inPotBody(px, py) { return px > potCx - potRx * 0.92 && px < potCx + potRx * 0.92 && py > rimY + potRy + 14 && py < potBottom; }
 function handleTap(px, py) {
   if (tray.chunks.length && !tray.melting) { const b = panTrashBtn(); if (Math.hypot(px - b.x, py - b.y) < b.r + 8) { askDumpChunks(); return; } }
   if (inPan(px, py)) { toggleMelt(); return; }
-  if (inPotBody(px, py)) { if (G.src === 'mix') askDrain('mix', false); else { Snd.tick(0); showInfo('Обычный воск не выливается: в мусор можно только микс из мастерской', 2600); } return; }
+  if (inPotBody(px, py)) { if (G.src === 'mix') askDrain('mix', false); else if (potRefillable()) { Snd.tick(0); askRefill(); } else { Snd.tick(0); showInfo('Обычный воск не выливается: в мусор можно только микс из мастерской', 2600); } return; }
   const bottom = G.oy + G.bot;
   if (bottom > waxY - 4) return;
   const pn = pan(px);
@@ -3988,7 +4001,24 @@ function openSheet(id, title, btn) {
   sheetEl.scrollTop = 0;
 }
 document.querySelectorAll('[data-sheet]').forEach(b => b.addEventListener('click', () => { Snd.init(); openSheet(b.dataset.sheet, b.dataset.title, b); Snd.tick(0); }));
-backdropEl.addEventListener('pointerdown', (e) => { e.preventDefault(); closeSheet(); closeSettings(); closeQuest(); });
+// tapping the button that opened a panel closes it: the backdrop catches the press first and closes the panel,
+// so the click that follows on that same button must not open it again
+let tapShut = null;
+const PANEL_BTNS = () => [...document.querySelectorAll('[data-sheet]'), document.getElementById('setBtn'), document.getElementById('ordBtn'), document.getElementById('shelfBtn')].filter(Boolean);
+document.addEventListener('pointerdown', () => { tapShut = null; }, true);
+backdropEl.addEventListener('pointerdown', (e) => {
+  e.preventDefault();
+  const under = document.elementsFromPoint(e.clientX, e.clientY).find(el => PANEL_BTNS().some(b => b === el || b.contains(el)));
+  const hit = under && PANEL_BTNS().find(b => b === under || b.contains(under));
+  // only the button that opened the current panel counts as "close"; another button should still open its own panel
+  const opener = !sheetEl.hidden ? document.querySelector('[data-sheet][aria-expanded="true"]') : !settingsEl.hidden ? document.getElementById('setBtn') : !questEl.hidden ? document.getElementById(QTAB === 'shelf' ? 'shelfBtn' : 'ordBtn') : null;
+  const btn = hit && hit === opener ? hit : null;
+  closeSheet(); closeSettings(); closeQuest();
+  if (btn) { tapShut = btn; setTimeout(() => { tapShut = null; }, 1500); }
+});
+document.addEventListener('click', (e) => {
+  if (tapShut && (tapShut === e.target || tapShut.contains(e.target))) { e.stopPropagation(); e.preventDefault(); tapShut = null; }
+}, true);
 window.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closeSheet(); closeSettings(); closeQuest(); } });
 
 // each bar button shows what is chosen right now
@@ -4287,13 +4317,14 @@ const questEl = document.getElementById('quest'), ordBtn = document.getElementBy
 const orderToastEl = document.getElementById('orderToast'), infoToastEl = document.getElementById('infoToast');
 let infoT = 0;
 function showInfo(t, ms) { document.getElementById('infoMsg').textContent = t; infoToastEl.hidden = false; clearTimeout(infoT); infoT = setTimeout(() => { infoToastEl.hidden = true; }, ms || 3000); }
-function closeQuest() { questEl.hidden = true; ordBtn.setAttribute('aria-expanded', 'false'); if (sheetEl.hidden && settingsEl.hidden) backdropEl.hidden = true; }
+function syncQuestBtns() { const on = !questEl.hidden; ordBtn.setAttribute('aria-expanded', on && QTAB !== 'shelf' ? 'true' : 'false'); const sb = document.getElementById('shelfBtn'); if (sb) sb.setAttribute('aria-expanded', on && QTAB === 'shelf' ? 'true' : 'false'); }
+function closeQuest() { questEl.hidden = true; syncQuestBtns(); if (sheetEl.hidden && settingsEl.hidden) backdropEl.hidden = true; }
 let QTAB = 'orders';
 function openQuest(tab) {
   closeSheet(); closeSettings();
   if (tab) QTAB = tab;
   if (!QS.order) orderNew();
-  questEl.hidden = false; backdropEl.hidden = false; ordBtn.setAttribute('aria-expanded', 'true'); renderQuest();
+  questEl.hidden = false; backdropEl.hidden = false; syncQuestBtns(); renderQuest();
 }
 ordBtn.addEventListener('click', () => {
   Snd.init();
@@ -4307,7 +4338,7 @@ function renderQuest() {
   const tabs = h('div', 'qtabs');
   [['orders', '📋 Заказ'], ['ach', '🏆 Этапы'], ['shop', '🛒 Магазин'], ['shelf', '🗄️ Полка']].forEach(t => {
     const b = h('button', null, t[1]); b.type = 'button'; b.setAttribute('aria-pressed', QTAB === t[0] ? 'true' : 'false');
-    b.addEventListener('click', () => { QTAB = t[0]; Snd.tick(0); renderQuest(); questEl.scrollTop = 0; });
+    b.addEventListener('click', () => { QTAB = t[0]; syncQuestBtns(); Snd.tick(0); renderQuest(); questEl.scrollTop = 0; });
     tabs.appendChild(b);
   });
   questEl.appendChild(tabs);
@@ -5666,7 +5697,7 @@ function drawPotFront() {
   // how much wax is left, written on the label band
   g.textAlign = 'center'; g.textBaseline = 'middle';
   g.fillStyle = SKN ? SKN.txt : 'rgba(255,255,255,0.92)'; g.font = '600 13px Fredoka, system-ui, sans-serif';
-  g.fillText((G.src === 'mix' ? 'Микс ' : 'Воск ') + Math.round(G.level * 100) + '%' + (G.src === 'mix' ? ' ' + trashIco() : ''), potCx, rimY + potRy + 27);
+  g.fillText((G.src === 'mix' ? 'Микс ' : 'Воск ') + Math.round(G.level * 100) + '%' + (G.src === 'mix' ? ' ' + trashIco() : potRefillable() ? '  ·  долить' : ''), potCx, rimY + potRy + 27);
   g.fillStyle = SKN ? SKN.txt : 'rgba(255,255,255,0.5)'; g.globalAlpha = SKN ? 0.7 : 1; g.font = '500 11px Fredoka, system-ui, sans-serif';
   g.fillText('сломано: ' + G.broken + (G.foundTotal ? '  ·  находки: ' + G.foundTotal : ''), potCx, bot - 18);
   g.globalAlpha = 1; g.textBaseline = 'alphabetic';
