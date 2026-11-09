@@ -5210,25 +5210,39 @@ function drawCatEars() {
 }
 
 /* ---------- add-ins floating in the mixed wax in the main pot ---------- */
-const ADDIN_CAP = 12, ADDIN_TOP = 5;
-let addinCache = { sig: '', list: [] };
+const ADDIN_SLOTS = 12, ADDIN_ON_TOP = [1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 1, 0]; // 5 float on top, 7 sit deeper
+let addinCache = { sig: '', pool: [], slots: [] };
+// everything the mix holds, one of each kind first so every kind gets shown, repeats after
 function potAddins() {
-  if (G.src !== 'mix') return [];
+  if (G.src !== 'mix') return addinCache.pool = [];
   const ex = MIX.ex || {};
   const cnt = k => { const v = ex[k] || 0; return v > 0.05 ? Math.min(4, Math.ceil(v * 4)) : 0; };
   const sig = Object.keys(MIX.charms).sort().map(k => k + Math.min(MIX.charms[k], 3)).join(',') + '|' + ['sugar', 'confetti', 'foil', 'flake', 'eyes'].map(cnt).join('') + (MIX.sp > 0.15 ? 'g' : '');
-  if (sig === addinCache.sig) return addinCache.list;
+  if (sig === addinCache.sig) return addinCache.pool;
   let seed = 7; for (let i = 0; i < sig.length; i++) seed = (seed * 31 + sig.charCodeAt(i)) | 0;
-  const rn = mulberry32(seed), L = [];
-  Object.keys(MIX.charms).forEach(k => { for (let i = 0; i < Math.min(MIX.charms[k], 3); i++) L.push({ t: 'charm', k }); });
-  [['sugar', SUGAR_COLS], ['confetti', CONF_COLS], ['foil', FOIL_COLS], ['flake', FLAKE_COLS]].forEach(([k, pal]) => { for (let i = 0; i < cnt(k); i++) L.push({ t: 'ex', k, c: pal[(rn() * pal.length) | 0] }); });
-  for (let i = 0; i < cnt('eyes'); i++) L.push({ t: 'eyes' });
-  if (MIX.sp > 0.15) for (let i = 0; i < 3; i++) L.push({ t: 'glit' });
-  for (let i = L.length - 1; i > 0; i--) { const j = (rn() * (i + 1)) | 0; [L[i], L[j]] = [L[j], L[i]]; }
-  L.length = Math.min(L.length, ADDIN_CAP);
-  L.forEach((it, i) => { it.top = i < ADDIN_TOP; const a = rn() * 6.283, r = Math.sqrt(rn()); it.ax = Math.cos(a) * r; it.ay = Math.sin(a) * r; it.d = rn(); it.ph = rn() * 6.283; it.rot = rn() * 6.283; });
-  addinCache = { sig, list: L };
-  return L;
+  const rn = mulberry32(seed), groups = [];
+  Object.keys(MIX.charms).forEach(k => { const a = []; for (let i = 0; i < Math.min(MIX.charms[k], 3); i++) a.push({ t: 'charm', k }); if (a.length) groups.push(a); });
+  [['sugar', SUGAR_COLS], ['confetti', CONF_COLS], ['foil', FOIL_COLS], ['flake', FLAKE_COLS]].forEach(([k, pal]) => { const a = []; for (let i = 0; i < cnt(k); i++) a.push({ t: 'ex', k, c: pal[(rn() * pal.length) | 0] }); if (a.length) groups.push(a); });
+  { const a = []; for (let i = 0; i < cnt('eyes'); i++) a.push({ t: 'eyes' }); if (a.length) groups.push(a); }
+  if (MIX.sp > 0.15) groups.push([{ t: 'glit' }, { t: 'glit' }, { t: 'glit' }]);
+  // round-robin over the kinds (shuffled), so the first slots hold one of each kind
+  for (let i = groups.length - 1; i > 0; i--) { const j = (rn() * (i + 1)) | 0; [groups[i], groups[j]] = [groups[j], groups[i]]; }
+  const pool = []; for (let r = 0; groups.some(a => a.length > r); r++) groups.forEach(a => { if (a[r]) pool.push(a[r]); });
+  addinCache = { sig, pool, slots: [] };
+  return pool;
+}
+// each slot shows one add-in for a while, fades it out and brings the next one in somewhere else
+function addinSlot(sl) {
+  const pool = addinCache.pool, n = Math.min(ADDIN_SLOTS, pool.length);
+  if (sl >= n) return null;
+  const T = 8 + (sl * 37 % 7), ph0 = sl * 2.3, t = time + ph0, cyc = Math.floor(t / T), u = (t % T) / T;
+  let st = addinCache.slots[sl];
+  if (!st || st.cyc !== cyc) {
+    const rn = mulberry32(sl * 7919 + cyc * 104729 + 13), a = rn() * 6.283, r = Math.sqrt(rn());
+    st = addinCache.slots[sl] = { cyc, it: Object.assign({}, pool[(sl + cyc * n) % pool.length], { ax: Math.cos(a) * r, ay: Math.sin(a) * r, d: rn(), ph: rn() * 6.283, rot: rn() * 6.283 }) };
+  }
+  const e = Math.min(1, u / 0.14, (1 - u) / 0.14), env = e * e * (3 - 2 * e);
+  return { it: st.it, env: Math.max(0, env) };
 }
 function paintAddin(it, x, y, s) {
   g.save();
@@ -5256,10 +5270,12 @@ function paintAddin(it, x, y, s) {
 // the few that float on top, in their own colours (every pot skin)
 function drawAddinsTop() {
   if (G.dispLevel <= 0.02) return;
-  for (const it of potAddins()) {
-    if (!it.top) continue;
-    const x = potCx + it.ax * waxRx() * 0.72, y = waxY + it.ay * (potRy - 4) * 0.55 + Math.sin(time * 1.2 + it.ph) * 1.2;
-    paintAddin(it, x, y, 8);
+  potAddins();
+  for (let sl = 0; sl < ADDIN_SLOTS; sl++) {
+    if (!ADDIN_ON_TOP[sl]) continue;
+    const v = addinSlot(sl); if (!v || v.env <= 0.01) continue;
+    const it = v.it, x = potCx + it.ax * waxRx() * 0.72 + Math.sin(time * 0.5 + it.ph) * 3, y = waxY + it.ay * (potRy - 4) * 0.55 + Math.sin(time * 1.2 + it.ph) * 1.2;
+    g.save(); g.globalAlpha = v.env; paintAddin(it, x, y, 8); g.restore();
   }
 }
 // glass pot: the rest hang inside the wax, seen through the wall, so they look muted and sit a little deeper
@@ -5267,15 +5283,14 @@ function drawAddinsDeep(rx, bot) {
   if (G.dispLevel <= 0.02) return;
   const y0 = waxY + 22, y1 = bot - 30;
   if (y1 <= y0) return;
-  g.save(); g.globalAlpha = 0.6;
-  for (const it of potAddins()) {
-    if (it.top) continue;
-    const x = potCx + it.ax * rx * 0.74 + Math.sin(time * 0.8 + it.ph) * 1.5, y = y0 + it.d * (y1 - y0) + Math.sin(time * 1.1 + it.ph) * 2;
-    paintAddin(it, x, y, 11);
+  potAddins();
+  for (let sl = 0; sl < ADDIN_SLOTS; sl++) {
+    if (ADDIN_ON_TOP[sl]) continue;
+    const v = addinSlot(sl); if (!v || v.env <= 0.01) continue;
+    const it = v.it, x = potCx + it.ax * rx * 0.74 + Math.sin(time * 0.6 + it.ph) * 3, y = y0 + it.d * (y1 - y0) + Math.sin(time * 1.1 + it.ph) * 2.5;
+    g.save(); g.globalAlpha = 0.6 * v.env; paintAddin(it, x, y, 11); g.restore();
   }
-  g.restore();
 }
-
 function drawPotBack() {
   const SKN = skinVis(); if (SKN && SKN.cat) drawCatEars();
   g.beginPath(); ell(potCx, rimY, potRx, potRy); g.fillStyle = SKN ? SKN.rim : (fxOn('layers') ? '#e8c45a' : '#a996c8'); g.fill();
