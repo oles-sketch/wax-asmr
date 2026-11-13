@@ -124,6 +124,14 @@
   .opt[aria-checked="true"] .sw { background: #7b4a68; border-color: var(--accent); }
   .opt[aria-checked="true"] .sw::after { transform: translateX(18px); background: var(--accent); }
   .opt.sub { padding-left: 26px; font-size: 13px; }
+  .opt .chev { transition: transform .2s; opacity: .7; }
+  .opt[aria-expanded="true"] .chev { transform: rotate(180deg); }
+  #sndAdv { margin: 2px 0 8px; padding: 6px 4px 4px 12px; max-height: 46vh; overflow-y: auto; border-left: 2px solid rgba(255,255,255,0.14); }
+  #sndAdv .vrow { display: grid; grid-template-columns: 1fr auto 34px; align-items: center; column-gap: 8px; padding: 5px 0; font-size: 13px; }
+  #sndAdv .vrow input[type=range] { grid-column: 1 / 3; width: 100%; accent-color: #f4a6c0; margin: 0; height: 22px; }
+  #sndAdv .vrow .vv { opacity: .75; font-variant-numeric: tabular-nums; }
+  #sndAdv .vrow .vplay { grid-row: 1 / 3; grid-column: 3; width: 34px; height: 34px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.25); background: transparent; color: inherit; font-size: 13px; }
+  #sndAdv .vreset { width: 100%; margin-top: 6px; height: 34px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.25); background: transparent; color: inherit; font: inherit; font-size: 13px; }
   .opt-note { font-size: 12px; color: var(--fg-dim); }
   #optFree[hidden], #freeNote[hidden] { display: none !important; }
   .secret { display: flex; gap: 6px; }
@@ -338,6 +346,11 @@
     max-height: 62vh; overflow-y: auto;
   }
   .sheet[hidden] { display: none; }
+  .otabs { display: none; gap: 6px; margin: -2px 0 10px; }
+  .sheet[data-open="objRow"] .otabs { display: flex; }
+  .otabs button { flex: 1; height: 34px; border-radius: 12px; border: 1px solid var(--line, rgba(255,255,255,0.14)); background: transparent; color: var(--fg-dim); font: inherit; font-size: 14px; }
+  .otabs button[aria-pressed="true"] { background: rgba(255,255,255,0.14); color: var(--fg); border-color: rgba(255,255,255,0.35); }
+  .sheet .chip[hidden] { display: none; }
   .sheet-title { font-family: var(--font-display); font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--fg-dim); margin: 0 2px 10px; }
   .sheet .grid { display: none; grid-template-columns: repeat(auto-fill, minmax(58px, 1fr)); gap: 8px; }
   .sheet[data-open="objRow"] #objRow, .sheet[data-open="colorRow"] #colorRow, .sheet[data-open="typeRow"] #typeRow,
@@ -436,6 +449,8 @@
     <div class="settings" id="settings" hidden>
       <div class="sheet-title">Настройки</div>
       <button type="button" class="opt" id="optSound" role="switch" aria-checked="true"><span>🔊 Звук</span><i class="sw"></i></button>
+      <button type="button" class="opt sub" id="optSndMore" aria-expanded="false"><span>🎚️ Громкость каждого звука</span><i class="chev">▾</i></button>
+      <div id="sndAdv" hidden></div>
       <button type="button" class="opt" id="optVibe" role="switch" aria-checked="true"><span>📳 Вибрация</span><i class="sw"></i></button>
       <button type="button" class="opt" id="optFx" role="switch" aria-checked="true"><span>🏆 Эффекты наград (все сразу)</span><i class="sw"></i></button>
       <button type="button" class="opt" id="optFree" role="switch" aria-checked="true"><span>🔓 Всё открыто (без магазина)</span><i class="sw"></i></button>
@@ -460,6 +475,7 @@
   <div class="controls" id="controls">
     <div class="sheet" id="sheet" hidden>
       <div class="sheet-title" id="sheetTitle"></div>
+      <div class="otabs" id="objTabs"><button type="button" data-t="all" aria-pressed="true">Все</button><button type="button" data-t="plain" aria-pressed="false">Обычные</button><button type="button" data-t="sq" aria-pressed="false">Сквиши</button><button type="button" data-t="toy" aria-pressed="false">Интерактив</button></div>
       <div class="grid" id="objRow"></div>
       <div class="grid" id="colorRow" data-type="plain"></div>
       <div class="grid" id="typeRow"></div>
@@ -499,6 +515,7 @@ const Snd = (() => {
   let pourGain = null, pourFilter = null;
   let scrapeVol = null, scrapeFilter = null, scrapeLfo = null;
   let enabled = true;
+  let volMul = 1, vols = {}, mvol = 1; // per-sound volume while one of the sounds is being made, the table of settings, the master level
 
   function makeBuffers() {
     const len = ctx.sampleRate * 2;
@@ -523,7 +540,7 @@ const Snd = (() => {
     comp = ctx.createDynamicsCompressor();
     comp.threshold.value = -18; comp.ratio.value = 4;
     master = ctx.createGain();
-    master.gain.value = enabled ? 0.9 : 0;
+    master.gain.value = enabled ? 0.9 * mvol : 0;
     master.connect(comp); comp.connect(ctx.destination);
 
     // continuous slide noise while the object moves through wax
@@ -571,7 +588,8 @@ const Snd = (() => {
 
   // short filtered noise burst
   function burst({ buf = white, type = 'bandpass', freq = 3000, q = 1, dur = 0.02, gain = 0.2, pan = 0, delay = 0, sweepTo = null }) {
-    if (!ctx || !enabled) return;
+    if (!ctx || !enabled || volMul <= 0) return;
+    gain *= volMul;
     const t = ctx.currentTime + delay;
     const s = ctx.createBufferSource();
     s.buffer = buf;
@@ -589,7 +607,8 @@ const Snd = (() => {
   }
 
   function tone({ type = 'sine', f0 = 400, f1 = 200, dur = 0.08, gain = 0.1, pan = 0, delay = 0, attack = 0.004 }) {
-    if (!ctx || !enabled) return;
+    if (!ctx || !enabled || volMul <= 0) return;
+    gain *= volMul;
     const t = ctx.currentTime + delay;
     const o = ctx.createOscillator();
     o.type = type;
@@ -719,8 +738,15 @@ const Snd = (() => {
     init,
     setEnabled(v) {
       enabled = v;
-      if (master) master.gain.setTargetAtTime(v ? 0.9 : 0, ctx.currentTime, 0.05);
+      if (master) master.gain.setTargetAtTime(v ? 0.9 * mvol : 0, ctx.currentTime, 0.05);
     },
+    // volume settings: a table {group: 0..2} and the master level
+    setVols(t, m) {
+      vols = t || {}; mvol = typeof m === 'number' ? m : 1;
+      if (master) master.gain.setTargetAtTime(enabled ? 0.9 * mvol : 0, ctx.currentTime, 0.05);
+    },
+    vol(id) { return typeof vols[id] === 'number' ? vols[id] : 1; },
+    _vm(v) { const p = volMul; volMul = v; return p; },
     isEnabled: () => enabled,
     setSet(id) { sset = SETS[id] ? id : 'classic'; },
     // what you hear, as a stream a video recording can take along
@@ -734,7 +760,7 @@ const Snd = (() => {
     // called every frame
     slide(speed, inWax, pan) {
       if (!ctx || !slideGain) return;
-      const target = enabled && inWax ? Math.min(0.55, speed / 700) : 0;
+      const target = enabled && inWax ? Math.min(0.55, speed / 700) * volMul : 0;
       slideGain.gain.setTargetAtTime(target, ctx.currentTime, 0.06);
       slideFilter.frequency.setTargetAtTime(220 + Math.min(900, speed * 0.9), ctx.currentTime, 0.08);
       if (slidePan) slidePan.pan.setTargetAtTime(pan, ctx.currentTime, 0.1);
@@ -758,8 +784,47 @@ const Snd = (() => {
       tone({ f0: f, f1: f * 2.1, dur: 0.06, gain: 0.07, pan });
       burst({ buf: brown, type: 'lowpass', freq: 500, dur: 0.05, gain: 0.12, pan, delay: 0.04 });
     },
+    // wax landing in the bucket
+    plop(pan, big) {
+      const f = rnd(190, 280) * (big === false ? 1.4 : 1);
+      tone({ f0: f, f1: f * 0.42, dur: 0.13, gain: big === false ? 0.16 : 0.26, pan });
+      burst({ buf: brown, type: 'lowpass', freq: 900, q: 0.8, dur: 0.1, gain: big === false ? 0.12 : 0.22, pan, sweepTo: 220 });
+      tone({ f0: f * 2.6, f1: f * 1.1, dur: 0.05, gain: 0.05, pan, delay: 0.02 });
+    },
+    // toy gamepad: plastic key clicks, rubbery stick
+    btnDown(pan) {
+      burst({ type: 'bandpass', freq: 2600, q: 1.4, dur: 0.012, gain: 0.3, pan });
+      tone({ type: 'square', f0: 1500, f1: 700, dur: 0.02, gain: 0.05, pan });
+      tone({ f0: 230, f1: 140, dur: 0.045, gain: 0.12, pan });
+    },
+    btnUp(pan) {
+      burst({ type: 'bandpass', freq: 3600, q: 1.6, dur: 0.008, gain: 0.17, pan });
+      tone({ f0: 900, f1: 520, dur: 0.015, gain: 0.04, pan });
+    },
+    stickMove(pan) { burst({ buf: brown, type: 'bandpass', freq: 1700, q: 2.4, dur: 0.05, gain: 0.09, pan, sweepTo: 1100 }); },
+    stickBack(pan) {
+      tone({ f0: 190, f1: 90, dur: 0.08, gain: 0.2, pan });
+      burst({ buf: brown, type: 'lowpass', freq: 1300, q: 0.8, dur: 0.05, gain: 0.2, pan, sweepTo: 400 });
+      tone({ f0: 320, f1: 150, dur: 0.05, gain: 0.07, pan, delay: 0.07 });
+    },
     squish(pan) {
       burst({ buf: brown, type: 'lowpass', freq: 800, q: 0.8, dur: 0.22, gain: 0.5, pan, sweepTo: 160 });
+    },
+    // squishy toy: press sinks with a rubbery squeak, release pops back up
+    sqDown(pan) {
+      tone({ f0: 300, f1: 120, dur: 0.14, gain: 0.3, pan });
+      burst({ buf: brown, type: 'lowpass', freq: 700, q: 0.8, dur: 0.1, gain: 0.3, pan, sweepTo: 200 });
+      tone({ type: 'triangle', f0: rnd(700, 900), f1: rnd(420, 520), dur: 0.09, gain: 0.05, pan, delay: 0.02 });
+    },
+    sqMove(pan) {
+      const f = rnd(190, 320);
+      tone({ f0: f, f1: f * 1.35, dur: 0.07, gain: 0.07, pan });
+      burst({ buf: brown, type: 'lowpass', freq: 500, dur: 0.06, gain: 0.1, pan });
+    },
+    sqUp(pan) {
+      tone({ f0: 140, f1: 420, dur: 0.16, gain: 0.26, pan });
+      tone({ type: 'triangle', f0: 520, f1: 900, dur: 0.1, gain: 0.05, pan, delay: 0.03 });
+      burst({ type: 'bandpass', freq: 1500, q: 2, dur: 0.012, gain: 0.12, pan, delay: 0.14 });
     },
     tick(pan) {
       burst({ type: 'bandpass', freq: rnd(2500, 4000), q: 4, dur: 0.012, gain: 0.08, pan });
@@ -806,7 +871,7 @@ const Snd = (() => {
     // called every frame; speed is the finger speed in px/s while scraping over wax, 0 otherwise
     scrape(speed) {
       if (!ctx || !scrapeVol) return;
-      const v = enabled && speed > 25 ? Math.min(0.2, 0.03 + speed / 9000) : 0;
+      const v = enabled && speed > 25 ? Math.min(0.2, 0.03 + speed / 9000) * volMul : 0;
       scrapeVol.gain.setTargetAtTime(v, ctx.currentTime, 0.04);
       if (speed > 25) {
         scrapeFilter.frequency.setTargetAtTime(1300 + Math.min(1600, speed * 1.2), ctx.currentTime, 0.05);
@@ -821,7 +886,7 @@ const Snd = (() => {
     pour(on) {
       if (!ctx || !pourGain) return;
       // set once per start/stop, a constant level (no per-frame wobble)
-      const v = enabled && on ? 0.1 : 0;
+      const v = enabled && on ? 0.1 * volMul : 0;
       pourGain.gain.setTargetAtTime(v, ctx.currentTime, 0.12);
     },
     // quiet crackle from the flame
@@ -957,8 +1022,8 @@ const Hap = {
   }
 };
 const HAP_MAP = {
-  plopIn: 22, slurpOut: 14, drip: 6, squish: 10, harden: [6, 70, 6, 70, 6], crack: 14, crunch: 28, crunch2: 34, boom: 60, fuse: 4, landing: 16, pop: 12,
-  clink: 8, ignite: 20, thud: 55, snap: 10, foam: 9, creak: 7, ice: [10, 40, 10], scent: [8, 40, 8], chime: [18, 50, 18]
+  plopIn: 22, slurpOut: 14, drip: 6, squish: 10, plop: 8, sqDown: 14, sqUp: 12, harden: [6, 70, 6, 70, 6], crack: 14, crunch: 28, crunch2: 34, boom: 60, fuse: 4, landing: 16, pop: 12,
+  btnDown: 10, btnUp: 4, stickBack: 8, clink: 8, ignite: 20, thud: 55, snap: 10, foam: 9, creak: 7, ice: [10, 40, 10], scent: [8, 40, 8], chime: [18, 50, 18]
 };
 Object.keys(HAP_MAP).forEach(n => {
   const f = Snd[n]; if (!f) return;
@@ -969,6 +1034,49 @@ Object.keys(HAP_MAP).forEach(n => {
   Snd.scrape = function (speed) { if (speed > 25) Hap.buzz(5, 90); return sc.apply(Snd, arguments); };
 }
 
+
+/* ---------- Volume per sound: every sound belongs to a group with its own slider ---------- */
+const SND_GROUPS = [
+  { id: 'dip', n: 'Окунание и вытягивание', fn: ['plopIn', 'slurpOut'], test: () => Snd.plopIn(0) },
+  { id: 'slide', n: 'Движение в воске', fn: ['slide'], test: () => { Snd.slide(520, true, 0); setTimeout(() => Snd.slide(0, false, 0), 800); } },
+  { id: 'drip', n: 'Капли воска', fn: ['drip'], test: () => Snd.drip(0) },
+  { id: 'plop', n: 'Хлюп в ведре', fn: ['plop'], test: () => Snd.plop(0) },
+  { id: 'bubble', n: 'Пузырьки в ведре', fn: ['bubble'], test: () => Snd.bubble(0) },
+  { id: 'squish', n: 'Чавк воска', fn: ['squish'], test: () => Snd.squish(0) },
+  { id: 'squishy', n: 'Сквиш (нажатие и возврат)', fn: ['sqDown', 'sqMove', 'sqUp'], test: () => { Snd.sqDown(0); setTimeout(() => Snd.sqMove(0), 180); setTimeout(() => Snd.sqUp(0), 450); } },
+  { id: 'tick', n: 'Щелчки кнопок', fn: ['tick'], test: () => Snd.tick(0) },
+  { id: 'harden', n: 'Застывание воска', fn: ['harden'], test: () => Snd.harden(0) },
+  { id: 'crack', n: 'Треск (первый удар)', fn: ['crack'], test: () => Snd.crack(0) },
+  { id: 'crunch', n: 'Хруст кусочка', fn: ['crunch'], test: () => Snd.crunch(0) },
+  { id: 'crunch2', n: 'Супер-хруст', fn: ['crunch2'], test: () => Snd.crunch2(0) },
+  { id: 'landing', n: 'Падение кусочка', fn: ['landing'], test: () => Snd.landing(0) },
+  { id: 'scrape', n: 'Скрёб по твёрдому воску', fn: ['scrape'], test: () => { let n = 0; const t = setInterval(() => { Snd.scrape(n < 7 ? 320 : 0); if (++n > 8) clearInterval(t); }, 100); } },
+  { id: 'pop', n: 'Лопнувший пузырёк в воске', fn: ['pop'], test: () => Snd.pop(0) },
+  { id: 'pour', n: 'Заливка воска', fn: ['pour'], test: () => { Snd.pour(true); setTimeout(() => Snd.pour(false), 900); } },
+  { id: 'fire', n: 'Огонь в мастерской', fn: ['ignite', 'fizz'], test: () => { Snd.ignite(0); for (let i = 1; i < 6; i++) setTimeout(() => Snd.fizz(0), i * 120); } },
+  { id: 'blub', n: 'Бульканье расплава', fn: ['blub'], test: () => Snd.blub(0) },
+  { id: 'clink', n: 'Звяк кубика', fn: ['clink'], test: () => Snd.clink(0) },
+  { id: 'foam', n: 'Пенопласт', fn: ['foam'], test: () => Snd.foam(0, true) },
+  { id: 'hole', n: 'Чёрная дыра', fn: ['hole'], test: () => Snd.hole(0) },
+  { id: 'thud', n: 'Молоток (удар)', fn: ['thud'], test: () => Snd.thud(0) },
+  { id: 'ding', n: 'Золотой молоток (динь)', fn: ['ding'], test: () => Snd.ding(0) },
+  { id: 'bomb', n: 'Бомба (фитиль и взрыв)', fn: ['fuse', 'boom'], test: () => { Snd.fuse(0); setTimeout(() => Snd.fuse(0), 150); setTimeout(() => Snd.boom(0), 450); } },
+  { id: 'zap', n: 'Лазер', fn: ['zap'], test: () => { Snd.zap(0); setTimeout(() => Snd.zap(0), 110); } },
+  { id: 'toy', n: 'Кнопки и стики геймпада', fn: ['btnDown', 'btnUp', 'stickMove', 'stickBack'], test: () => { Snd.btnDown(0); setTimeout(() => Snd.btnUp(0), 90); setTimeout(() => { Snd.stickMove(0); Snd.stickMove(0); }, 250); setTimeout(() => Snd.stickBack(0), 500); } },
+  { id: 'snap', n: 'Мягкий кусочек отломился', fn: ['snap'], test: () => Snd.snap(0) },
+  { id: 'creak', n: 'Скрип скрутки', fn: ['creak'], test: () => Snd.creak(0) },
+  { id: 'ice', n: 'Мороз', fn: ['ice'], test: () => Snd.ice(0) },
+  { id: 'hiss', n: 'Фен', fn: ['hiss'], test: () => Snd.hiss(0) },
+  { id: 'scent', n: 'Аромат', fn: ['scent'], test: () => Snd.scent(0) },
+  { id: 'chime', n: 'Звоночки (заказ, награда)', fn: ['chime'], test: () => Snd.chime() }
+];
+SND_GROUPS.forEach(gr => gr.fn.forEach(n => {
+  const f = Snd[n]; if (!f) return;
+  Snd[n] = function () {
+    const prev = Snd._vm(Snd.vol(gr.id));
+    try { return f.apply(Snd, arguments); } finally { Snd._vm(prev); }
+  };
+}));
 /* Cut-out sprites made from the photos, embedded so the page works on its own */
 const IMAGE_SRC = {
   croissant: 'data:image/webp;base64,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',
@@ -1026,14 +1134,15 @@ const OBJECTS = [
   { img: 'kisyulya', n: 'Кисюля', zoom: 1.7 },
   { img: 'crownobj', n: 'Корона', zoom: 1.5 },
   { img: 'diamondobj', n: 'Алмаз', zoom: 1.4 },
-  { img: 'donutobj', n: 'Пончик', zoom: 1.25 },
+  { img: 'donutobj', n: 'Пончик', zoom: 1.25, sq: true },
   { img: 'icecreamobj', n: 'Мороженое', zoom: 1.5 },
   { e: '⭐', n: 'Звёздочка' },
   { e: '💖', n: 'Сердечко' },
   { img: 'butterflyobj', n: 'Бабочка', zoom: 1.3 },
   { img: 'cakeobj', n: 'Тортик', zoom: 1.2 },
   { img: 'beerobj', n: 'Пиво', zoom: 1.25, cx: 0.42 },
-  { img: 'cat2obj', n: 'Кисюля сидит', zoom: 1.5 }
+  { img: 'cat2obj', n: 'Кисюля сидит', zoom: 1.5 },
+  { e: '🎮', toy: 'pad', n: 'Геймпад', zoom: 1.75 }
 ];
 // order of the object chips: the four free ones, then the beer (also free), then the rest
 const BEER_IDX = OBJECTS.findIndex(o => o.img === 'beerobj');
@@ -1130,6 +1239,7 @@ function makeSprite(obj, S) {
     const c = mkCanvas(S, S); ragRender(c, null);
     return { canvas: c, bot: RAG_BACON.H * ragScale(S) };
   }
+  if (obj.toy) { const c = mkCanvas(S, S); padRender(c, null); return { canvas: c, bot: padLayout(S).bot }; }
   const B = 256;
   const big = mkCanvas(B, B);
   const bg = big.getContext('2d');
@@ -1751,6 +1861,165 @@ function drawCracks(piece, hx, hy, color) {
   }
   g.restore();
 }
+/* ---------- Interactive toys: a gamepad drawn in code, its buttons and sticks really move ---------- */
+// design box 400 x 250, y down; the string hangs from the top middle
+var PAD = {
+  W: 400, H: 250,
+  body: [[95, 18], [140, 6, 260, 6, 305, 18], [352, 24, 394, 82, 392, 170], [390, 218, 366, 244, 334, 242], [304, 240, 292, 214, 272, 196],
+    [250, 178, 150, 178, 128, 196], [108, 214, 96, 240, 66, 242], [34, 244, 10, 218, 8, 170], [6, 82, 48, 24, 95, 18]],
+  sticks: { L: { x: 112, y: 92, r: 34, t: 15 }, R: { x: 250, y: 146, r: 30, t: 13 } },
+  dpad: { x: 150, y: 142, h: 27 },
+  btns: { A: { x: 292, y: 120, r: 15, c: '#7ed6a0' }, B: { x: 320, y: 92, r: 15, c: '#f58f84' }, X: { x: 264, y: 92, r: 15, c: '#8fb8f0' }, Y: { x: 292, y: 64, r: 15, c: '#f6cf72' },
+    sel: { x: 178, y: 92, r: 9, c: '#b7a9d9' }, sta: { x: 222, y: 92, r: 9, c: '#b7a9d9' }, home: { x: 200, y: 58, r: 11, c: '#f4a6c0' } },
+  trig: { LT: { x: 62, y: 0, w: 80, h: 22 }, RT: { x: 258, y: 0, w: 80, h: 22 } }
+};
+var TOY = { parts: {}, act: null, hold: {}, dirty: true, snd: 0 };
+function isToy() { return !!(OBJECTS[G.kind] && OBJECTS[G.kind].toy); }
+function padLayout(S) { const k = S / PAD.W * FIT; return { k, ox: (S - PAD.W * k) / 2, bot: PAD.H * k }; }
+function toyPart(id) { return TOY.parts[id] || (TOY.parts[id] = { k: 0, v: 0, x: 0, y: 0, vx: 0, vy: 0, tx: 0, ty: 0 }); }
+
+function padShade(c, f) { // darker / lighter version of a #rrggbb colour
+  const n = parseInt(c.slice(1), 16), r = n >> 16, g = (n >> 8) & 255, b = n & 255;
+  const m = v => Math.max(0, Math.min(255, Math.round(f >= 0 ? v + (255 - v) * f : v * (1 + f))));
+  return 'rgb(' + m(r) + ',' + m(g) + ',' + m(b) + ')';
+}
+function padCap(g, x, y, r, col, press) { // a round plastic key with a soft shadow; pressed = sunk in
+  const s = 1 - press * 0.1, dy = press * 2.5;
+  g.fillStyle = 'rgba(60,40,100,0.28)'; g.beginPath(); g.arc(x, y + 2.5, r * 1.06, 0, 7); g.fill();
+  const gr = g.createLinearGradient(x, y - r + dy, x, y + r + dy);
+  gr.addColorStop(0, padShade(col, 0.35 - press * 0.3)); gr.addColorStop(1, padShade(col, -0.12 - press * 0.12));
+  g.fillStyle = gr; g.beginPath(); g.arc(x, y + dy, r * s, 0, 7); g.fill();
+  g.strokeStyle = padShade(col, -0.35); g.lineWidth = 1.6; g.stroke();
+  g.fillStyle = 'rgba(255,255,255,' + (0.5 - press * 0.35) + ')'; g.beginPath(); g.ellipse(x - r * 0.25, y - r * 0.4 + dy, r * 0.42 * s, r * 0.2 * s, -0.3, 0, 7); g.fill();
+}
+function padRender(c, parts) {
+  const S = c.width, L = padLayout(S), g = c.getContext('2d'), P = parts || {};
+  g.clearRect(0, 0, S, S); g.imageSmoothingQuality = 'high';
+  g.save(); g.translate(L.ox, 0); g.scale(L.k, L.k); g.lineJoin = 'round'; g.lineCap = 'round';
+  const pk = id => (P[id] ? P[id].k : 0);
+  // shoulder triggers sit behind the body
+  for (const id in PAD.trig) {
+    const t = PAD.trig[id], p = pk(id);
+    g.fillStyle = padShade('#b7a9d9', -0.1 - p * 0.15); g.strokeStyle = '#7f6db0'; g.lineWidth = 2.5;
+    g.beginPath(); g.roundRect(t.x, t.y + p * 4, t.w, t.h + 8, 9); g.fill(); g.stroke();
+  }
+  // body
+  g.beginPath(); g.moveTo(PAD.body[0][0], PAD.body[0][1]);
+  for (let i = 1; i < PAD.body.length; i++) { const b = PAD.body[i]; g.bezierCurveTo(b[0], b[1], b[2], b[3], b[4], b[5]); }
+  g.closePath();
+  const bg = g.createLinearGradient(0, 0, 0, PAD.H);
+  bg.addColorStop(0, '#f6f1fd'); bg.addColorStop(0.55, '#ddd2f3'); bg.addColorStop(1, '#bcaee3');
+  g.fillStyle = bg; g.fill(); g.strokeStyle = '#7f6db0'; g.lineWidth = 3.5; g.stroke();
+  g.save(); g.clip();
+  g.fillStyle = 'rgba(255,255,255,0.5)'; g.beginPath(); g.ellipse(200, 30, 150, 14, 0, 0, 7); g.fill(); // gloss
+  g.fillStyle = 'rgba(120,100,180,0.16)'; g.beginPath(); g.ellipse(50, 195, 40, 52, 0.2, 0, 7); g.ellipse(350, 195, 40, 52, -0.2, 0, 7); g.fill(); // grips
+  g.restore();
+  // sticks: dark well, then the cap that slides and tilts
+  for (const id in PAD.sticks) {
+    const s = PAD.sticks[id], p = toyPart('stick' + id);
+    const q = P['stick' + id] || { x: 0, y: 0 };
+    g.fillStyle = '#6d5d99'; g.beginPath(); g.arc(s.x, s.y, s.r, 0, 7); g.fill();
+    g.fillStyle = '#4e4278'; g.beginPath(); g.arc(s.x, s.y + 1.5, s.r - 4, 0, 7); g.fill();
+    const cx = s.x + q.x * s.t, cy = s.y + q.y * s.t, m = Math.min(1, Math.hypot(q.x, q.y)), cr = s.r * 0.66 * (1 + m * 0.06);
+    g.fillStyle = 'rgba(30,20,60,0.35)'; g.beginPath(); g.ellipse(cx + q.x * 3, cy + 4 + q.y * 3, cr, cr * 0.95, 0, 0, 7); g.fill();
+    const gr = g.createRadialGradient(cx - cr * 0.3 - q.x * 3, cy - cr * 0.35 - q.y * 3, 1, cx, cy, cr * 1.1);
+    gr.addColorStop(0, '#fbd1e2'); gr.addColorStop(1, '#e08cb0');
+    g.fillStyle = gr; g.beginPath(); g.arc(cx, cy, cr, 0, 7); g.fill(); g.strokeStyle = '#a85a85'; g.lineWidth = 1.8; g.stroke();
+    g.strokeStyle = 'rgba(168,90,133,0.55)'; g.lineWidth = 1.2;
+    for (let r2 = cr * 0.32; r2 < cr * 0.8; r2 += cr * 0.2) { g.beginPath(); g.arc(cx, cy, r2, 0, 7); g.stroke(); } // grip rings
+  }
+  // d-pad: a plus that presses toward the finger
+  { const d = PAD.dpad, p = P.dpad || { x: 0, y: 0, k: 0 }, a = d.h, w = d.h * 0.62;
+    g.save(); g.translate(d.x + p.x * 1.2, d.y + p.y * 1.2);
+    g.fillStyle = 'rgba(60,40,100,0.3)'; g.beginPath(); g.roundRect(-a, -w / 2 + 2.5, a * 2, w, 5); g.roundRect(-w / 2, -a + 2.5, w, a * 2, 5); g.fill();
+    g.fillStyle = '#5d4f8c'; g.strokeStyle = '#3f3466'; g.lineWidth = 1.8;
+    g.beginPath(); g.roundRect(-a, -w / 2, a * 2, w, 5); g.fill(); g.stroke();
+    g.beginPath(); g.roundRect(-w / 2, -a, w, a * 2, 5); g.fill(); g.stroke();
+    g.fillStyle = '#5d4f8c'; g.fillRect(-w / 2 + 1, -w / 2 + 1, w - 2, w - 2);
+    g.fillStyle = 'rgba(255,255,255,0.28)'; g.beginPath(); g.roundRect(-a + 3, -w / 2 + 2, a * 2 - 6, 3, 2); g.fill();
+    // the pressed arm glows
+    const arms = [[0, -1, 'u'], [0, 1, 'd'], [-1, 0, 'l'], [1, 0, 'r']];
+    arms.forEach(a2 => { const v = a2[0] ? p.x * a2[0] : p.y * a2[1]; if (v > 0.35) { g.fillStyle = 'rgba(255,200,230,' + Math.min(0.9, v) + ')'; g.beginPath(); g.arc(a2[0] * a * 0.72, a2[1] * a * 0.72, 4.5, 0, 7); g.fill(); } });
+    g.restore(); }
+  // face buttons and small ones
+  for (const id in PAD.btns) { const b = PAD.btns[id]; padCap(g, b.x, b.y, b.r, b.c, pk(id)); }
+  g.fillStyle = 'rgba(60,40,100,0.55)'; g.font = '700 11px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+  ['A', 'B', 'X', 'Y'].forEach(id => { const b = PAD.btns[id]; g.fillText(id, b.x, b.y + 1 + pk(id) * 2.5); });
+  g.restore();
+}
+
+// where a screen point lands on the toy, as a zone to press (design coordinates)
+function toyHit(x, y) {
+  if (!isToy() || G.layers.length || G.inWax) return null;
+  const L = padLayout(S), l = sqLocal(x, y), dx = (l.x + S / 2 - L.ox) / L.k, dy = l.y / L.k;
+  for (const id in PAD.sticks) { const s = PAD.sticks[id]; if (Math.hypot(dx - s.x, dy - s.y) < s.r + 4) return { type: 'stick', id: 'stick' + id, c: s }; }
+  for (const id in PAD.btns) { const b = PAD.btns[id]; if (Math.hypot(dx - b.x, dy - b.y) < b.r + 8) return { type: 'btn', id, c: b }; }
+  const d = PAD.dpad; if (Math.abs(dx - d.x) < d.h + 3 && Math.abs(dy - d.y) < d.h + 3) return { type: 'dpad', id: 'dpad', c: d };
+  for (const id in PAD.trig) { const t = PAD.trig[id]; if (dx > t.x - 4 && dx < t.x + t.w + 4 && dy >= -4 && dy < t.y + t.h + 6) return { type: 'btn', id, c: t }; }
+  return null;
+}
+function toyStart(x, y, z) {
+  TOY.act = z; const p = toyPart(z.id);
+  if (z.type === 'btn') { TOY.hold[z.id] = time + 0.09; Snd.btnDown(pan(x)); }
+  else { Snd.btnDown(pan(x)); toyMove(x, y); }
+  TOY.dirty = true;
+}
+function toyMove(x, y) {
+  const z = TOY.act; if (!z) return;
+  const L = padLayout(S), l = sqLocal(x, y), dx = (l.x + S / 2 - L.ox) / L.k, dy = l.y / L.k;
+  if (z.type === 'stick') {
+    const p = toyPart(z.id); let vx = (dx - z.c.x) / z.c.t, vy = (dy - z.c.y) / z.c.t, m = Math.hypot(vx, vy);
+    if (m > 1) { vx /= m; vy /= m; }
+    const sp = Math.hypot(vx - p.tx, vy - p.ty); p.tx = vx; p.ty = vy;
+    if (sp > 0.05 && time - TOY.snd > 0.09) { TOY.snd = time; Snd.stickMove(pan(x)); }
+  } else if (z.type === 'dpad') {
+    const p = toyPart('dpad'); let vx = (dx - z.c.x) / z.c.h, vy = (dy - z.c.y) / z.c.h, m = Math.hypot(vx, vy);
+    if (m > 1) { vx /= m; vy /= m; }
+    const nx = Math.abs(vx) > 0.28 ? Math.sign(vx) : 0, ny = Math.abs(vy) > 0.28 ? Math.sign(vy) : 0;
+    if ((nx !== p.tx || ny !== p.ty) && (nx || ny)) Snd.btnDown(pan(x));
+    p.tx = nx || (ny ? 0 : p.tx); p.ty = ny || (nx ? 0 : p.ty);
+  }
+  TOY.dirty = true;
+}
+function toyEnd(x) {
+  const z = TOY.act; TOY.act = null; if (!z) return;
+  const p = toyPart(z.id);
+  if (z.type === 'stick') { Snd.stickBack(pan(x != null ? x : G.ox)); p.tx = 0; p.ty = 0; }
+  else if (z.type === 'dpad') { p.tx = 0; p.ty = 0; Snd.btnUp(pan(x != null ? x : G.ox)); }
+  else Snd.btnUp(pan(x != null ? x : G.ox));
+  TOY.dirty = true;
+}
+// springs for every moving part, then the picture is redrawn only while something moves
+function toyStep(dt) {
+  if (!isToy() || !G.sprite) { TOY.act = null; return; }
+  if (G.layers.length || G.inWax) return; // wax sets on the toy: nothing moves any more
+  const steps = Math.max(1, Math.ceil(dt / 0.008)), h = dt / steps; let moving = false;
+  for (const id in TOY.parts) {
+    const p = TOY.parts[id], isStick = id.indexOf('stick') === 0, isPad = id === 'dpad';
+    const downNow = TOY.act && TOY.act.id === id, held = downNow || (TOY.hold[id] || 0) > time;
+    for (let i = 0; i < steps; i++) {
+      if (isStick) {
+        p.vx += ((p.tx - p.x) * 320 - p.vx * 9) * h; p.vy += ((p.ty - p.y) * 320 - p.vy * 9) * h; p.x += p.vx * h; p.y += p.vy * h;
+      } else if (isPad) {
+        p.vx += ((p.tx - p.x) * 520 - p.vx * 24) * h; p.vy += ((p.ty - p.y) * 520 - p.vy * 24) * h; p.x += p.vx * h; p.y += p.vy * h;
+        p.k = Math.hypot(p.x, p.y);
+      } else {
+        p.v += (((held ? 1 : 0) - p.k) * 650 - p.v * 22) * h; p.k += p.v * h;
+      }
+    }
+    const e = isStick || isPad ? Math.abs(p.x - p.tx) + Math.abs(p.y - p.ty) + Math.abs(p.vx) * 0.05 + Math.abs(p.vy) * 0.05 : Math.abs((held ? 1 : 0) - p.k) + Math.abs(p.v) * 0.05;
+    if (e > 0.004) moving = true; else if (!isStick && !isPad && !held) { p.k = 0; p.v = 0; }
+    else if (!held && (isStick || isPad)) { p.x = p.tx; p.y = p.ty; p.vx = p.vy = 0; }
+  }
+  if (moving || TOY.dirty) { padRender(G.sprite, TOY.parts); TOY.dirty = moving; }
+}
+// the toy goes into the wax in its rest pose
+function toyFreeze() {
+  if (!isToy()) return;
+  TOY.act = null; TOY.parts = {}; TOY.hold = {};
+  padRender(G.sprite, null);
+  G.sil = buildSilhouette(G.sprite); G.dripPts = dripPoints(G.sprite, G.bot);
+}
 /* ---------- Helpers ---------- */
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const rnd = (a, b) => a + Math.random() * (b - a);
@@ -1823,6 +2092,7 @@ function refundShell() {
   G.layers.forEach(l => setLvl(l.src || 'pot', lvl(l.src || 'pot') + left * l.cost / cost));
 }
 const drips = [], ripples = [], bubbles = [], flying = [], chips = [], rings = [], shavings = [];
+const meltDrops = [], splashBits = [], frostFx = [];
 const dust = Array.from({ length: 18 }, () => ({ x: Math.random(), y: Math.random(), r: rnd(1, 2.6), s: rnd(0.004, 0.012) }));
 let time = 0, dripTimer = 0, bubbleTimer = 1;
 
@@ -1863,6 +2133,7 @@ function shellCost() { return G.layers.reduce((a, l) => a + l.cost, 0); }
 function rgbHex(c) { return '#' + c.map(v => Math.round(v).toString(16).padStart(2, '0')).join(''); }
 function ensurePieces() {
   if (G.pieces) return;
+  sqBake();
   G.pieces = makePieces(G.shell);
   const total = G.pieces.list.reduce((a, p) => a + p.area, 0) || 1;
   const cost = shellCost();
@@ -2088,11 +2359,12 @@ let DARKK = 0, DARKT = 0;
 // settings: sound and vibration, remembered between visits
 const settingsEl = document.getElementById('settings'), optSound = document.getElementById('optSound'), optVibe = document.getElementById('optVibe');
 const PREF_KEY = 'waxAsmrPrefs';
-const prefs = { sound: true, vibe: true, vk: 2, dark: false, free: false, fx: true };
+const prefs = { sound: true, vibe: true, vk: 2, dark: false, free: false, fx: true, vol: {}, mvol: 1 };
 try { Object.assign(prefs, JSON.parse(localStorage.getItem(PREF_KEY) || '{}')); } catch (e) { /* no storage */ }
 function savePrefs() { try { localStorage.setItem(PREF_KEY, JSON.stringify(prefs)); } catch (e) { /* no storage */ } }
 function applyPrefs() {
   Snd.setEnabled(prefs.sound); Hap.on = prefs.vibe; Hap.k = prefs.vk;
+  Snd.setVols(prefs.vol, prefs.mvol);
   document.querySelectorAll('#vibeLvl button').forEach(b => b.setAttribute('aria-pressed', +b.dataset.k === prefs.vk ? 'true' : 'false'));
   optSound.setAttribute('aria-checked', prefs.sound ? 'true' : 'false');
   optVibe.setAttribute('aria-checked', prefs.vibe && !!navigator.vibrate ? 'true' : 'false');
@@ -2132,8 +2404,9 @@ function computeHint() {
     return tray.chunks.length || tray.liquid > 0 ? 'Воск кончился. Тапни по кастрюльке' : 'Воск кончился';
   }
   if (G.justCleared) return tray.chunks.length ? 'Чисто! Тапни по кастрюльке, кусочки переплавятся' : 'Чисто! Макай ещё раз';
-  if (!G.layers.length) return 'Тяни предмет вниз, в воск';
+  if (!G.layers.length) return isSquishy() && G.tool === 'finger' ? 'Сквиш: жми пальцем, он мнётся. Макнуть: тяни за пустое место' : 'Тяни предмет вниз, в воск';
   if (G.cov > 0.02) return 'Воск застывает… можно макнуть ещё слой';
+  if (G.cool < 1 && isSquishy()) return 'Воск мягкий: жми и мни сквиш, вмятины останутся, пока воск не застынет';
   if (G.cool < 1) return 'Воск мягкий: води пальцем, оставишь след. Ещё слой: тяни за пустое место';
   if (G.tool === 'hammer') return 'Молоток: тык бьёт сразу по нескольким кускам';
   if (G.tool === 'golden') return 'Золотой молоток: один тык сносит целую россыпь кусков';
@@ -2513,6 +2786,9 @@ cv.addEventListener('pointerdown', (e) => {
     scrape: canScrape(x, y), px: x, py: y, pt: e.timeStamp, shaveAcc: 0
   };
   down.groove = !down.scrape && canGroove(x, y);
+  // a squishy object is pressed in by a finger wherever no hard wax is in the way; the rest of the screen still drags the string
+  if (isSquishy() && G.tool === 'finger' && !down.scrape && !inPan(x, y) && G.oy + G.bot <= waxY - 4 && sqHit(x, y)) { down.squish = true; sqStart(x, y); }
+  if (isToy() && G.tool === 'finger' && !down.scrape && !inPan(x, y) && G.oy + G.bot <= waxY - 4) { const z = toyHit(x, y); if (z) { down.toy = z; toyStart(x, y, z); } }
   G.hold = null;
   if ((G.tool === 'twist' || G.tool === 'freeze' || G.tool === 'heat' || G.tool === 'laser') && G.layers.length && G.cool >= 0.98 && G.oy + G.bot <= waxY - 4 && !inPan(x, y)) {
     ensurePieces();
@@ -2529,6 +2805,13 @@ cv.addEventListener('pointermove', (e) => {
   if (down.hold) {
     const r = cv.getBoundingClientRect();
     G.hold.x = e.clientX - r.left; G.hold.y = e.clientY - r.top;
+    return;
+  }
+  if (down.toy) { const r = cv.getBoundingClientRect(); toyMove(e.clientX - r.left, e.clientY - r.top); return; }
+  if (down.squish) {
+    const r = cv.getBoundingClientRect();
+    sqMove(e.clientX - r.left, e.clientY - r.top);
+    if (down.groove && down.moved >= 4) grooveMove(e.clientX - r.left, e.clientY - r.top, e.timeStamp);
     return;
   }
   if (down.scrape) {
@@ -2551,7 +2834,9 @@ cv.addEventListener('pointermove', (e) => {
 function endPointer(e) {
   if (!down) return;
   const quick = performance.now() - down.t < 500;
-  if (!down.hold && down.moved < 9 && quick && e.type === 'pointerup') handleTap(down.x, down.y);
+  if (down.squish) sqEnd(down.x);
+  if (down.toy) toyEnd(down.x);
+  if (!down.hold && !down.squish && !down.toy && down.moved < 9 && quick && e.type === 'pointerup') handleTap(down.x, down.y);
   G.hold = null;
   down = null; G.held = false; G.scrapeOver = false; cv.classList.remove('dragging');
 }
@@ -2759,7 +3044,10 @@ function toolStep(dt) {
           p.alive = false; P.dirty = true;
           const L = G.layers[G.layers.length - 1], w = objToWorld(p.cx, p.cy);
           setLvl(L.src || 'pot', lvl(L.src || 'pot') + (p.value || 0));
-          for (let i = 0; i < 5; i++) chips.push({ x: w.x + rnd(-4, 4), y: w.y, vx: rnd(-12, 12), vy: rnd(10, 40), s: rnd(2, 3.5), rot: 0, vr: 0, life: 0, col: hexRgb(L.color) });
+          // 1-3 drops of the wax colour stretch away from the spot and fall into the bucket; a few crumbs follow them
+          const dn = 1 + (Math.random() * 3 | 0), wc = hexRgb(L.color);
+          for (let i = 0; i < dn; i++) { const dx = w.x + rnd(-5, 5), dy = w.y + rnd(-2, 4); meltDrops.push({ x: dx, y: dy, ax: dx, ay: dy, vx: rnd(-8, 8), vy: rnd(15, 60), r: rnd(3, 4.6), col: wc, thread: 1, ty: dy, tv: 0, broken: false }); }
+          for (let i = 0; i < 4; i++) chips.push({ x: w.x + rnd(-4, 4), y: w.y, vx: rnd(-12, 12), vy: rnd(10, 40), s: rnd(2, 3.5), rot: 0, vr: 0, life: 0, lt: 4, col: wc, wax: true });
           Snd.squish(pan(w.x)); Snd.drip(pan(w.x));
         }
       }
@@ -2784,6 +3072,30 @@ function toolStep(dt) {
   for (let i = finds.length - 1; i >= 0; i--) { finds[i].t += dt; if (finds[i].t > 2.2) finds.splice(i, 1); }
   for (let i = toolFx.length - 1; i >= 0; i--) { toolFx[i].t += dt; if (toolFx[i].t > 0.5) toolFx.splice(i, 1); }
   for (let i = iceBits.length - 1; i >= 0; i--) { const b = iceBits[i]; b.life += dt / 0.7; b.y += b.vy * dt; if (b.life >= 1) iceBits.splice(i, 1); }
+  frostStep(dt);
+}
+
+// frozen wax breathes out cold: pale vapour sinks off it and little crystals glint around it
+function frostStep(dt) {
+  const P = G.pieces;
+  const on = P && P.frost && G.layers.length && G.cool >= 0.98;
+  if (on) {
+    const alive = P.list.filter(p => p.alive);
+    if (alive.length) {
+      frostFx.acc = (frostFx.acc || 0) + dt * (9 + Math.min(10, alive.length * 0.15));
+      while (frostFx.acc >= 1 && frostFx.length < 46) {
+        frostFx.acc -= 1;
+        const p = alive[(Math.random() * alive.length) | 0], w = objToWorld(p.cx, p.cy);
+        if (Math.random() < 0.6) frostFx.push({ k: 'mist', x: w.x + rnd(-6, 6), y: w.y + rnd(-4, 8), vx: rnd(-7, 7), vy: rnd(10, 28), r: rnd(9, 17), life: 0, lt: rnd(1.3, 2.1) });
+        else frostFx.push({ k: 'flake', x: w.x + rnd(-14, 14), y: w.y + rnd(-14, 14), vx: rnd(-5, 5), vy: rnd(-4, 14), r: rnd(2.2, 4), life: 0, lt: rnd(0.8, 1.5), ph: rnd(0, 6) });
+      }
+    }
+  }
+  for (let i = frostFx.length - 1; i >= 0; i--) {
+    const f = frostFx[i]; f.life += dt / f.lt; f.x += f.vx * dt; f.y += f.vy * dt;
+    if (f.k === 'mist') f.vy += 6 * dt;
+    if (f.life >= 1 || (!on && f.life > 0.6)) frostFx.splice(i, 1);
+  }
 }
 
 function drawToolFx() {
@@ -2974,7 +3286,51 @@ for (let j = 0; j < NG; j++) for (let i = 0; i < NG; i++) {
   const x = (i + 0.5) / NG * 2 - 1, y = (j + 0.5) / NG * 2 - 1;
   MASK[j * NG + i] = x * x + y * y < 0.93 ? 1 : 0;
 }
-const gridCv = mkCanvas(NG, NG), gridG = gridCv.getContext('2d'), gridImg = gridG.createImageData(NG, NG);
+const GHR = 3; // the puddle picture is drawn at 3x the field resolution so its edge is smooth, not stair-stepped
+const gridCv = mkCanvas(NG * GHR, NG * GHR), gridG = gridCv.getContext('2d'), gridImg = gridG.createImageData(NG * GHR, NG * GHR);
+const GCR = new Float32Array(NN_()), GCG = new Float32Array(NN_()), GCB = new Float32Array(NN_()), GCA = new Float32Array(NN_());
+function NN_() { return 64 * 64; }
+/* ----- surface waves: a small wave equation on the same grid. Stirring, falling add-ins and drops push the surface;
+   the rings that spread are shaded in the picture, so they show even in a puddle of one colour ----- */
+const WH = new Float32Array(NN_()), WVL = new Float32Array(NN_());
+let waveE = 0;
+const WAVE_K = { finger: 0.7, stick: 0.5, spoon: 1, whisk: 1.3, fork: 0.55, comb: 0.4, brush: 0.3 }; // how much surface each stirrer stirs up
+
+function stWaveAt(ux, uy, amt, rad) {
+  const cx = (ux + 1) / 2 * NG - 0.5, cy = (uy + 1) / 2 * NG - 0.5, rc = Math.max(1.2, rad * NG / 2);
+  const x0 = Math.max(1, Math.floor(cx - rc * 2)), x1 = Math.min(NG - 2, Math.ceil(cx + rc * 2));
+  const y0 = Math.max(1, Math.floor(cy - rc * 2)), y1 = Math.min(NG - 2, Math.ceil(cy + rc * 2));
+  for (let j = y0; j <= y1; j++) for (let i = x0; i <= x1; i++) {
+    const k = j * NG + i;
+    if (!MASK[k] || FA[k] < 0.15) continue;
+    WH[k] += amt * Math.exp(-(((i - cx) ** 2 + (j - cy) ** 2) / (rc * rc)) * 1.4);
+  }
+}
+let waveAcc = 0;
+function stWaves(dt) {
+  waveAcc += Math.min(dt, 0.05);
+  const h = 1 / 90, hd = Math.exp(-h * 3.2), c2 = 330, damp = Math.exp(-h * 9);
+  let guard = 0;
+  while (waveAcc >= h && guard++ < 6) {
+    waveAcc -= h;
+    let mx = 0;
+    for (let j = 1; j < NG - 1; j++) for (let i = 1; i < NG - 1; i++) {
+      const k = j * NG + i;
+      if (!MASK[k] || FA[k] < 0.15) { WH[k] = 0; WVL[k] = 0; continue; }
+      const a = WH[k];
+      const l = FA[k - 1] >= 0.15 && MASK[k - 1] ? WH[k - 1] : a, r = FA[k + 1] >= 0.15 && MASK[k + 1] ? WH[k + 1] : a;
+      const u = FA[k - NG] >= 0.15 && MASK[k - NG] ? WH[k - NG] : a, d = FA[k + NG] >= 0.15 && MASK[k + NG] ? WH[k + NG] : a;
+      WVL[k] = (WVL[k] + (l + r + u + d - 4 * a) * c2 * h) * damp;
+    }
+    for (let k = 0; k < NN_(); k++) {
+      WH[k] = (WH[k] + WVL[k] * h) * hd;
+      if (WH[k] > 1) WH[k] = 1; else if (WH[k] < -1) WH[k] = -1;
+      const m = Math.abs(WH[k]); if (m > mx) mx = m;
+    }
+    waveE = mx;
+    if (mx < 0.0004) { WH.fill(0); WVL.fill(0); waveE = 0; break; }
+  }
+}
 
 const ST = {
   on: false, W: 0, H: 0, dpr: 1,
@@ -3207,7 +3563,7 @@ function stCell(x, y) {
   const i = clamp(Math.round((x + 1) / 2 * NG - 0.5), 0, NG - 1), j = clamp(Math.round((y + 1) / 2 * NG - 0.5), 0, NG - 1);
   return j * NG + i;
 }
-function stEmptyPlate() { FA.fill(0); FR.fill(0); FG.fill(0); FB.fill(0); FU.fill(0); FV.fill(0); }
+function stEmptyPlate() { WH.fill(0); WVL.fill(0); FA.fill(0); FR.fill(0); FG.fill(0); FB.fill(0); FU.fill(0); FV.fill(0); }
 
 /* ----- cubes ----- */
 function stMakeCube(bin) {
@@ -3305,6 +3661,7 @@ function stUpdate(dt) {
           } else stSplat(px, py, vx, vy, tool.r);
         }
         stirSpeed = dist * ST.ix / dt;
+        { const wa = clamp(stirSpeed / 2000, 0, 0.12) * (WAVE_K[tool.id] == null ? 0.6 : WAVE_K[tool.id]); if (wa > 0.01) stWaveAt(ux, uy, wa, tool.r * 0.55); }
       }
     }
     if (!ST.stirLast && tool.fx === 'brush') { const c0 = stColorAt(ux, uy); ST.brushCol = c0 ? c0.slice() : null; }
@@ -3321,6 +3678,7 @@ function stUpdate(dt) {
     const damp = Math.exp(-dt * (7 - 3.5 * ST.oil));
     for (let k = 0; k < NN; k++) { FU[k] *= damp; FV[k] *= damp; }
   }
+  stWaves(dt);
   stLevel();
   ST.V = stVolume();
   if (ST.V < 3 && !ST.pouring) { stEmptyPlate(); ST.V = 0; ST.oil = Math.max(0, ST.oil - dt * 0.5); ST.gloss = Math.max(0, ST.gloss - dt * 0.5); ST.neon = Math.max(0, ST.neon - dt * 0.5); }
@@ -3360,7 +3718,7 @@ function stUpdate(dt) {
   }
   for (let i = ST.parts.length - 1; i >= 0; i--) {
     const p = ST.parts[i];
-    if (p.z > 0) { p.z -= dt * 2.4; continue; }
+    if (p.z > 0) { p.z -= dt * 2.4; if (p.z <= 0 && FA[stCell(p.x, p.y)] > 0.15) stWaveAt(p.x, p.y, p.ex === 'eyes' || p.ex === 'foam' ? 0.08 : p.ex === 'sugar' || p.ex === 'flake' ? 0.035 : 0.022, 0.05); continue; }
     if (p.vx || p.vy) { p.x += p.vx * dt; p.y += p.vy * dt; const dm = Math.exp(-dt * 6); p.vx *= dm; p.vy *= dm; if (Math.abs(p.vx) + Math.abs(p.vy) < 0.01) p.vx = p.vy = 0; }
     const k = stCell(p.x, p.y);
     if (FA[k] > 0.12) {
@@ -3387,7 +3745,7 @@ function stUpdate(dt) {
   for (let i = ST.drops.length - 1; i >= 0; i--) {
     const d = ST.drops[i]; d.z -= dt * 2.6;
     if (d.z <= 0) {
-      ST.rings.push({ x: d.x, y: d.y, r: 0, life: 0 });
+      ST.rings.push({ x: d.x, y: d.y, r: 0, life: 0 }); stWaveAt(d.x, d.y, 0.24, 0.09);
       if (d.gk) { ST.gloss = Math.min(1, ST.gloss + 0.34); Snd.drip(stPan(stFrom(d.x, d.y)[0])); }
       else if (d.nk) { ST.neon = Math.min(1, ST.neon + 0.34); Snd.drip(stPan(stFrom(d.x, d.y)[0])); }
       else {
@@ -3581,18 +3939,42 @@ function neonize(r, g, b, k) {
   return [clamp(lum + (r - lum) * s, 0, 255) * (1 - br) + 255 * br * 0.5 + 8 * k, clamp(lum + (g - lum) * s, 0, 255) * (1 - br) + 255 * br * 0.5 + 8 * k, clamp(lum + (b - lum) * s, 0, 255) * (1 - br) + 255 * br * 0.5 + 8 * k];
 }
 function stRenderGrid() {
-  const d = gridImg.data;
+  // 1) colour of every field cell (same as before) ...
   for (let k = 0; k < NN; k++) {
-    const a = FA[k], o = k * 4;
-    if (!MASK[k] || a < 0.02) { d[o + 3] = 0; continue; }
-    const al = clamp((a - 0.1) / 0.2, 0, 1);
+    const a = FA[k];
+    if (!MASK[k] || a < 0.02) { GCA[k] = 0; GCR[k] = GCG[k] = GCB[k] = 0; continue; }
     let r = FR[k] / a, g2 = FG[k] / a, b = FB[k] / a;
     const vv = vivid(r, g2, b); r = vv[0]; g2 = vv[1]; b = vv[2];
     if (ST.neon > 0.04) { const nv = neonize(r, g2, b, ST.neon); r = nv[0]; g2 = nv[1]; b = nv[2]; }
     // a little shading from the thickness gives the puddle some body
     const gx = (FA[k + 1] || 0) - (FA[k - 1] || 0), gy = (FA[k + NG] || 0) - (FA[k - NG] || 0);
-    const sh = clamp(-(gx * 0.5 + gy * 0.7) * 40, -22, 26);
-    d[o] = clamp(r + sh, 0, 255); d[o + 1] = clamp(g2 + sh, 0, 255); d[o + 2] = clamp(b + sh, 0, 255); d[o + 3] = al * 255;
+    let sh = clamp(-(gx * 0.5 + gy * 0.7) * 40, -22, 26), sp = 0;
+    if (waveE > 0.0005) {
+      const wx = (WH[k + 1] || 0) - (WH[k - 1] || 0), wy = (WH[k + NG] || 0) - (WH[k - NG] || 0);
+      sh += clamp(-(wx * 0.6 + wy * 0.8) * 130, -24, 24);
+      const lit = -(wx * 0.55 + wy * 0.83); if (lit > 0.03) sp = Math.min(80, (lit - 0.03) * 450);
+    }
+    r += sp * 0.9; g2 += sp * 0.9; b += sp;
+    GCA[k] = a; GCR[k] = clamp(r + sh, 0, 255); GCG[k] = clamp(g2 + sh, 0, 255); GCB[k] = clamp(b + sh, 0, 255);
+  }
+  // 2) ... then blown up with smooth interpolation: the thickness is interpolated first and only then cut into an edge
+  const d = gridImg.data, W = NG * GHR;
+  for (let y = 0; y < W; y++) {
+    const fy = (y + 0.5) / GHR - 0.5, y0 = Math.floor(fy), ty = fy - y0, ya = Math.max(0, y0), yb = Math.min(NG - 1, y0 + 1);
+    for (let x = 0; x < W; x++) {
+      const fx = (x + 0.5) / GHR - 0.5, x0 = Math.floor(fx), tx = fx - x0, xa = Math.max(0, x0), xb = Math.min(NG - 1, x0 + 1);
+      const k00 = ya * NG + xa, k10 = ya * NG + xb, k01 = yb * NG + xa, k11 = yb * NG + xb;
+      const w00 = (1 - tx) * (1 - ty), w10 = tx * (1 - ty), w01 = (1 - tx) * ty, w11 = tx * ty;
+      const A = GCA[k00] * w00 + GCA[k10] * w10 + GCA[k01] * w01 + GCA[k11] * w11, o = (y * W + x) * 4;
+      if (A < 0.04) { d[o + 3] = 0; continue; }
+      const c00 = Math.min(1, GCA[k00] * 8) * w00, c10 = Math.min(1, GCA[k10] * 8) * w10, c01 = Math.min(1, GCA[k01] * 8) * w01, c11 = Math.min(1, GCA[k11] * 8) * w11;
+      const cs = c00 + c10 + c01 + c11 || 1;
+      d[o] = (GCR[k00] * c00 + GCR[k10] * c10 + GCR[k01] * c01 + GCR[k11] * c11) / cs;
+      d[o + 1] = (GCG[k00] * c00 + GCG[k10] * c10 + GCG[k01] * c01 + GCG[k11] * c11) / cs;
+      d[o + 2] = (GCB[k00] * c00 + GCB[k10] * c10 + GCB[k01] * c01 + GCB[k11] * c11) / cs;
+      const t = clamp((A - 0.1) / 0.2, 0, 1);
+      d[o + 3] = t * t * (3 - 2 * t) * 255;
+    }
   }
   gridG.putImageData(gridImg, 0, 0);
 }
@@ -3697,6 +4079,19 @@ function stDraw() {
     const cover = clamp(ST.V / (PLATE_FULL * 0.4), 0.2, 1);
     sg.fillStyle = 'rgba(255,255,255,' + (0.16 + 0.2 * ST.oil) * cover + ')';
     sg.beginPath(); sg.ellipse(ST.cx - ST.ix * 0.34, ST.cy - ST.iy * 0.4, ST.ix * 0.24, ST.iy * 0.14, -0.2, 0, 7); sg.fill();
+    // soft glossy light spots drift over the surface and flare up while the liquid is moving
+    if (cover > 0.3) {
+      const t = ST.time, boost = Math.min(1, waveE * 3 + (ST.stirLast ? 0.35 : 0));
+      stLiquidFx((fg, w, h) => {
+        for (let i = 0; i < 3; i++) {
+          const ph = i * 2.1, bx = w / 2 + Math.sin(t * (0.23 + i * 0.07) + ph) * w * 0.3 + Math.sin(t * 0.9 + ph) * w * 0.03 * boost;
+          const by = h / 2 + Math.cos(t * (0.19 + i * 0.05) + ph * 1.3) * h * 0.26, rr = w * (0.13 + 0.03 * i), al = (0.07 + 0.05 * i) * cover + 0.16 * boost;
+          const gr = fg.createRadialGradient(bx, by, 0, bx, by, rr);
+          gr.addColorStop(0, 'rgba(255,255,255,' + al + ')'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+          fg.fillStyle = gr; fg.save(); fg.translate(bx, by); fg.scale(1, 0.62); fg.translate(-bx, -by); fg.beginPath(); fg.arc(bx, by, rr, 0, 7); fg.fill(); fg.restore();
+        }
+      });
+    }
     if (ST.oil > 0.05) {
       const ph = ST.time * 0.5, o = ST.oil, ir = sg.createLinearGradient(ST.cx - ST.ix * Math.cos(ph), ST.cy - ST.iy * Math.sin(ph), ST.cx + ST.ix * Math.cos(ph), ST.cy + ST.iy * Math.sin(ph));
       ir.addColorStop(0, 'rgba(255,170,225,' + 0.28 * o + ')'); ir.addColorStop(0.35, 'rgba(170,230,255,' + 0.26 * o + ')');
@@ -3952,7 +4347,7 @@ function stPlaceCube(c, ux, uy) {
   ST.cubes.push(c);
   const wet = FA[stCell(c.x, c.y)] > 0.4;
   const pn = stPan(stFrom(c.x, c.y)[0]);
-  if (wet) Snd.squish(pn); else Snd.clink(pn);
+  if (wet) { Snd.squish(pn); stWaveAt(c.x, c.y, 0.22, 0.1); } else Snd.clink(pn);
 }
 sv.addEventListener('pointerdown', (e) => {
   Snd.init();
@@ -4527,7 +4922,7 @@ const SHOP = [];
 const SHOP_BY_ID = {};
 function shopAdd(it) { SHOP.push(it); SHOP_BY_ID[it.id] = it; }
 (function buildCatalog() {
-  const objP = [0, 0, 0, 0, 40, 40, 60, 60, 80, 80, 100, 100, 150, 200, 150, 150, 50, 50, 60, 60, 80, 80, 0, 200];
+  const objP = [0, 0, 0, 0, 40, 40, 60, 60, 80, 80, 100, 100, 150, 200, 150, 150, 50, 50, 60, 60, 80, 80, 0, 200, 120];
   OBJ_ORDER.forEach(i => { const o = OBJECTS[i]; shopAdd({ id: 'obj:' + i, g: 'Предметы', n: o.n, e: o.e, img: o.img, p: objP[i] || 0 }); });
   const toolP = { finger: 0, stick: 0, spoon: 0, whisk: 40, fork: 30, comb: 30, funnel: 50, brush: 40, glitter0: 0, glitter1: 0, glitter2: 20, glitter3: 20, glitter4: 20, glitter5: 20, pearl_blue: 40, pearl_white: 40,
     sugar: 30, confetti: 30, foil: 50, flake: 50, foam: 60, eyes: 80, oil: 50, gloss: 70, neon: 120 };
@@ -4834,6 +5229,268 @@ function drawHoleMain() {
   const p = holeMainPos();
   drawHole(g, p.x, p.y, 32 * HOLE_M.k, HOLE_M.t, HOLE_M.k, want);
 }
+/* ---------- Squishy objects: the picture is pressed in with a mesh, wax follows or cracks ---------- */
+// press state in the object's own coordinates (x across the string, y down from the top of the sprite)
+const SQ = { px: 0, py: 0, k: 0, v: 0, down: false, dx: 0, dy: 1, snd: 0, plastic: null };
+const SQ_N = 12;
+
+function isSquishy() { return !!(OBJECTS[G.kind] && OBJECTS[G.kind].sq); }
+function sqActive() { return isSquishy() && (SQ.down || Math.abs(SQ.k) > 0.004 || Math.abs(SQ.v) > 0.02); }
+function sqPlasticOn() { return !!(SQ.plastic && G.layers.length && SQ.plastic.C === S + MARGIN * 2); }
+function sqResetPlastic() { SQ.plastic = null; }
+
+// where on the object a screen point lands
+function sqLocal(x, y) { const c = worldToCanvas(x, y), C = S + MARGIN * 2; return { x: c.x - C / 2, y: c.y - MARGIN }; }
+function sqHit(x, y) {
+  if (!G.sil) return false;
+  const l = sqLocal(x, y), sx = Math.round(l.x + S / 2), sy = Math.round(l.y);
+  if (sx >= 0 && sy >= 0 && sx < G.sil.width && sy < G.sil.height && G.sil.getContext('2d').getImageData(sx, sy, 1, 1).data[3] > 40) return true;
+  const c = worldToCanvas(x, y);
+  return G.layers.length && shellAlphaAt(c.x, c.y) > 60;
+}
+
+function sqStart(x, y) {
+  const l = sqLocal(x, y);
+  SQ.px = l.x; SQ.py = l.y; SQ.down = true; SQ.soft = !!(G.layers.length && G.cool < 0.97 && !G.pieces);
+  const cy = G.bot * 0.5, vx = -l.x, vy = cy - l.y, d = Math.hypot(vx, vy);
+  if (d < 10) { SQ.dx = 0; SQ.dy = 1; } else { SQ.dx = vx / d; SQ.dy = vy / d; }
+  SQ.v += 3.2; // a quick shove so the first touch already gives
+  Snd.sqDown(pan(x));
+}
+function sqMove(x, y) {
+  const l = sqLocal(x, y), sp = Math.hypot(l.x - SQ.px, l.y - SQ.py);
+  SQ.px = l.x; SQ.py = l.y;
+  if (sp > 3 && time - SQ.snd > 0.14) { SQ.snd = time; Snd.sqMove(pan(x)); }
+}
+function sqEnd(x) {
+  if (!SQ.down) return;
+  SQ.down = false;
+  if (SQ.k > 0.3) Snd.sqUp(pan(x != null ? x : G.ox));
+}
+
+// damped spring: sinks in while pressed, then wobbles back like jelly
+function sqStep(dt) {
+  if (!isSquishy()) { SQ.k = 0; SQ.v = 0; SQ.down = false; return; }
+  if (!G.layers.length) SQ.plastic = null;
+  const steps = Math.max(1, Math.ceil(dt / 0.008)), h = dt / steps;
+  for (let i = 0; i < steps; i++) {
+    const target = SQ.down ? 1 : 0;
+    SQ.v += ((target - SQ.k) * 300 - SQ.v * 11) * h;
+    SQ.k += SQ.v * h;
+  }
+  if (!SQ.down && Math.abs(SQ.k) < 0.004 && Math.abs(SQ.v) < 0.02) { SQ.k = 0; SQ.v = 0; }
+  // soft wax keeps part of every dent
+  if (SQ.down && G.layers.length && G.cool < 0.97 && !G.pieces) sqSoak(dt);
+  // the wax sets while the finger is still down: it freezes exactly as it looks now, the toy underneath springs back
+  if (SQ.down && SQ.soft && G.layers.length && G.cool >= 0.97) { sqFreeze(); SQ.down = false; if (SQ.k > 0.3) Snd.sqUp(pan(G.ox)); }
+}
+
+function sqFreeze() {
+  const C = S + MARGIN * 2, N = SQ_N;
+  if (!SQ.plastic || SQ.plastic.C !== C) SQ.plastic = { C, a: new Float32Array((N + 1) * (N + 1) * 2) };
+  const P = SQ.plastic.a;
+  for (let j = 0; j <= N; j++) for (let i = 0; i <= N; i++) {
+    const n = (j * (N + 1) + i) * 2, e = sqElastic(-C / 2 + C * i / N, -MARGIN + C * j / N);
+    if (Math.hypot(e[0], e[1]) > Math.hypot(P[n], P[n + 1])) { P[n] = e[0]; P[n + 1] = e[1]; }
+  }
+}
+// what the wax skin does at a vertex: the bigger of the live press and the dent it has kept
+function sqWaxSoft() { return G.layers.length && G.cool < 0.97 && !G.pieces; }
+function sqWaxVec(x, y, n) {
+  const pl = sqPlasticOn() ? SQ.plastic.a : null;
+  let px = 0, py = 0;
+  if (pl && n != null) { px = pl[n]; py = pl[n + 1]; }
+  else if (pl) { const v = sqPlasticAt(x, y); px = v[0]; py = v[1]; }
+  if (sqActive() && sqWaxSoft()) {
+    const e = sqElastic(x, y);
+    if (Math.hypot(e[0], e[1]) > Math.hypot(px, py)) return e;
+  }
+  return [px, py];
+}
+function sqPlasticAt(x, y) {
+  const N = SQ_N, C = SQ.plastic.C, P = SQ.plastic.a;
+  const gx = Math.min(N - 1e-6, Math.max(0, (x + C / 2) / C * N)), gy = Math.min(N - 1e-6, Math.max(0, (y + MARGIN) / C * N));
+  const i = gx | 0, j = gy | 0, fx = gx - i, fy = gy - j, o = (jj, ii) => (jj * (N + 1) + ii) * 2;
+  const r = [0, 0];
+  for (let k = 0; k < 2; k++) r[k] = (P[o(j, i) + k] * (1 - fx) + P[o(j, i + 1) + k] * fx) * (1 - fy) + (P[o(j + 1, i) + k] * (1 - fx) + P[o(j + 1, i + 1) + k] * fx) * fy;
+  return r;
+}
+// where an overlay (eye, glitter, bubble) that sits at canvas point (x, y) of the shell shows up now
+function sqPt(x, y, C) {
+  if (!(sqPlasticOn() || (sqActive() && sqWaxSoft()))) return { x, y };
+  const v = sqWaxVec(-C / 2 + x, -MARGIN + y, null);
+  return { x: x + v[0], y: y + v[1] };
+}
+
+function sqElastic(x, y) {
+  const R = S * 0.32, D = S * 0.17 * SQ.k;
+  const dx = x - SQ.px, dy = y - SQ.py, d2 = dx * dx + dy * dy, w = Math.exp(-d2 / (R * R));
+  let ox = SQ.dx * D * w, oy = SQ.dy * D * w;
+  const d = Math.sqrt(d2) + 1e-3, wb = (d / R) * Math.exp(-d2 / (1.6 * R * R));
+  ox += dx / d * D * 0.5 * wb; oy += dy / d * D * 0.5 * wb;
+  return [ox, oy];
+}
+
+function sqSoak(dt) {
+  const C = S + MARGIN * 2, N = SQ_N;
+  if (!SQ.plastic || SQ.plastic.C !== C) SQ.plastic = { C, a: new Float32Array((N + 1) * (N + 1) * 2) };
+  const P = SQ.plastic.a, rate = Math.min(1, 6 * dt);
+  for (let j = 0; j <= N; j++) for (let i = 0; i <= N; i++) {
+    const x = -C / 2 + C * i / N, y = -MARGIN + C * j / N, e = sqElastic(x, y), n = (j * (N + 1) + i) * 2;
+    const ex = e[0] * 0.85, ey = e[1] * 0.85;
+    if (Math.hypot(ex, ey) > Math.hypot(P[n], P[n + 1])) { P[n] += (ex - P[n]) * rate; P[n + 1] += (ey - P[n + 1]) * rate; }
+  }
+}
+
+// draws img (covering x0,y0,w,h of the local space) through a displaced grid; still triangles are drawn in one go
+function sqMesh(ctx, img, x0, y0, w, h, disp) {
+  const N = SQ_N, iw = img.width, ih = img.height, V = [];
+  for (let j = 0; j <= N; j++) for (let i = 0; i <= N; i++) {
+    const x = x0 + w * i / N, y = y0 + h * j / N, d = disp(x, y, i, j);
+    V.push({ x: x + d[0], y: y + d[1], u: iw * i / N, v: ih * j / N, still: Math.abs(d[0]) + Math.abs(d[1]) < 0.3 });
+  }
+  const T = [], still = new Path2D();
+  const add = (a, b, c) => {
+    if (a.still && b.still && c.still) { still.moveTo(a.x, a.y); still.lineTo(b.x, b.y); still.lineTo(c.x, c.y); still.closePath(); }
+    else T.push([a, b, c]);
+  };
+  for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
+    const a = V[j * (N + 1) + i], b = V[j * (N + 1) + i + 1], c = V[(j + 1) * (N + 1) + i], d = V[(j + 1) * (N + 1) + i + 1];
+    add(a, b, c); add(b, d, c);
+  }
+  ctx.save(); ctx.clip(still); ctx.drawImage(img, x0, y0, w, h); ctx.restore();
+  for (const [a, b, c] of T) {
+    const mx = (a.x + b.x + c.x) / 3, my = (a.y + b.y + c.y) / 3;
+    const grow = (p) => { const dx = p.x - mx, dy = p.y - my, l = Math.hypot(dx, dy) || 1; return [p.x + dx / l * 0.8, p.y + dy / l * 0.8]; };
+    const A = grow(a), B = grow(b), Cc = grow(c);
+    const du1 = b.u - a.u, dv1 = b.v - a.v, du2 = c.u - a.u, dv2 = c.v - a.v, det = du1 * dv2 - du2 * dv1;
+    if (Math.abs(det) < 1e-6) continue;
+    const dx1 = b.x - a.x, dy1 = b.y - a.y, dx2 = c.x - a.x, dy2 = c.y - a.y;
+    const m00 = (dx1 * dv2 - dx2 * dv1) / det, m01 = (dx2 * du1 - dx1 * du2) / det;
+    const m10 = (dy1 * dv2 - dy2 * dv1) / det, m11 = (dy2 * du1 - dy1 * du2) / det;
+    ctx.save();
+    ctx.beginPath(); ctx.moveTo(A[0], A[1]); ctx.lineTo(B[0], B[1]); ctx.lineTo(Cc[0], Cc[1]); ctx.closePath(); ctx.clip();
+    // image pixels -> local space; the image is drawn at its own pixel size, so grid units are image pixels * (w / iw)
+    const sx = iw / w, sy = ih / h;
+    ctx.transform(m00 * sx, m10 * sx, m01 * sy, m11 * sy, a.x - (m00 * a.u + m01 * a.v), a.y - (m10 * a.u + m11 * a.v));
+    ctx.scale(1 / sx, 1 / sy); ctx.drawImage(img, 0, 0, iw, ih, 0, 0, iw, ih);
+    ctx.restore();
+  }
+}
+
+// the sprite: only the elastic dent
+function sqDrawSprite() {
+  const sp = G.sprite;
+  if (!sqActive()) { g.drawImage(sp, -S / 2, 0); return; }
+  sqMesh(g, sp, -S / 2, 0, S, sp.height, (x, y) => sqElastic(x, y));
+}
+// a dent in the wax: shadow on the far wall, light on the near one
+function sqDent(ctx, x, y, r, a) {
+  let gr = ctx.createRadialGradient(x - r * 0.15, y - r * 0.15, 0, x - r * 0.15, y - r * 0.15, r);
+  gr.addColorStop(0, 'rgba(70,20,80,' + a + ')'); gr.addColorStop(1, 'rgba(70,20,80,0)');
+  ctx.fillStyle = gr; ctx.fillRect(x - r * 1.2, y - r * 1.2, r * 2.4, r * 2.4);
+  gr = ctx.createRadialGradient(x + r * 0.4, y + r * 0.4, r * 0.05, x + r * 0.4, y + r * 0.4, r * 0.7);
+  gr.addColorStop(0, 'rgba(255,245,255,' + a * 0.8 + ')'); gr.addColorStop(1, 'rgba(255,245,255,0)');
+  ctx.fillStyle = gr; ctx.fillRect(x - r * 1.2, y - r * 1.2, r * 2.4, r * 2.4);
+}
+function sqShade(ctx, withActive) {
+  ctx.save(); ctx.globalCompositeOperation = 'source-atop';
+  if (sqPlasticOn()) {
+    const N = SQ_N, C = SQ.plastic.C, P = SQ.plastic.a, cs = C / N;
+    for (let j = 0; j <= N; j++) for (let i = 0; i <= N; i++) {
+      const n = (j * (N + 1) + i) * 2, m = Math.hypot(P[n], P[n + 1]);
+      if (m < 1.2) continue;
+      sqDent(ctx, -C / 2 + C * i / N + P[n], -MARGIN + C * j / N + P[n + 1], cs * 1.5, Math.min(0.2, m / (S * 0.17) * 0.2));
+    }
+  }
+  if (withActive && SQ.k > 0.05) sqDent(ctx, SQ.px, SQ.py, S * 0.3, 0.38 * Math.min(1, SQ.k));
+  ctx.restore();
+}
+
+// the wax skin: elastic dent plus what the soft wax kept (the gloss layer gets no shading)
+function sqDrawWax(img, C, shade) {
+  const act = sqActive() && sqWaxSoft(), pl = sqPlasticOn() ? SQ.plastic.a : null;
+  if (!act && !pl) { g.drawImage(img, -C / 2, -MARGIN); return; }
+  const disp = (x, y, i, j) => sqWaxVec(x, y, (j * (SQ_N + 1) + i) * 2);
+  if (!shade) { sqMesh(g, img, -C / 2, -MARGIN, C, C, disp); return; }
+  if (!SQ.tmp || SQ.tmp.width !== C) SQ.tmp = mkCanvas(C, C);
+  const tg = SQ.tmp.getContext('2d');
+  tg.setTransform(1, 0, 0, 1, 0, 0); tg.clearRect(0, 0, C, C);
+  tg.save(); tg.translate(C / 2, MARGIN);
+  sqMesh(tg, img, -C / 2, -MARGIN, C, C, disp);
+  sqShade(tg, act && SQ.k > 0);
+  tg.restore();
+  g.drawImage(SQ.tmp, -C / 2, -MARGIN);
+}
+// when the wax sets, the dents become part of the shell
+function sqBake() {
+  if (!sqPlasticOn() || !G.shell) { SQ.plastic = null; return; }
+  const C = G.shell.width, pl = SQ.plastic.a;
+  // eyes, glitter, scent points and air bubbles are painted/placed in the shell: they move with it for good
+  const mv = (o) => { const p = sqPt(o.x, o.y, C); o.x = clamp(Math.round(p.x), 1, C - 2); o.y = clamp(Math.round(p.y), 1, C - 2); };
+  [G.eyes, G.glitter, G.scentPts, G.air].forEach(arr => (arr || []).forEach(mv));
+  for (const cv2 of [G.shell, G.gloss]) {
+    if (!cv2) continue;
+    const tmp = mkCanvas(cv2.width, cv2.height), tg = tmp.getContext('2d');
+    tg.drawImage(cv2, 0, 0);
+    const cg = cv2.getContext('2d');
+    cg.clearRect(0, 0, cv2.width, cv2.height);
+    cg.save(); cg.translate(C / 2, MARGIN);
+    sqMesh(cg, tmp, -C / 2, -MARGIN, C, C, (x, y, i, j) => { const n = (j * (SQ_N + 1) + i) * 2; return [pl[n], pl[n + 1]]; });
+    if (cv2 === G.shell) sqShade(cg, false);
+    cg.restore();
+  }
+  SQ.plastic = null;
+}
+
+/* ---------- Tabs above the objects: all / plain / squishies ---------- */
+(function objTabs() {
+  const box = document.getElementById('objTabs');
+  if (!box) return;
+  const apply = (t) => {
+    [...box.children].forEach(b => b.setAttribute('aria-pressed', b.dataset.t === t ? 'true' : 'false'));
+    [...objRow.querySelectorAll('.chip')].forEach(c => {
+      const o = OBJECTS[+c.dataset.k], sq = !!o.sq, ty = !!o.toy;
+      c.hidden = (t === 'sq' && !sq) || (t === 'toy' && !ty) || (t === 'plain' && (sq || ty));
+    });
+    try { sessionStorage.setItem('objTab', t); } catch (e) { /* ignore */ }
+  };
+  [...box.children].forEach(b => b.addEventListener('click', () => { Snd.init(); Snd.tick(0); apply(b.dataset.t); }));
+  let t0 = 'all'; try { t0 = sessionStorage.getItem('objTab') || 'all'; } catch (e) { /* ignore */ }
+  apply(t0);
+})();
+/* ---------- Advanced sound settings: volume slider for every sound ---------- */
+(function () {
+  const btn = document.getElementById('optSndMore'), box = document.getElementById('sndAdv');
+  if (!btn || !box || typeof SND_GROUPS === 'undefined') return;
+  const rows = [];
+  function mk(id, name, test, master) {
+    const r = document.createElement('div'); r.className = 'vrow';
+    const lab = document.createElement('span'); lab.textContent = name;
+    const vv = document.createElement('span'); vv.className = 'vv';
+    const sl = document.createElement('input'); sl.type = 'range'; sl.min = 0; sl.max = 200; sl.step = 5;
+    const pl = document.createElement('button'); pl.type = 'button'; pl.className = 'vplay'; pl.textContent = '▶'; pl.setAttribute('aria-label', 'Послушать: ' + name);
+    const get = () => master ? (typeof prefs.mvol === 'number' ? prefs.mvol : 1) : (typeof prefs.vol[id] === 'number' ? prefs.vol[id] : 1);
+    const show = () => { sl.value = Math.round(get() * 100); vv.textContent = sl.value + '%'; };
+    sl.addEventListener('input', () => {
+      const v = +sl.value / 100;
+      if (master) prefs.mvol = v; else prefs.vol[id] = v;
+      vv.textContent = sl.value + '%'; Snd.setVols(prefs.vol, prefs.mvol);
+    });
+    sl.addEventListener('change', () => { savePrefs(); if (test) { Snd.init(); test(); } });
+    pl.addEventListener('click', () => { Snd.init(); if (!prefs.sound) { prefs.sound = true; applyPrefs(); savePrefs(); } test(); });
+    r.append(lab, vv, sl, pl); box.appendChild(r); rows.push(show); show();
+  }
+  mk('master', '🔊 Общая громкость', () => Snd.tick(0), true);
+  SND_GROUPS.forEach(gr => mk(gr.id, gr.n, gr.test));
+  const rs = document.createElement('button'); rs.type = 'button'; rs.className = 'vreset'; rs.textContent = 'Сбросить всё на 100%';
+  rs.addEventListener('click', () => { prefs.vol = {}; prefs.mvol = 1; Snd.setVols(prefs.vol, prefs.mvol); savePrefs(); rows.forEach(f => f()); });
+  box.appendChild(rs);
+  btn.addEventListener('click', () => {
+    const open = box.hidden; box.hidden = !open; btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    if (open) { Snd.init(); setTimeout(() => box.scrollIntoView({ block: 'nearest', behavior: 'smooth' }), 30); }
+  });
+})();
 /* ---------- Saving progress ---------- */
 // Everything that took effort to collect: cubes on the shelf, both buckets, the mix with its add-ins,
 // counters and finds. The object on the string is not saved: its wax goes back to the buckets.
@@ -5022,6 +5679,8 @@ function ragFreeze() {
 /* ---------- Update ---------- */
 function update(dt) {
   time += dt;
+  sqStep(dt);
+  toyStep(dt);
 
   // pot wax drifts toward the chosen colour
   const tid = WAX_TYPES[G.typeIdx].id;
@@ -5062,7 +5721,7 @@ function update(dt) {
   G.cov = empty ? 0 : clamp((G.oy + G.bot - waxY) / G.bot, 0, 1);
   const nowIn = G.cov > 0.02;
   if (nowIn && !G.inWax) {
-    ragFreeze();
+    ragFreeze(); toyFreeze();
     Snd.plopIn(pan(G.ox)); addRipple(G.ox, S * 0.65);
     G.maxCov = 0; G.committed = false; G.commitLayer = false; G.justCleared = false;
   }
@@ -5094,7 +5753,7 @@ function update(dt) {
           G.layers.push(newLayer(G.maxCov, cost, 1));
         }
         G.level = Math.max(0, G.level - cost - patched);
-        G.pieces = null; G.cool = 0; G.hardened = false; G.commitLayer = true;
+        G.pieces = null; G.cool = 0; G.hardened = false; G.commitLayer = true; sqResetPlastic();
         Q.onLayer();
         rebuildShell();
         makeAirBubbles(); // a fresh layer traps fresh air, older bubbles are buried
@@ -5246,7 +5905,23 @@ function update(dt) {
     const c = chips[i];
     c.vy += (c.gy == null ? 1100 : c.gy) * dt; c.x += c.vx * dt; c.y += c.vy * dt; c.rot += c.vr * dt; c.life += dt;
     if (c.k === 'puff') { c.vx *= 1 - dt * 1.5; c.vy *= 1 - dt * 0.8; }
+    if (c.wax && c.vy > 0 && potCatch(c, 6)) { waxSplash(c.x, c.col, 0.5); chips.splice(i, 1); continue; }
     if (c.life > (c.lt || 1.1) || c.y > H + 20 || c.y < -40) chips.splice(i, 1);
+  }
+  // melted wax drops: they hang by a thread, pull it thin, snap it and plop into the bucket
+  for (let i = meltDrops.length - 1; i >= 0; i--) {
+    const d = meltDrops[i];
+    d.vy += 1300 * dt; d.x += d.vx * dt; d.y += d.vy * dt;
+    const len = d.y - d.ay;
+    if (!d.broken) { d.thread = Math.max(0, 1 - len / 70); d.ty = d.ay; if (d.thread <= 0.04) { d.broken = true; d.tv = d.vy * 0.25; } }
+    else { d.tv += 1300 * dt; d.ty = Math.min(d.y - 4, d.ty + d.tv * dt); }
+    if (potCatch(d, d.r * 0.5)) { waxSplash(d.x, d.col, 1); meltDrops.splice(i, 1); continue; }
+    if (d.y > H + 30) meltDrops.splice(i, 1);
+  }
+  for (let i = splashBits.length - 1; i >= 0; i--) {
+    const s = splashBits[i];
+    s.vy += 900 * dt; s.x += s.vx * dt; s.y += s.vy * dt; s.life += dt;
+    if (s.life > 0.6 || (s.vy > 0 && s.y >= s.sy)) splashBits.splice(i, 1);
   }
 
   // shavings and the scraping sound
@@ -5444,7 +6119,7 @@ function drawPiecesComp(C) {
       cg.drawImage(P.frostPat, 0, 0); cg.restore();
     }
   }
-  g.drawImage(P.comp, -C / 2, -MARGIN);
+  if (P.frost) { g.save(); g.shadowColor = 'rgba(150,222,255,0.95)'; g.shadowBlur = 16 + 5 * Math.sin(time * 2.2); g.drawImage(P.comp, -C / 2, -MARGIN); g.restore(); } else g.drawImage(P.comp, -C / 2, -MARGIN);
 }
 
 function drawObject() {
@@ -5454,15 +6129,15 @@ function drawObject() {
   const shk = G.shake || 0;
   g.translate(G.ox + (shk ? rnd(-1, 1) * 5 * shk : 0), G.oy + (shk ? rnd(-1, 1) * 4 * shk : 0));
   g.rotate(G.swing + (G.inWax ? 0 : Math.sin(time * 1.3) * 0.012) + (G.twist ? Math.sin(time * 34) * 0.045 * G.twist : 0));
-  g.drawImage(G.sprite, -S / 2, 0);
+  sqDrawSprite();
   if (G.layers.length && G.shell) {
     if (G.pieces) {
       drawPiecesComp(C);
     } else {
       g.globalAlpha = 0.72 + 0.28 * G.cool;
-      g.drawImage(G.shell, -C / 2, -MARGIN);
+      sqDrawWax(G.shell, C, true);
       g.globalAlpha = Math.max((1 - G.cool) * 0.6, G.shell.gk * 0.55 * G.cool);
-      g.drawImage(G.gloss, -C / 2, -MARGIN);
+      sqDrawWax(G.gloss, C);
       g.globalAlpha = 1;
     }
     drawShimmer(C);
@@ -5494,7 +6169,8 @@ function drawEyes(C) {
       e.pv[0] += ((tx - e.pu[0]) * 320 - e.pv[0] * 11) * step; e.pv[1] += ((ty - e.pu[1]) * 320 - e.pv[1] * 11) * step;
       e.pu[0] = clamp(e.pu[0] + e.pv[0] * step, -0.62, 0.62); e.pu[1] = clamp(e.pu[1] + e.pv[1] * step, -0.62, 0.62);
     }
-    paintEye(g, -C / 2 + e.x, -MARGIN + e.y, e.r, e.pu[0], e.pu[1]);
+    const ep = sqPt(e.x, e.y, C);
+    paintEye(g, -C / 2 + ep.x, -MARGIN + ep.y, e.r, e.pu[0], e.pu[1]);
   }
 }
 
@@ -5559,7 +6235,7 @@ function drawGlitter(C) {
     }
     const a = Math.pow(Math.max(0, Math.sin(time * p.sp + p.ph)), 8) * k;
     if (a < 0.04) continue;
-    const x = -C / 2 + p.x, y = -MARGIN + p.y, s = p.sz * (0.5 + a);
+    const gp = sqPt(p.x, p.y, C), x = -C / 2 + gp.x, y = -MARGIN + gp.y, s = p.sz * (0.5 + a);
     g.globalAlpha = a; g.fillStyle = p.c || '#fff';
     g.beginPath();
     g.moveTo(x, y - s); g.lineTo(x + s * 0.18, y - s * 0.18); g.lineTo(x + s, y); g.lineTo(x + s * 0.18, y + s * 0.18);
@@ -5575,7 +6251,7 @@ function drawAirBubbles(C) {
   if (a <= 0) return;
   for (const b of G.air) {
     if (!airVisible(b)) continue;
-    const x = -C / 2 + b.x, y = -MARGIN + b.y;
+    const bp = sqPt(b.x, b.y, C), x = -C / 2 + bp.x, y = -MARGIN + bp.y;
     g.globalAlpha = a;
     if (b.popped) {
       g.fillStyle = 'rgba(70,25,85,0.28)';
@@ -5841,8 +6517,62 @@ function drawPotFront() {
   }
 }
 
+// has this falling thing reached the bucket's open top (and, once there, the wax or the floor)?
+function potCatch(o, r) {
+  if (o.y < rimY - 2) return false;
+  const inner = potInner(clamp(o.y, rimY, potBottom - 22));
+  if (Math.abs(o.x - potCx) > inner - r) return Math.abs(o.x - potCx) < potRx + 6 && o.y > rimY + potRy * 0.5; // it bounced off the rim
+  const floor = G.level > 0.02 ? waxY : potBottom - 30;
+  return o.y >= floor;
+}
+function waxSplash(x, col, size) {
+  const sy = (G.level > 0.02 ? waxY : potBottom - 30);
+  addRipple(x, 16 + 14 * size);
+  Snd.plop(pan(x), size > 0.8);
+  const n = size > 0.8 ? 6 : 2;
+  for (let i = 0; i < n; i++) splashBits.push({ x: x + rnd(-3, 3), y: sy - 1, sy, vx: rnd(-55, 55), vy: rnd(-230, -110) * (0.6 + 0.4 * size), r: rnd(1.6, 2.8), col, life: 0 });
+}
+// the falling drops, their thread and the splash — drawn behind the front wall of the bucket
+function drawMeltFx() {
+  for (const d of meltDrops) {
+    const col = css(d.col);
+    g.strokeStyle = col; g.fillStyle = col; g.lineCap = 'round';
+    if (!d.broken) { g.lineWidth = 0.6 + 2.2 * d.thread; g.beginPath(); g.moveTo(d.ax, d.ay); g.lineTo(d.x, d.y - d.r); g.stroke(); }
+    else { g.lineWidth = 1.4; g.beginPath(); g.moveTo(d.x, d.ty); g.lineTo(d.x, d.y - d.r); g.stroke(); }
+    g.beginPath(); g.ellipse(d.x, d.y, d.r * 0.78, d.r * 1.12, 0, 0, 7); g.fill();
+    g.fillStyle = 'rgba(255,255,255,0.55)'; g.beginPath(); g.arc(d.x - d.r * 0.25, d.y - d.r * 0.3, d.r * 0.22, 0, 7); g.fill();
+  }
+  for (const c of chips) {
+    if (!c.wax) continue;
+    g.save(); g.globalAlpha = clamp(1 - c.life / (c.lt || 1.1), 0, 1); g.translate(c.x, c.y); g.rotate(c.rot); g.fillStyle = css(c.col);
+    g.beginPath(); g.ellipse(0, 0, c.s * 0.8, c.s * 1.1, 0, 0, 7); g.fill(); g.restore();
+  }
+  for (const s of splashBits) {
+    g.globalAlpha = clamp(1 - s.life / 0.6, 0, 1); g.fillStyle = css(s.col);
+    g.beginPath(); g.arc(s.x, s.y, s.r, 0, 7); g.fill();
+  }
+  g.globalAlpha = 1;
+}
+function drawFrostFx() {
+  for (const f of frostFx) {
+    const a = Math.sin(Math.min(1, f.life) * Math.PI);
+    if (f.k === 'mist') {
+      const r = f.r * (0.8 + f.life * 0.7), gr = g.createRadialGradient(f.x, f.y, 0, f.x, f.y, r);
+      gr.addColorStop(0, 'rgba(205,238,255,' + 0.32 * a + ')'); gr.addColorStop(1, 'rgba(205,238,255,0)');
+      g.fillStyle = gr; g.fillRect(f.x - r, f.y - r, r * 2, r * 2);
+    } else {
+      const s = f.r * (0.6 + 0.4 * Math.abs(Math.sin(time * 6 + f.ph)));
+      g.globalAlpha = a; g.fillStyle = '#eaf8ff';
+      g.beginPath(); g.moveTo(f.x, f.y - s * 1.6); g.lineTo(f.x + s * 0.25, f.y - s * 0.25); g.lineTo(f.x + s * 1.6, f.y); g.lineTo(f.x + s * 0.25, f.y + s * 0.25);
+      g.lineTo(f.x, f.y + s * 1.6); g.lineTo(f.x - s * 0.25, f.y + s * 0.25); g.lineTo(f.x - s * 1.6, f.y); g.lineTo(f.x - s * 0.25, f.y - s * 0.25); g.closePath(); g.fill();
+      g.globalAlpha = 1;
+    }
+  }
+}
+
 function drawChips() {
   for (const c of chips) {
+    if (c.wax) continue;
     g.save();
     const u = c.life / (c.lt || 1.1);
     g.globalAlpha = clamp(1 - u, 0, 1) * (c.k === 'puff' ? 0.5 : 1);
@@ -5944,7 +6674,9 @@ function draw() {
   drawString();
   drawObject();
   drawToolFx();
+  drawFrostFx();
   drawDrips();
+  drawMeltFx();
   drawFlying();
   drawWaxFront();
   drawSurfaceFx();
