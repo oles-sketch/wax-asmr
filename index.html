@@ -115,6 +115,10 @@
     display: flex; flex-direction: column; gap: 8px;
   }
   .settings[hidden] { display: none; }
+  #settings { max-height: calc(100vh - 70px); max-height: calc(100dvh - 70px); overflow-y: auto; overscroll-behavior: contain; }
+  #setMore { position: sticky; bottom: -12px; flex: 0 0 auto; margin: -6px -12px -12px; padding: 18px 0 8px; text-align: center; font-size: 12px; color: var(--fg-dim);
+    background: linear-gradient(to bottom, rgba(0,0,0,0), var(--panel) 65%); pointer-events: none; border-radius: 0 0 18px 18px; }
+  #setMore[hidden] { display: none; }
   .opt {
     display: flex; align-items: center; justify-content: space-between; gap: 16px;
     background: transparent; border: 0; color: var(--fg); font-family: var(--font-display); font-size: 15px; padding: 6px 2px;
@@ -126,7 +130,7 @@
   .opt.sub { padding-left: 26px; font-size: 13px; }
   .opt .chev { transition: transform .2s; opacity: .7; }
   .opt[aria-expanded="true"] .chev { transform: rotate(180deg); }
-  #sndAdv { margin: 2px 0 8px; padding: 6px 4px 4px 12px; max-height: 46vh; overflow-y: auto; border-left: 2px solid rgba(255,255,255,0.14); }
+  #sndAdv { margin: 2px 0 8px; padding: 6px 4px 4px 12px; border-left: 2px solid rgba(255,255,255,0.14); }
   #sndAdv .vrow { display: grid; grid-template-columns: 1fr auto 34px; align-items: center; column-gap: 8px; padding: 5px 0; font-size: 13px; }
   #sndAdv .vrow input[type=range] { grid-column: 1 / 3; width: 100%; accent-color: #f4a6c0; margin: 0; height: 22px; }
   #sndAdv .vrow .vv { opacity: .75; font-variant-numeric: tabular-nums; }
@@ -449,7 +453,7 @@
     <div class="settings" id="settings" hidden>
       <div class="sheet-title">Настройки</div>
       <button type="button" class="opt" id="optSound" role="switch" aria-checked="true"><span>🔊 Звук</span><i class="sw"></i></button>
-      <button type="button" class="opt sub" id="optSndMore" aria-expanded="false"><span>🎚️ Громкость каждого звука</span><i class="chev">▾</i></button>
+      <button type="button" class="opt sub" id="optSndMore" aria-expanded="false"><span>🎚️ Громкость каждого звука (все)</span><i class="chev">▾</i></button>
       <div id="sndAdv" hidden></div>
       <button type="button" class="opt" id="optVibe" role="switch" aria-checked="true"><span>📳 Вибрация</span><i class="sw"></i></button>
       <button type="button" class="opt" id="optFx" role="switch" aria-checked="true"><span>🏆 Эффекты наград (все сразу)</span><i class="sw"></i></button>
@@ -462,6 +466,7 @@
       <div class="opt-note" id="saveNote" hidden></div>
       <div class="opt-note">Прогресс сохраняется сам. Файл нужен, чтобы перенести его на другой телефон или если браузер всё забывает</div>
       <div class="opt-note" id="vibeNote" hidden>На этом устройстве вибрация недоступна</div>
+      <div id="setMore" hidden>↓ листай ниже, там ещё настройки</div>
     </div>
   </header>
 
@@ -604,6 +609,22 @@ const Snd = (() => {
     const p = pannerFor(pan);
     g.connect(p || master);
     s.start(t, Math.random() * 1.5, dur + 0.05);
+  }
+
+  // a long smooth noise: level and filter follow a few points in time (seconds), so no pulsing like repeated short bursts
+  function wash({ buf = white, type = 'lowpass', f = [[0, 800]], lv = [[0, 0], [1, 0.2], [2, 0]], q = 0.7, pan = 0, delay = 0, am = 0, amHz = 8 }) {
+    if (!ctx || !enabled || volMul <= 0) return;
+    const t = ctx.currentTime + delay, end = lv[lv.length - 1][0];
+    const s = ctx.createBufferSource(); s.buffer = buf; s.loop = true;
+    const fl = ctx.createBiquadFilter(); fl.type = type; fl.Q.value = q; fl.frequency.setValueAtTime(f[0][1], t + f[0][0]);
+    for (let i = 1; i < f.length; i++) fl.frequency.linearRampToValueAtTime(f[i][1], t + f[i][0]);
+    const g = ctx.createGain(); g.gain.setValueAtTime(0, t);
+    lv.forEach(p => g.gain.linearRampToValueAtTime(p[1] * volMul, t + p[0]));
+    s.connect(fl); fl.connect(g);
+    let out = g;
+    if (am > 0) { const m = ctx.createGain(); m.gain.value = 1 - am / 2; const o = ctx.createOscillator(); o.frequency.value = amHz; const og = ctx.createGain(); og.gain.value = am / 2; o.connect(og); og.connect(m.gain); g.connect(m); out = m; o.start(t); o.stop(t + end + 0.1); }
+    const p = pannerFor(pan); out.connect(p || master);
+    s.start(t, Math.random() * 0.5); s.stop(t + end + 0.1);
   }
 
   function tone({ type = 'sine', f0 = 400, f1 = 200, dur = 0.08, gain = 0.1, pan = 0, delay = 0, attack = 0.004 }) {
@@ -797,6 +818,57 @@ const Snd = (() => {
       tone({ type: 'square', f0: 1500, f1: 700, dur: 0.02, gain: 0.05, pan });
       tone({ f0: 230, f1: 140, dur: 0.045, gain: 0.12, pan });
     },
+    calcKey(pan, kind) { // calculator: a dry plastic click, a short beep for = and a low blip for clear
+      burst({ type: 'bandpass', freq: kind === 'num' ? 3000 : 2400, q: 1.5, dur: 0.01, gain: 0.26, pan });
+      tone({ type: 'square', f0: kind === 'num' ? 1700 : 1300, f1: 800, dur: 0.02, gain: 0.045, pan });
+      tone({ f0: 210, f1: 130, dur: 0.04, gain: 0.1, pan });
+      if (kind === 'eq') { tone({ f0: 1175, f1: 1175, dur: 0.07, gain: 0.07, pan, delay: 0.03 }); tone({ f0: 1568, f1: 1568, dur: 0.09, gain: 0.07, pan, delay: 0.09 }); }
+      else if (kind === 'clr') tone({ f0: 520, f1: 260, dur: 0.1, gain: 0.07, pan, delay: 0.02 });
+    },
+    // pop-it: a dry silicone "tok" (short rising snap, no falling bloop so it does not sound like a drop), a lighter tick coming back, a riffle on flip
+    popIn(pan, c) {
+      const f = 900 + (c || 0) * 70 + rnd(-30, 30);
+      burst({ type: 'bandpass', freq: 2400, q: 2.2, dur: 0.014, gain: 0.3, pan });
+      tone({ type: 'triangle', f0: f * 0.8, f1: f * 1.15, dur: 0.035, gain: 0.2, pan });
+      tone({ type: 'sine', f0: f * 1.9, f1: f * 1.5, dur: 0.02, gain: 0.05, pan, delay: 0.004 });
+      tone({ type: 'sine', f0: 150, f1: 110, dur: 0.04, gain: 0.1, pan });
+    },
+    popOut(pan) {
+      burst({ type: 'bandpass', freq: 3200, q: 2, dur: 0.01, gain: 0.18, pan });
+      tone({ type: 'triangle', f0: 1300, f1: 1000, dur: 0.025, gain: 0.1, pan });
+      tone({ type: 'sine', f0: 200, f1: 170, dur: 0.03, gain: 0.05, pan });
+    },
+    popFlip(pan) {
+      for (let i = 0; i < 10; i++) {
+        const d = i * 0.03 + rnd(0, 0.012), f = 900 + i * 45 + rnd(-25, 25);
+        burst({ type: 'bandpass', freq: 2400, q: 2.2, dur: 0.01, gain: 0.15, pan, delay: d });
+        tone({ type: 'triangle', f0: f * 0.8, f1: f * 1.15, dur: 0.03, gain: 0.1, pan, delay: d });
+      }
+    },
+    // phone: switch on / off, screen taps, tiny key ticks, send whoosh, reply ding
+    phoneOn(pan) {
+      burst({ type: 'bandpass', freq: 1800, q: 1.5, dur: 0.01, gain: 0.15, pan });
+      tone({ f0: 660, f1: 660, dur: 0.07, gain: 0.08, pan, delay: 0.02 }); tone({ f0: 990, f1: 990, dur: 0.12, gain: 0.08, pan, delay: 0.09 });
+    },
+    phoneOff(pan) {
+      burst({ type: 'bandpass', freq: 1800, q: 1.5, dur: 0.01, gain: 0.15, pan });
+      tone({ f0: 880, f1: 880, dur: 0.07, gain: 0.07, pan, delay: 0.02 }); tone({ f0: 587, f1: 587, dur: 0.12, gain: 0.07, pan, delay: 0.09 });
+    },
+    phoneTap(pan) {
+      burst({ type: 'bandpass', freq: 2200, q: 1.6, dur: 0.01, gain: 0.16, pan });
+      tone({ type: 'triangle', f0: 900, f1: 700, dur: 0.02, gain: 0.05, pan });
+    },
+    phoneType(pan) {
+      burst({ type: 'bandpass', freq: 3000, q: 2, dur: 0.006, gain: 0.07, pan });
+      tone({ f0: 1400, f1: 1100, dur: 0.01, gain: 0.02, pan });
+    },
+    phoneSend(pan) {
+      tone({ f0: 520, f1: 1250, dur: 0.13, gain: 0.09, pan });
+      burst({ type: 'bandpass', freq: 2500, q: 1, dur: 0.07, gain: 0.06, pan, sweepTo: 5000 });
+    },
+    phoneDing(pan) {
+      tone({ f0: 1175, f1: 1175, dur: 0.18, gain: 0.09, pan }); tone({ f0: 1568, f1: 1568, dur: 0.26, gain: 0.08, pan, delay: 0.09 });
+    },
     btnUp(pan) {
       burst({ type: 'bandpass', freq: 3600, q: 1.6, dur: 0.008, gain: 0.17, pan });
       tone({ f0: 900, f1: 520, dur: 0.015, gain: 0.04, pan });
@@ -806,6 +878,24 @@ const Snd = (() => {
       tone({ f0: 190, f1: 90, dur: 0.08, gain: 0.2, pan });
       burst({ buf: brown, type: 'lowpass', freq: 1300, q: 0.8, dur: 0.05, gain: 0.2, pan, sweepTo: 400 });
       tone({ f0: 320, f1: 150, dur: 0.05, gain: 0.07, pan, delay: 0.07 });
+    },
+    // toilet: lid clunk, then the flush (rushing water, gurgle, refill)
+    lid(pan, up) {
+      tone({ f0: up ? 150 : 110, f1: up ? 95 : 60, dur: 0.1, gain: 0.3, pan });
+      burst({ type: 'bandpass', freq: 1400, q: 1, dur: 0.03, gain: 0.2, pan });
+      tone({ f0: 520, f1: 300, dur: 0.05, gain: 0.05, pan, delay: 0.09 });
+    },
+    flush(pan) {
+      // water rushing in (swell, steady, fade), a hiss on top, gurgling as it drains, then a trickle while the tank refills
+      wash({ buf: brown, type: 'lowpass', f: [[0, 350], [0.7, 1700], [1.5, 1500], [2.5, 500]], lv: [[0, 0], [0.35, 0.55], [1.5, 0.6], [2.3, 0.22], [2.8, 0]], pan });
+      wash({ buf: white, type: 'bandpass', q: 0.6, f: [[0, 1800], [1.2, 2600], [2.4, 1400]], lv: [[0, 0], [0.4, 0.14], [1.4, 0.17], [2.2, 0.06], [2.6, 0]], pan });
+      for (let i = 0; i < 7; i++) tone({ f0: rnd(150, 260), f1: rnd(260, 420), dur: rnd(0.12, 0.2), gain: 0.09, pan, delay: 1.0 + i * 0.16 + rnd(0, 0.06) });
+      wash({ buf: white, type: 'bandpass', q: 2.5, f: [[0, 3400], [1.4, 3000]], lv: [[0, 0], [0.3, 0.09], [1.2, 0.08], [1.5, 0]], pan, delay: 2.2, am: 0.55, amHz: 9 });
+    },
+    scrub(pan) {
+      burst({ type: 'bandpass', freq: rnd(2200, 3600), q: 2.5, dur: 0.07, gain: 0.09, pan });
+      burst({ buf: brown, type: 'lowpass', freq: 900, q: 0.8, dur: 0.07, gain: 0.1, pan });
+      if (Math.random() < 0.3) tone({ f0: rnd(1500, 1900), f1: rnd(2200, 2600), dur: 0.05, gain: 0.025, pan });
     },
     squish(pan) {
       burst({ buf: brown, type: 'lowpass', freq: 800, q: 0.8, dur: 0.22, gain: 0.5, pan, sweepTo: 160 });
@@ -1023,7 +1113,7 @@ const Hap = {
 };
 const HAP_MAP = {
   plopIn: 22, slurpOut: 14, drip: 6, squish: 10, plop: 8, sqDown: 14, sqUp: 12, harden: [6, 70, 6, 70, 6], crack: 14, crunch: 28, crunch2: 34, boom: 60, fuse: 4, landing: 16, pop: 12,
-  btnDown: 10, btnUp: 4, stickBack: 8, clink: 8, ignite: 20, thud: 55, snap: 10, foam: 9, creak: 7, ice: [10, 40, 10], scent: [8, 40, 8], chime: [18, 50, 18]
+  btnDown: 10, calcKey: 8, popIn: 12, popOut: 6, phoneOn: 12, phoneOff: 12, phoneTap: 4, phoneSend: 8, phoneDing: [8, 50, 8], popFlip: [8, 25, 8, 25, 8, 25, 8, 25, 8], btnUp: 4, stickBack: 8, lid: 14, flush: [14, 30, 14, 30, 14, 40, 10, 60, 8, 60, 6], clink: 8, ignite: 20, thud: 55, snap: 10, foam: 9, creak: 7, ice: [10, 40, 10], scent: [8, 40, 8], chime: [18, 50, 18]
 };
 Object.keys(HAP_MAP).forEach(n => {
   const f = Snd[n]; if (!f) return;
@@ -1062,7 +1152,8 @@ const SND_GROUPS = [
   { id: 'ding', n: 'Золотой молоток (динь)', fn: ['ding'], test: () => Snd.ding(0) },
   { id: 'bomb', n: 'Бомба (фитиль и взрыв)', fn: ['fuse', 'boom'], test: () => { Snd.fuse(0); setTimeout(() => Snd.fuse(0), 150); setTimeout(() => Snd.boom(0), 450); } },
   { id: 'zap', n: 'Лазер', fn: ['zap'], test: () => { Snd.zap(0); setTimeout(() => Snd.zap(0), 110); } },
-  { id: 'toy', n: 'Кнопки и стики геймпада', fn: ['btnDown', 'btnUp', 'stickMove', 'stickBack'], test: () => { Snd.btnDown(0); setTimeout(() => Snd.btnUp(0), 90); setTimeout(() => { Snd.stickMove(0); Snd.stickMove(0); }, 250); setTimeout(() => Snd.stickBack(0), 500); } },
+  { id: 'toy', n: 'Кнопки, стики, поп-ит, телефон', fn: ['btnDown', 'btnUp', 'stickMove', 'stickBack', 'calcKey', 'popIn', 'popOut', 'popFlip', 'phoneOn', 'phoneOff', 'phoneTap', 'phoneType', 'phoneSend', 'phoneDing'], test: () => { Snd.btnDown(0); setTimeout(() => Snd.btnUp(0), 90); setTimeout(() => Snd.popIn(0, 2), 160); setTimeout(() => Snd.popOut(0), 280); setTimeout(() => { Snd.stickMove(0); Snd.stickMove(0); }, 250); setTimeout(() => Snd.stickBack(0), 500); } },
+  { id: 'flush', n: 'Унитаз: смыв и крышка', fn: ['flush', 'lid', 'scrub'], test: () => { Snd.lid(0, 1); setTimeout(() => Snd.flush(0), 350); } },
   { id: 'snap', n: 'Мягкий кусочек отломился', fn: ['snap'], test: () => Snd.snap(0) },
   { id: 'creak', n: 'Скрип скрутки', fn: ['creak'], test: () => Snd.creak(0) },
   { id: 'ice', n: 'Мороз', fn: ['ice'], test: () => Snd.ice(0) },
@@ -1142,7 +1233,11 @@ const OBJECTS = [
   { img: 'cakeobj', n: 'Тортик', zoom: 1.2 },
   { img: 'beerobj', n: 'Пиво', zoom: 1.25, cx: 0.42 },
   { img: 'cat2obj', n: 'Кисюля сидит', zoom: 1.5 },
-  { e: '🎮', toy: 'pad', n: 'Геймпад', zoom: 1.75 }
+  { e: '🎮', toy: 'pad', n: 'Геймпад', zoom: 1.95 },
+  { e: '🚽', toy: 'toilet', n: 'Унитаз', zoom: 1.75 },
+  { e: '🔢', toy: 'calc', n: 'Калькулятор', zoom: 1.5 },
+  { e: '🌈', toy: 'popit', n: 'Поп-ит', zoom: 1.5 },
+  { e: '📱', toy: 'phone', n: 'Телефон', zoom: 1.5 }
 ];
 // order of the object chips: the four free ones, then the beer (also free), then the rest
 const BEER_IDX = OBJECTS.findIndex(o => o.img === 'beerobj');
@@ -1239,7 +1334,7 @@ function makeSprite(obj, S) {
     const c = mkCanvas(S, S); ragRender(c, null);
     return { canvas: c, bot: RAG_BACON.H * ragScale(S) };
   }
-  if (obj.toy) { const c = mkCanvas(S, S); padRender(c, null); return { canvas: c, bot: padLayout(S).bot }; }
+  if (obj.toy) { const c = mkCanvas(S, S); toyRender(c, null, obj); return { canvas: c, bot: toyLayout(S, obj).bot }; }
   const B = 256;
   const big = mkCanvas(B, B);
   const bg = big.getContext('2d');
@@ -1864,19 +1959,22 @@ function drawCracks(piece, hx, hy, color) {
 /* ---------- Interactive toys: a gamepad drawn in code, its buttons and sticks really move ---------- */
 // design box 400 x 250, y down; the string hangs from the top middle
 var PAD = {
-  W: 400, H: 250,
+  W: 400, H: 260,
   body: [[95, 18], [140, 6, 260, 6, 305, 18], [352, 24, 394, 82, 392, 170], [390, 218, 366, 244, 334, 242], [304, 240, 292, 214, 272, 196],
     [250, 178, 150, 178, 128, 196], [108, 214, 96, 240, 66, 242], [34, 244, 10, 218, 8, 170], [6, 82, 48, 24, 95, 18]],
   sticks: { L: { x: 112, y: 92, r: 34, t: 15 }, R: { x: 250, y: 146, r: 30, t: 13 } },
   dpad: { x: 150, y: 142, h: 27 },
-  btns: { A: { x: 292, y: 120, r: 15, c: '#7ed6a0' }, B: { x: 320, y: 92, r: 15, c: '#f58f84' }, X: { x: 264, y: 92, r: 15, c: '#8fb8f0' }, Y: { x: 292, y: 64, r: 15, c: '#f6cf72' },
-    sel: { x: 178, y: 92, r: 9, c: '#b7a9d9' }, sta: { x: 222, y: 92, r: 9, c: '#b7a9d9' }, home: { x: 200, y: 58, r: 11, c: '#f4a6c0' } },
-  trig: { LT: { x: 62, y: 0, w: 80, h: 22 }, RT: { x: 258, y: 0, w: 80, h: 22 } }
+  btns: { A: { x: 298, y: 122, r: 18, c: '#7ed6a0' }, B: { x: 328, y: 92, r: 18, c: '#f58f84' }, X: { x: 268, y: 92, r: 18, c: '#8fb8f0' }, Y: { x: 298, y: 62, r: 18, c: '#f6cf72' },
+    sel: { x: 176, y: 94, r: 11, c: '#b7a9d9' }, sta: { x: 224, y: 94, r: 11, c: '#b7a9d9' }, home: { x: 200, y: 58, r: 13, c: '#f4a6c0' } },
+  trig: { LT: { x: 80, y: -9, w: 92, h: 38 }, RT: { x: 228, y: -9, w: 92, h: 38 } }
 };
-var TOY = { parts: {}, act: null, hold: {}, dirty: true, snd: 0 };
+var TOY = { parts: {}, act: null, hold: {}, dirty: true, snd: 0, lt: 0 };
 function isToy() { return !!(OBJECTS[G.kind] && OBJECTS[G.kind].toy); }
-function padLayout(S) { const k = S / PAD.W * FIT; return { k, ox: (S - PAD.W * k) / 2, bot: PAD.H * k }; }
-function toyPart(id) { return TOY.parts[id] || (TOY.parts[id] = { k: 0, v: 0, x: 0, y: 0, vx: 0, vy: 0, tx: 0, ty: 0 }); }
+function toyDef(o) { return TOYDEF[(o || OBJECTS[G.kind] || {}).toy] || TOYDEF.pad; }
+function toyLayout(S, o) { const d = toyDef(o), k = Math.min(S / d.W, S / d.H) * FIT; return { k, ox: (S - d.W * k) / 2, bot: d.H * k }; }
+function toyRender(c, parts, o) { toyDef(o).render(c, parts); }
+function padLayout(S) { return toyLayout(S, { toy: 'pad' }); }
+function toyPart(id) { return TOY.parts[id] || (TOY.parts[id] = { k: 0, v: 0, x: 0, y: 0, vx: 0, vy: 0, tx: 0, ty: 0, t: 0 }); }
 
 function padShade(c, f) { // darker / lighter version of a #rrggbb colour
   const n = parseInt(c.slice(1), 16), r = n >> 16, g = (n >> 8) & 255, b = n & 255;
@@ -1895,7 +1993,7 @@ function padCap(g, x, y, r, col, press) { // a round plastic key with a soft sha
 function padRender(c, parts) {
   const S = c.width, L = padLayout(S), g = c.getContext('2d'), P = parts || {};
   g.clearRect(0, 0, S, S); g.imageSmoothingQuality = 'high';
-  g.save(); g.translate(L.ox, 0); g.scale(L.k, L.k); g.lineJoin = 'round'; g.lineCap = 'round';
+  g.save(); g.translate(L.ox, 10 * L.k); g.scale(L.k, L.k); g.lineJoin = 'round'; g.lineCap = 'round';
   const pk = id => (P[id] ? P[id].k : 0);
   // shoulder triggers sit behind the body
   for (const id in PAD.trig) {
@@ -1943,30 +2041,55 @@ function padRender(c, parts) {
     g.restore(); }
   // face buttons and small ones
   for (const id in PAD.btns) { const b = PAD.btns[id]; padCap(g, b.x, b.y, b.r, b.c, pk(id)); }
-  g.fillStyle = 'rgba(60,40,100,0.55)'; g.font = '700 11px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
-  ['A', 'B', 'X', 'Y'].forEach(id => { const b = PAD.btns[id]; g.fillText(id, b.x, b.y + 1 + pk(id) * 2.5); });
+  g.font = '800 19px "Segoe UI",Roboto,Arial,sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.lineJoin = 'round';
+  ['A', 'B', 'X', 'Y'].forEach(id => { const b = PAD.btns[id], ty = b.y + 1.5 + pk(id) * 2.5; g.strokeStyle = 'rgba(255,255,255,0.75)'; g.lineWidth = 4; g.strokeText(id, b.x, ty); g.fillStyle = '#2f2559'; g.fillText(id, b.x, ty); });
   g.restore();
 }
 
 // where a screen point lands on the toy, as a zone to press (design coordinates)
 function toyHit(x, y) {
   if (!isToy() || G.layers.length || G.inWax) return null;
-  const L = padLayout(S), l = sqLocal(x, y), dx = (l.x + S / 2 - L.ox) / L.k, dy = l.y / L.k;
+  const L = toyLayout(S), l = sqLocal(x, y), dx = (l.x + S / 2 - L.ox) / L.k, dy = l.y / L.k - (toyDef().dy || 0);
+  if (toyDef().hit) return toyDef().hit(dx, dy);
   for (const id in PAD.sticks) { const s = PAD.sticks[id]; if (Math.hypot(dx - s.x, dy - s.y) < s.r + 4) return { type: 'stick', id: 'stick' + id, c: s }; }
   for (const id in PAD.btns) { const b = PAD.btns[id]; if (Math.hypot(dx - b.x, dy - b.y) < b.r + 8) return { type: 'btn', id, c: b }; }
   const d = PAD.dpad; if (Math.abs(dx - d.x) < d.h + 3 && Math.abs(dy - d.y) < d.h + 3) return { type: 'dpad', id: 'dpad', c: d };
-  for (const id in PAD.trig) { const t = PAD.trig[id]; if (dx > t.x - 4 && dx < t.x + t.w + 4 && dy >= -4 && dy < t.y + t.h + 6) return { type: 'btn', id, c: t }; }
+  for (const id in PAD.trig) { const t = PAD.trig[id]; if (dx > t.x - 4 && dx < t.x + t.w + 4 && dy >= t.y - 6 && dy < t.y + t.h - 6) return { type: 'btn', id, c: t }; }
   return null;
 }
+// is the brush head over the bowl, with the lid up
+// the brush goes in only through the opening itself (an ellipse over the water), and stays in until it is lifted out
+function brushEntry(x, y) { return TOY.lt > 0.5 && ((x - 150) / 74) * ((x - 150) / 74) + ((y - 168) / 30) * ((y - 168) / 30) < 1; }
 function toyStart(x, y, z) {
   TOY.act = z; const p = toyPart(z.id);
-  if (z.type === 'btn') { TOY.hold[z.id] = time + 0.09; Snd.btnDown(pan(x)); }
+  if (z.type === 'flush') { if (toyPart('flush').t <= 0 || toyPart('flush').t > 3.2) { toyPart('flush').t = 0.001; toyPart('brush').foam = 0; Snd.flush(pan(x)); } toyPart('btn').k = 0; TOY.hold.flushBtn = time + 0.12; Snd.btnDown(pan(x)); TOY.dirty = true; TOY.act = null; return; }
+  if (z.type === 'brush') { const b = toyPart('brush'); if (b.mode === undefined) { b.x = BRUSH_HOME.x; b.y = BRUSH_HOME.y; } b.inb = b.mode === 'bowl'; b.mode = 'held'; b.tx = b.x; b.ty = b.y; Snd.btnDown(pan(x)); toyMove(x, y); TOY.dirty = true; return; }
+  if (z.type === 'lid') { TOY.lt = TOY.lt ? 0 : 1; { const b = TOY.parts.brush; if (b && TOY.lt < 0.5 && b.mode === 'bowl') { b.inb = false; b.mode = 'home'; b.tx = BRUSH_HOME.x; b.ty = BRUSH_HOME.y; } } Snd.lid(pan(x), TOY.lt); TOY.dirty = true; TOY.act = null; return; }
+  if (z.type === 'ppwr') { TOY.hold.ppwr = time + 0.12; phonePower(x); TOY.act = null; TOY.dirty = true; return; }
+  if (z.type === 'pscr') { const d = popDesign(x, y); PHONE.press0 = PHONE.cur = phoneTarget(d.dx, d.dy); TOY.dirty = true; return; }
+  if (z.type === 'flip') { TOY.hold.pflip = time + 0.12; Snd.btnDown(pan(x)); popFlip(x); TOY.act = null; TOY.dirty = true; return; }
+  if (z.type === 'bubbles') { const q = popIdx(x, y); if (q >= 0) { TOY.pmode = !POPIT.s[q]; popSet(q, TOY.pmode, x); } else TOY.pmode = true; TOY.dirty = true; return; }
+  if (z.type === 'btn') { TOY.hold[z.id] = time + 0.09; if (z.key !== undefined) Snd.calcKey(pan(x), calcPress(z.key)); else Snd.btnDown(pan(x)); }
   else { Snd.btnDown(pan(x)); toyMove(x, y); }
   TOY.dirty = true;
 }
 function toyMove(x, y) {
   const z = TOY.act; if (!z) return;
-  const L = padLayout(S), l = sqLocal(x, y), dx = (l.x + S / 2 - L.ox) / L.k, dy = l.y / L.k;
+  const L = toyLayout(S), l = sqLocal(x, y), dx = (l.x + S / 2 - L.ox) / L.k, dy = l.y / L.k - (toyDef().dy || 0);
+  if (z.type === 'brush') {
+    const b = toyPart('brush'), nx0 = dx - 50 + z.off.x, ny0 = dy + z.off.y;
+    let nx = Math.max(-30, Math.min(350, nx0)), ny = Math.max(60, Math.min(322, ny0)), inb = !!b.inb;
+    if (inb && (ny0 < 128 || Math.abs(nx0 - 150) > 128 || TOY.lt < 0.5)) inb = false; // lifted out of the opening / pulled out sideways
+    else if (!inb && brushEntry(nx, ny) && b.ty < 150) inb = true; // dipped in from above; a sideways sweep over the opening does not catch it (see dwell in toyStep)
+    if (inb) { nx = Math.max(82, Math.min(218, nx)); ny = Math.max(128, Math.min(235, ny)); }
+    const sp = Math.hypot(nx - b.tx, ny - b.ty); b.tx = nx; b.ty = ny;
+    if (inb && !b.inb) Snd.plop(pan(x), false);
+    b.inb = inb;
+    if (inb && sp > 2 && time - TOY.snd > 0.07) { TOY.snd = time; b.foam = Math.min(1, (b.foam || 0) + sp * 0.012); Snd.scrub(pan(x)); }
+    TOY.dirty = true; return;
+  }
+  if (z.type === 'pscr') { const d = popDesign(x, y), t = phoneTarget(d.dx, d.dy); if (t !== PHONE.cur) { PHONE.cur = t; TOY.dirty = true; } return; }
+  if (z.type === 'bubbles') { const q = popIdx(x, y); if (q >= 0 && !!POPIT.s[q] !== TOY.pmode) popSet(q, TOY.pmode, x); TOY.dirty = true; return; }
   if (z.type === 'stick') {
     const p = toyPart(z.id); let vx = (dx - z.c.x) / z.c.t, vy = (dy - z.c.y) / z.c.t, m = Math.hypot(vx, vy);
     if (m > 1) { vx /= m; vy /= m; }
@@ -1984,6 +2107,10 @@ function toyMove(x, y) {
 function toyEnd(x) {
   const z = TOY.act; TOY.act = null; if (!z) return;
   const p = toyPart(z.id);
+  if (z.type === 'brush') { if (!p.inb && brushEntry(p.tx, p.ty)) { p.inb = true; p.tx = Math.max(82, Math.min(218, p.tx)); p.ty = Math.max(128, Math.min(235, p.ty)); Snd.plop(pan(x != null ? x : G.ox), false); } // let go over the opening: it drops in
+    p.mode = p.inb ? 'bowl' : 'home'; if (p.mode === 'home') { p.inb = false; p.tx = BRUSH_HOME.x; p.ty = BRUSH_HOME.y; } Snd.btnUp(pan(x != null ? x : G.ox)); TOY.dirty = true; return; }
+  if (z.type === 'bubbles') { TOY.dirty = true; return; }
+  if (z.type === 'pscr') { const t = PHONE.cur, t0 = PHONE.press0; PHONE.cur = PHONE.press0 = null; if (t && t === t0) phoneAct(t, x); TOY.dirty = true; return; }
   if (z.type === 'stick') { Snd.stickBack(pan(x != null ? x : G.ox)); p.tx = 0; p.ty = 0; }
   else if (z.type === 'dpad') { p.tx = 0; p.ty = 0; Snd.btnUp(pan(x != null ? x : G.ox)); }
   else Snd.btnUp(pan(x != null ? x : G.ox));
@@ -1994,7 +2121,20 @@ function toyStep(dt) {
   if (!isToy() || !G.sprite) { TOY.act = null; return; }
   if (G.layers.length || G.inWax) return; // wax sets on the toy: nothing moves any more
   const steps = Math.max(1, Math.ceil(dt / 0.008)), h = dt / steps; let moving = false;
+  { const lp = toyPart('lid'), fl = toyPart('flush');
+    for (let i = 0; i < steps; i++) { lp.v += ((TOY.lt - lp.k) * 260 - lp.v * 15) * h; lp.k += lp.v * h; }
+    if (Math.abs(TOY.lt - lp.k) + Math.abs(lp.v) * 0.05 > 0.004) moving = true; else { lp.k = TOY.lt; lp.v = 0; }
+    if (fl.t > 0) { fl.t += dt; moving = true; if (fl.t > 4.2) fl.t = 0; }
+    const hb = (TOY.hold.flushBtn || 0) > time; toyPart('btn').k += ((hb ? 1 : 0) - toyPart('btn').k) * Math.min(1, dt * 22); if (Math.abs((hb ? 1 : 0) - toyPart('btn').k) > 0.01) moving = true; }
+  { const b = toyPart('brush');
+    if (b.mode === undefined) { b.x = BRUSH_HOME.x; b.y = BRUSH_HOME.y; b.tx = b.x; b.ty = b.y; b.mode = 'home'; }
+    if (TOY.act && TOY.act.id === 'brush' && !b.inb && brushEntry(b.tx, b.ty)) { b.dw = (b.dw || 0) + dt; if (b.dw > 0.18) { b.inb = true; b.dw = 0; b.tx = Math.max(82, Math.min(218, b.tx)); b.ty = Math.max(128, Math.min(235, b.ty)); Snd.plop(pan(G.ox), false); } } else b.dw = 0;
+    for (let i = 0; i < steps; i++) { b.vx += ((b.tx - b.x) * 420 - b.vx * 28) * h; b.vy += ((b.ty - b.y) * 420 - b.vy * 28) * h; b.x += b.vx * h; b.y += b.vy * h; }
+    b.tilt = Math.max(-0.6, Math.min(0.6, (b.tilt || 0) + (-b.vx * 0.0012 - (b.tilt || 0)) * Math.min(1, dt * 10)));
+    if (b.foam > 0) b.foam = Math.max(0, b.foam - dt * 0.07);
+    if (Math.abs(b.tx - b.x) + Math.abs(b.ty - b.y) + Math.abs(b.vx) * 0.05 + Math.abs(b.vy) * 0.05 > 0.05 || b.foam > 0 || Math.abs(b.tilt) > 0.01) moving = true; }
   for (const id in TOY.parts) {
+    if (id === 'lid' || id === 'flush' || id === 'btn' || id === 'brush' || id === 'bubbles' || id === 'pscr' || id.indexOf('pb') === 0) continue;
     const p = TOY.parts[id], isStick = id.indexOf('stick') === 0, isPad = id === 'dpad';
     const downNow = TOY.act && TOY.act.id === id, held = downNow || (TOY.hold[id] || 0) > time;
     for (let i = 0; i < steps; i++) {
@@ -2011,15 +2151,512 @@ function toyStep(dt) {
     if (e > 0.004) moving = true; else if (!isStick && !isPad && !held) { p.k = 0; p.v = 0; }
     else if (!held && (isStick || isPad)) { p.x = p.tx; p.y = p.ty; p.vx = p.vy = 0; }
   }
-  if (moving || TOY.dirty) { padRender(G.sprite, TOY.parts); TOY.dirty = moving; }
+  if (OBJECTS[G.kind].toy === 'phone' && phoneTick(dt)) moving = true;
+  if (OBJECTS[G.kind].toy === 'popit') for (let i = 0; i < POPIT.N; i++) {
+    const p = popPart(i), tg = POPIT.s[i] ? 1 : 0;
+    if (p.d > 0) { p.d -= dt; moving = true; continue; }
+    for (let j = 0; j < steps; j++) { p.v += ((tg - p.k) * 700 - p.v * 22) * h; p.k += p.v * h; }
+    if (Math.abs(tg - p.k) + Math.abs(p.v) * 0.04 > 0.004) moving = true; else { p.k = tg; p.v = 0; }
+  }
+  if (moving || TOY.dirty) { toyRender(G.sprite, TOY.parts); if (G.spriteHi) toyRender(G.spriteHi, TOY.parts); TOY.dirty = moving; }
 }
 // the toy goes into the wax in its rest pose
 function toyFreeze() {
   if (!isToy()) return;
-  TOY.act = null; TOY.parts = {}; TOY.hold = {};
-  padRender(G.sprite, null);
+  TOY.act = null; TOY.hold = {};
+  if (OBJECTS[G.kind].toy === 'toilet') { // wax sets on the toilet as it stands: lid, brush in the bowl, foam
+    const lp = toyPart('lid'); lp.k = TOY.lt; lp.v = 0; toyPart('flush').t = 0; toyPart('btn').k = 0;
+    const b = toyPart('brush');
+    if (b.mode === 'bowl') { b.x = b.tx; b.y = b.ty; } else { b.x = BRUSH_HOME.x; b.y = BRUSH_HOME.y; b.tx = b.x; b.ty = b.y; b.mode = 'home'; b.inb = false; }
+    b.vx = b.vy = 0; b.tilt = 0;
+  } else { TOY.parts = {}; TOY.lt = 0; }
+  toyRender(G.sprite, TOY.parts); if (G.spriteHi) toyRender(G.spriteHi, TOY.parts);
   G.sil = buildSilhouette(G.sprite); G.dripPts = dripPoints(G.sprite, G.bot);
 }
+// a fresh toy starts in its rest pose
+function toyReset() { TOY.parts = {}; TOY.hold = {}; TOY.act = null; TOY.lt = 0; TOY.dirty = true; phoneReset(); }
+
+/* ---------- The toilet: a flush button with water swirl and sound, and a lid that opens ---------- */
+function toiletRender(c, parts) {
+  const S = c.width, L = toyLayout(S, { toy: 'toilet' }), g = c.getContext('2d'), P = parts || {};
+  const lid = P.lid ? Math.max(-0.08, Math.min(1.08, P.lid.k)) : 0, ft = P.flush ? P.flush.t : 0, bp = P.btn ? P.btn.k : 0;
+  g.clearRect(0, 0, S, S); g.imageSmoothingQuality = 'high';
+  g.save(); g.translate(L.ox + 50 * L.k, 0); g.scale(L.k, L.k); g.lineJoin = 'round'; g.lineCap = 'round';
+  const OUT = '#7f6db0', POR = ['#fbf8ff', '#e4daf4'], PINK = ['#fbcfe0', '#f2a1c0'];
+  const fill = (cols, y0, y1) => { const gr = g.createLinearGradient(0, y0, 0, y1); gr.addColorStop(0, cols[0]); gr.addColorStop(1, cols[1]); return gr; };
+  // base and body
+  g.fillStyle = fill(POR, 300, 330); g.strokeStyle = OUT; g.lineWidth = 3.5;
+  g.beginPath(); g.roundRect(78, 300, 144, 28, 12); g.fill(); g.stroke();
+  g.fillStyle = fill(POR, 150, 310);
+  g.beginPath(); g.moveTo(42, 160); g.bezierCurveTo(40, 236, 92, 262, 108, 270); g.lineTo(108, 304); g.lineTo(192, 304); g.lineTo(192, 270); g.bezierCurveTo(208, 262, 260, 236, 258, 160); g.closePath(); g.fill(); g.stroke();
+  g.fillStyle = 'rgba(255,255,255,0.55)'; g.beginPath(); g.ellipse(70, 205, 8, 30, -0.35, 0, 7); g.fill();
+  // tank
+  g.fillStyle = fill(POR, 6, 112); g.beginPath(); g.roundRect(68, 8, 164, 104, 14); g.fill(); g.stroke();
+  g.fillStyle = fill(PINK, 0, 20); g.beginPath(); g.roundRect(58, 0, 184, 20, 9); g.fill(); g.stroke();
+  g.fillStyle = 'rgba(255,255,255,0.5)'; g.beginPath(); g.roundRect(78, 28, 8, 66, 4); g.fill();
+  // flush button: pushed in while pressed, a little drop on it
+  { const x = 150, y = 58, dy = bp * 3, s = 1 - bp * 0.08;
+    g.fillStyle = 'rgba(60,40,100,0.28)'; g.beginPath(); g.arc(x, y + 3, 23, 0, 7); g.fill();
+    const gr = g.createRadialGradient(x - 6, y - 8 + dy, 2, x, y + dy, 24); gr.addColorStop(0, '#fdf2f7'); gr.addColorStop(0.6, '#f4a6c0'); gr.addColorStop(1, '#d97aa2');
+    g.fillStyle = gr; g.strokeStyle = '#a85a85'; g.lineWidth = 3; g.beginPath(); g.arc(x, y + dy, 22 * s, 0, 7); g.fill(); g.stroke();
+    g.fillStyle = 'rgba(255,255,255,0.9)'; g.strokeStyle = '#a85a85'; g.lineWidth = 2;
+    g.beginPath(); g.moveTo(x, y - 11 + dy); g.bezierCurveTo(x + 10, y + 2 + dy, x + 9, y + 11 + dy, x, y + 11 + dy); g.bezierCurveTo(x - 9, y + 11 + dy, x - 10, y + 2 + dy, x, y - 11 + dy); g.fill(); g.stroke(); }
+  // seat ring, then the bowl with water
+  g.fillStyle = fill(PINK, 108, 214); g.strokeStyle = '#b4608a'; g.lineWidth = 3.5;
+  g.beginPath(); g.ellipse(150, 162, 112, 52, 0, 0, 7); g.fill(); g.stroke();
+  g.fillStyle = fill(POR, 128, 196); g.strokeStyle = OUT; g.lineWidth = 3;
+  g.beginPath(); g.ellipse(150, 165, 84, 36, 0, 0, 7); g.fill(); g.stroke();
+  // water: drains while the flush runs (0..0.9 s down, then refills until 3.1 s) with a swirl
+  let lv = 1, sw = 0;
+  if (ft > 0) { if (ft < 0.9) { lv = 1 - ft / 0.9; sw = 1; } else if (ft < 1.4) { lv = 0; sw = 1 - (ft - 0.9) / 0.5 * 0.4; } else if (ft < 3.1) { lv = (ft - 1.4) / 1.7; sw = 0; } }
+  const wx = 150, wy = 169, rx = 66, ry = 27;
+  g.save(); g.beginPath(); g.ellipse(wx, wy, rx, ry, 0, 0, 7); g.clip();
+  g.fillStyle = '#6e7aa6'; g.fillRect(wx - rx, wy - ry, rx * 2, ry * 2); // the dark hole
+  if (lv > 0.02) { const ga = g.createLinearGradient(0, wy - ry, 0, wy + ry); ga.addColorStop(0, '#c9ecfa'); ga.addColorStop(1, '#8fd0ee'); g.fillStyle = ga; g.globalAlpha = Math.min(1, lv * 1.2);
+    g.beginPath(); g.ellipse(wx, wy + (1 - lv) * 4, rx * (0.35 + 0.65 * lv), ry * (0.35 + 0.65 * lv), 0, 0, 7); g.fill(); g.globalAlpha = 1; }
+  if (sw > 0.02) { // swirl arcs
+    const rot = ft * 9; g.strokeStyle = 'rgba(255,255,255,' + (0.85 * sw) + ')'; g.lineWidth = 3.5;
+    for (let i = 0; i < 3; i++) { const a0 = rot + i * 2.1; g.beginPath(); for (let t = 0; t <= 1; t += 0.08) { const a = a0 + t * 3.4, r = 1 - t * 0.8; const px = wx + Math.cos(a) * rx * r * 0.92, py = wy + Math.sin(a) * ry * r * 0.92; if (t === 0) g.moveTo(px, py); else g.lineTo(px, py); } g.stroke(); }
+  }
+  { const fm = P.brush ? P.brush.foam : 0, shown = ft === 0 ? 1 : (ft > 1.4 ? Math.min(1, (ft - 1.4) / 1.7) * 0 : 0);
+    if (fm > 0.03 && shown > 0) { const n = Math.min(16, Math.ceil(fm * 16)); g.globalAlpha = Math.min(1, fm * 1.6);
+      for (let i = 0; i < n; i++) { const ax = wx + Math.sin(i * 12.9 + 1) * rx * 0.78, ay = wy + Math.cos(i * 7.3 + 2) * ry * 0.66, r = 3.5 + (i % 3) * 2;
+        g.fillStyle = 'rgba(255,255,255,0.92)'; g.strokeStyle = 'rgba(143,208,238,0.9)'; g.lineWidth = 1.3; g.beginPath(); g.arc(ax, ay, r, 0, 7); g.fill(); g.stroke();
+        g.fillStyle = 'rgba(143,208,238,0.6)'; g.beginPath(); g.arc(ax - r * 0.3, ay - r * 0.3, r * 0.28, 0, 7); g.fill(); }
+      g.globalAlpha = 1; } }
+  if (ft > 1.4 && ft < 3.1) { g.fillStyle = 'rgba(255,255,255,0.6)'; for (let i = 0; i < 4; i++) { g.beginPath(); g.arc(wx - 30 + i * 20, wy - 8 + Math.sin(ft * 5 + i) * 4, 2.5, 0, 7); g.fill(); } }
+  g.restore();
+  g.strokeStyle = 'rgba(127,109,176,0.7)'; g.lineWidth = 2; g.beginPath(); g.ellipse(wx, wy, rx, ry, 0, 0, 7); g.stroke();
+  // lid: hinged at the back, front edge swings up and over
+  { const a = lid * Math.PI / 2, hy = 114, fy = hy + 98 * Math.cos(a) - 48 * Math.sin(a), top = Math.min(hy, fy), bot = Math.max(hy, fy), h = Math.max(6, bot - top);
+    const rr = 18 + 28 * Math.max(0, Math.cos(a)), wd = 108 - 14 * Math.sin(a);
+    g.save(); g.fillStyle = fill(PINK, top, top + h); g.strokeStyle = '#b4608a'; g.lineWidth = 3.5;
+    g.beginPath(); g.roundRect(150 - wd, top, wd * 2, h, Math.min(rr, h / 2 + 4)); g.fill(); g.stroke();
+    g.fillStyle = 'rgba(255,255,255,0.5)'; g.beginPath(); g.ellipse(150 - wd * 0.35, top + h * 0.3, wd * 0.4, Math.max(2, h * 0.1), -0.05, 0, 7); g.fill();
+    g.restore(); }
+  toiletBrush(g, P.brush);
+  g.restore();
+}
+// the toilet brush and its holder (toilet space; the holder stands to the right of the toilet)
+var BRUSH_HOME = { x: 312, y: 296 };
+function brushPose(b) { const x = b ? b.x : BRUSH_HOME.x, y = b ? b.y : BRUSH_HOME.y, tl = b ? b.tilt || 0 : 0; return { x, y, tx: x + 16 + tl * 40, ty: y - 112 }; }
+function toiletBrush(g, b) {
+  const q = brushPose(b), OUT = '#7f6db0';
+  const cup = (front) => {
+    if (!front) { g.fillStyle = '#5a4a8a'; g.beginPath(); g.ellipse(312, 268, 19, 6, 0, 0, 7); g.fill(); return; }
+    const gr = g.createLinearGradient(292, 0, 332, 0); gr.addColorStop(0, '#e4daf4'); gr.addColorStop(0.5, '#fbf8ff'); gr.addColorStop(1, '#cfc1ea');
+    g.fillStyle = gr; g.strokeStyle = OUT; g.lineWidth = 3;
+    g.beginPath(); g.moveTo(293, 268); g.lineTo(296, 318); g.quadraticCurveTo(312, 326, 328, 318); g.lineTo(331, 268); g.quadraticCurveTo(312, 276, 293, 268); g.fill(); g.stroke();
+    g.fillStyle = 'rgba(244,166,192,0.8)'; g.beginPath(); g.roundRect(298, 292, 28, 8, 4); g.fill();
+  };
+  cup(false);
+  // like a stick going into the bucket: while the head is inside the bowl, everything below the near rim is hidden
+  const inside = !!(b && b.inb && b.mode !== 'home');
+  if (inside) { g.save(); g.beginPath(); g.rect(-300, -300, 1000, 1000); g.moveTo(66, 165); g.ellipse(150, 165, 84, 36, 0, Math.PI, 0, true); g.lineTo(234, 600); g.lineTo(66, 600); g.closePath(); g.clip('evenodd'); }
+  // handle with an outline, collar and bristle head
+  g.strokeStyle = '#b4608a'; g.lineWidth = 11; g.beginPath(); g.moveTo(q.x, q.y); g.lineTo(q.tx, q.ty); g.stroke();
+  g.strokeStyle = '#f9b9d1'; g.lineWidth = 7; g.beginPath(); g.moveTo(q.x, q.y); g.lineTo(q.tx, q.ty); g.stroke();
+  g.fillStyle = '#f4a6c0'; g.strokeStyle = '#b4608a'; g.lineWidth = 3; g.beginPath(); g.arc(q.tx, q.ty, 8.5, 0, 7); g.fill(); g.stroke();
+  const ang = Math.atan2(q.ty - q.y, q.tx - q.x);
+  g.save(); g.translate(q.x, q.y); g.rotate(ang + Math.PI / 2);
+  g.fillStyle = '#9fe0c6'; g.strokeStyle = '#4f9c86'; g.lineWidth = 2.5;
+  g.beginPath(); g.ellipse(0, -2, 15, 21, 0, 0, 7); g.fill(); g.stroke();
+  g.strokeStyle = 'rgba(79,156,134,0.7)'; g.lineWidth = 1.5;
+  for (let i = -3; i <= 3; i++) { g.beginPath(); g.moveTo(i * 4, -16); g.lineTo(i * 4.5, 14); g.stroke(); }
+  g.fillStyle = '#cfc1ea'; g.strokeStyle = OUT; g.lineWidth = 2; g.beginPath(); g.roundRect(-7, -33, 14, 11, 3); g.fill(); g.stroke();
+  g.restore();
+  if (inside) g.restore();
+  cup(true);
+}
+function toiletHit(dx, dy) {
+  dx -= 50;
+  { const b = TOY.parts.brush, q = brushPose(b), vx = q.tx - q.x, vy = q.ty - q.y, t = Math.max(0, Math.min(1, ((dx - q.x) * vx + (dy - q.y) * vy) / (vx * vx + vy * vy)));
+    if (Math.hypot(dx - (q.x + vx * t), dy - (q.y + vy * t)) < 17) return { type: 'brush', id: 'brush', off: { x: q.x - dx, y: q.y - dy } }; }
+  if (Math.hypot(dx - 150, dy - 58) < 28) return { type: 'flush', id: 'flush' };
+  if (dx > 36 && dx < 264 && dy > 56 && dy < 218 && dy > (TOY.lt ? 60 : 100)) return { type: 'lid', id: 'lid' };
+  return null;
+}
+var TOYDEF = { pad: { W: PAD.W, H: PAD.H, dy: 10, render: padRender }, toilet: { W: 400, H: 330, render: toiletRender, hit: toiletHit } };
+
+/* ---------- The calculator: a real working one, the keys press and the screen shows the numbers ---------- */
+var CALC = { disp: '0', acc: null, op: null, fresh: true, err: false };
+var CALC_KEYS = [
+  ['C', '±', '%', '÷'], ['7', '8', '9', '×'], ['4', '5', '6', '−'], ['1', '2', '3', '+'], ['0', '0', '.', '=']
+];
+var CALC_G = { x0: 18, y0: 96, cw: 51, ch: 38 };
+function calcColor(k) { return k === '=' ? '#7ed6a0' : k === 'C' ? '#f58f84' : '÷×−+'.indexOf(k) >= 0 ? '#f4a6c0' : (k === '±' || k === '%') ? '#b7a9d9' : '#f3effb'; }
+function calcFmt(n) {
+  if (!isFinite(n)) return 'Ошибка';
+  if (Math.abs(n) >= 1e9) return 'Ошибка';
+  for (let p = 9; p >= 1; p--) { const t = parseFloat(n.toPrecision(p)); let str = String(t); if (/e/.test(str)) str = t.toFixed(0); if (str.replace(/[-.]/g, '').length <= 9) return str; }
+  return String(Math.round(n));
+}
+function calcDo(a, op, b) { return op === '+' ? a + b : op === '−' ? a - b : op === '×' ? a * b : (b === 0 ? NaN : a / b); }
+function calcPress(k) {
+  const C = CALC; let kind = 'num';
+  if (C.err && k !== 'C') { if ('0123456789.'.indexOf(k) < 0) return 'op'; C.err = false; C.disp = '0'; C.acc = null; C.op = null; C.fresh = true; }
+  if ('0123456789'.indexOf(k) >= 0) {
+    if (C.fresh) { C.disp = k; C.fresh = false; } else if (C.disp.replace(/[-.]/g, '').length < 9) C.disp = C.disp === '0' ? k : C.disp + k;
+  } else if (k === '.') {
+    if (C.fresh) { C.disp = '0.'; C.fresh = false; } else if (C.disp.indexOf('.') < 0 && C.disp.replace(/[-.]/g, '').length < 9) C.disp += '.';
+  } else if (k === 'C') { C.disp = '0'; C.acc = null; C.op = null; C.fresh = true; C.err = false; kind = 'clr'; }
+  else if (k === '±') { if (C.disp !== '0' && C.disp !== '0.') C.disp = C.disp[0] === '-' ? C.disp.slice(1) : '-' + C.disp; kind = 'op'; }
+  else if (k === '%') { C.disp = calcFmt(parseFloat(C.disp) / 100); C.fresh = true; kind = 'op'; }
+  else if (k === '=') {
+    if (C.op && C.acc !== null) { const r = calcDo(C.acc, C.op, parseFloat(C.disp)); C.disp = calcFmt(r); if (C.disp === 'Ошибка') C.err = true; C.acc = null; C.op = null; C.fresh = true; }
+    kind = 'eq';
+  } else { // + − × ÷
+    if (C.op && !C.fresh && C.acc !== null) { const r = calcDo(C.acc, C.op, parseFloat(C.disp)); C.disp = calcFmt(r); if (C.disp === 'Ошибка') { C.err = true; C.acc = null; C.op = null; C.fresh = true; TOY.dirty = true; return 'op'; } }
+    C.acc = parseFloat(C.disp); C.op = k; C.fresh = true; kind = 'op';
+  }
+  TOY.dirty = true; return kind;
+}
+function calcCap(g, x, y, w, h, col, press, label) {
+  const dy = press * 2.2;
+  g.fillStyle = 'rgba(60,40,100,0.3)'; g.beginPath(); g.roundRect(x, y + 3, w, h, 8); g.fill();
+  const gr = g.createLinearGradient(0, y + dy, 0, y + h + dy); gr.addColorStop(0, padShade(col, 0.3 - press * 0.25)); gr.addColorStop(1, padShade(col, -0.1 - press * 0.12));
+  g.fillStyle = gr; g.strokeStyle = padShade(col, -0.4); g.lineWidth = 1.8;
+  g.beginPath(); g.roundRect(x, y + dy, w, h, 8); g.fill(); g.stroke();
+  g.fillStyle = 'rgba(255,255,255,' + (0.45 - press * 0.3) + ')'; g.beginPath(); g.roundRect(x + 5, y + dy + 3, w - 10, 3.5, 2); g.fill();
+  g.font = '800 19px "Segoe UI",Roboto,Arial,sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.fillStyle = '#3b2f66'; g.fillText(label, x + w / 2, y + dy + h / 2 + 1.5);
+}
+function calcRender(c, parts) {
+  const S = c.width, L = toyLayout(S, { toy: 'calc' }), g = c.getContext('2d'), P = parts || {};
+  g.clearRect(0, 0, S, S); g.imageSmoothingQuality = 'high';
+  g.save(); g.translate(L.ox, 0); g.scale(L.k, L.k); g.lineJoin = 'round'; g.lineCap = 'round';
+  const bg = g.createLinearGradient(0, 0, 0, 300); bg.addColorStop(0, '#f6f1fd'); bg.addColorStop(0.5, '#ddd2f3'); bg.addColorStop(1, '#bcaee3');
+  g.fillStyle = bg; g.strokeStyle = '#7f6db0'; g.lineWidth = 3.5; g.beginPath(); g.roundRect(4, 4, 232, 292, 22); g.fill(); g.stroke();
+  g.fillStyle = 'rgba(255,255,255,0.45)'; g.beginPath(); g.roundRect(16, 8, 208, 6, 3); g.fill();
+  // screen
+  g.fillStyle = '#5d4f8c'; g.beginPath(); g.roundRect(16, 18, 208, 66, 12); g.fill();
+  const lcd = g.createLinearGradient(0, 22, 0, 80); lcd.addColorStop(0, '#d7efdc'); lcd.addColorStop(1, '#b9dcc6');
+  g.fillStyle = lcd; g.beginPath(); g.roundRect(21, 23, 198, 56, 8); g.fill();
+  g.save(); g.beginPath(); g.roundRect(21, 23, 198, 56, 8); g.clip();
+  const err = CALC.err, txt = CALC.disp; g.textBaseline = 'middle'; g.textAlign = 'right';
+  let fs = err ? 28 : 38; g.font = '700 ' + fs + 'px "Courier New",monospace';
+  while (g.measureText(txt).width > 176 && fs > 16) { fs -= 2; g.font = '700 ' + fs + 'px "Courier New",monospace'; }
+  g.fillStyle = 'rgba(40,70,55,0.9)'; g.fillText(txt, 211, 54);
+  if (CALC.op) { g.font = '800 21px "Segoe UI",Arial,sans-serif'; g.textAlign = 'left'; g.fillStyle = 'rgba(40,70,55,0.8)'; g.fillText(CALC.op, 28, 37); }
+  g.fillStyle = 'rgba(255,255,255,0.35)'; g.beginPath(); g.ellipse(80, 28, 90, 8, -0.05, 0, 7); g.fill();
+  g.restore();
+  // keys
+  const G2 = CALC_G;
+  for (let r = 0; r < 5; r++) for (let cI = 0; cI < 4; cI++) {
+    const k = CALC_KEYS[r][cI]; if (r === 4 && cI === 1) continue; // the wide zero covers it
+    const wide = r === 4 && cI === 0, x = G2.x0 + cI * G2.cw + 3, y = G2.y0 + r * G2.ch + 3, w = (wide ? G2.cw * 2 : G2.cw) - 6, h = G2.ch - 6;
+    const p = P['k' + k] ? P['k' + k].k : 0;
+    calcCap(g, x, y, w, h, calcColor(k), p, k);
+  }
+  g.restore();
+}
+function calcHit(dx, dy) {
+  const G2 = CALC_G, ci = Math.floor((dx - G2.x0) / G2.cw), ri = Math.floor((dy - G2.y0) / G2.ch);
+  if (ci < 0 || ci > 3 || ri < 0 || ri > 4) return null;
+  const k = CALC_KEYS[ri][ci]; return { type: 'btn', id: 'k' + k, key: k, c: {} };
+}
+TOYDEF.calc = { W: 240, H: 300, render: calcRender, hit: calcHit };
+
+/* ---------- The pop-it: a silicone board of bubbles. Press one in (pop), slide a finger to pop a whole row, flip the board to pop them back ---------- */
+var POPIT = { N: 25, cols: 5, rows: 5, x0: 40, y0: 52, d: 50, s: [] };
+for (var _pi = 0; _pi < POPIT.N; _pi++) POPIT.s.push(false);
+var POP_ROW = ['#f58f84', '#f6b26b', '#f6cf72', '#7ed6a0', '#8fb8f0'];
+function popPart(i) { if (!TOY.parts['pb' + i]) { const p = toyPart('pb' + i); p.k = POPIT.s[i] ? 1 : 0; p.d = 0; } return TOY.parts['pb' + i]; }
+function popDesign(x, y) { const L = toyLayout(S), l = sqLocal(x, y); return { dx: (l.x + S / 2 - L.ox) / L.k, dy: l.y / L.k - (toyDef().dy || 0) }; }
+function popCell(dx, dy) {
+  const P = POPIT, ci = Math.floor((dx - (P.x0 - P.d / 2)) / P.d), ri = Math.floor((dy - (P.y0 - P.d / 2)) / P.d);
+  return ci < 0 || ci >= P.cols || ri < 0 || ri >= P.rows ? -1 : ri * P.cols + ci;
+}
+function popIdx(x, y) { const d = popDesign(x, y); return popCell(d.dx, d.dy); }
+function popSet(i, on, x) {
+  POPIT.s[i] = on; const p = popPart(i); p.d = 0; p.v += on ? 5 : -5;
+  if (on) Snd.popIn(pan(x), i % POPIT.cols); else Snd.popOut(pan(x));
+  if (on && POPIT.s.every(v => v)) setTimeout(() => Snd.chime(), 180); // the last one: a little reward
+  TOY.dirty = true;
+}
+function popFlip(x) { // turn the board over: every bubble pops to the other side, a wave runs across
+  for (let i = 0; i < POPIT.N; i++) { POPIT.s[i] = !POPIT.s[i]; const p = popPart(i), r = Math.floor(i / POPIT.cols), c = i % POPIT.cols; p.d = (r + c) * 0.035; p.v = 0; }
+  Snd.popFlip(pan(x)); TOY.dirty = true;
+}
+function popBubble(g, x, y, r, col, h) { // h: +1 a round dome ... 0 flat ... -1 pushed in
+  const hh = Math.max(-1.25, Math.min(1, h)), up = Math.max(0, hh), dn = Math.max(0, -hh);
+  g.fillStyle = 'rgba(120,100,180,0.2)'; g.beginPath(); g.arc(x, y, r + 3.5, 0, 7); g.fill(); // the hole in the board
+  if (up > 0.02) {
+    g.fillStyle = 'rgba(60,40,100,' + (0.3 * up) + ')'; g.beginPath(); g.ellipse(x + 1.5, y + 3.5 * up, r, r * 0.98, 0, 0, 7); g.fill();
+    const gr = g.createRadialGradient(x - r * 0.32, y - r * 0.38 * up - 1, 1, x, y, r * 1.05);
+    gr.addColorStop(0, padShade(col, 0.6)); gr.addColorStop(0.5, padShade(col, 0.1 * up)); gr.addColorStop(1, padShade(col, -0.22));
+    g.fillStyle = gr; g.beginPath(); g.arc(x, y - 1.2 * up, r, 0, 7); g.fill(); g.strokeStyle = padShade(col, -0.4); g.lineWidth = 1.7; g.stroke();
+    g.fillStyle = 'rgba(255,255,255,' + (0.7 * up) + ')'; g.beginPath(); g.ellipse(x - r * 0.3, y - r * 0.46 - 1.2 * up, r * 0.4, r * 0.2, -0.45, 0, 7); g.fill();
+  } else {
+    const k = Math.min(1, dn), rr = r * (1 - 0.05 * k);
+    g.fillStyle = padShade(col, -0.08); g.beginPath(); g.arc(x, y, rr, 0, 7); g.fill();
+    const gr = g.createRadialGradient(x + rr * 0.3, y + rr * 0.35, 1, x, y, rr);
+    gr.addColorStop(0, padShade(col, 0.02 * k)); gr.addColorStop(0.6, padShade(col, -0.18 * k)); gr.addColorStop(1, padShade(col, -0.42 * k));
+    g.fillStyle = gr; g.beginPath(); g.arc(x, y, rr, 0, 7); g.fill();
+    g.strokeStyle = padShade(col, -0.45); g.lineWidth = 1.7; g.beginPath(); g.arc(x, y, rr, 0, 7); g.stroke();
+    g.strokeStyle = 'rgba(50,25,90,' + (0.4 * k) + ')'; g.lineWidth = 4; g.beginPath(); g.arc(x, y, rr - 3.2, 3.3, 4.9); g.stroke(); // shadow inside the upper rim
+    g.strokeStyle = 'rgba(255,255,255,' + (0.55 * k) + ')'; g.lineWidth = 2.2; g.beginPath(); g.arc(x, y, rr - 2.4, 0.25, 1.35); g.stroke(); // light catches the lower rim
+  }
+}
+function popRender(c, parts) {
+  const S2 = c.width, L = toyLayout(S2, { toy: 'popit' }), g = c.getContext('2d'), P = parts || {}, B = POPIT;
+  g.clearRect(0, 0, S2, S2); g.imageSmoothingQuality = 'high';
+  g.save(); g.translate(L.ox, 0); g.scale(L.k, L.k); g.lineJoin = 'round'; g.lineCap = 'round';
+  const bg = g.createLinearGradient(0, 0, 0, 326); bg.addColorStop(0, '#f8f4fe'); bg.addColorStop(0.55, '#e3d9f5'); bg.addColorStop(1, '#c7bbe8');
+  g.fillStyle = bg; g.strokeStyle = '#7f6db0'; g.lineWidth = 3.5; g.beginPath(); g.roundRect(4, 4, 272, 318, 34); g.fill(); g.stroke();
+  g.fillStyle = 'rgba(255,255,255,0.5)'; g.beginPath(); g.roundRect(28, 9, 224, 6, 3); g.fill();
+  for (let r = 0; r < B.rows; r++) for (let cI = 0; cI < B.cols; cI++) {
+    const i = r * B.cols + cI, pp = P['pb' + i], v = pp ? pp.k : (B.s[i] ? 1 : 0);
+    popBubble(g, B.x0 + cI * B.d, B.y0 + r * B.d, 21, POP_ROW[r], 1 - 2 * v);
+  }
+  // flip button
+  { const p = P.pflip ? P.pflip.k : 0, x = 140, y = 297; padCap(g, x, y, 17, '#b7a9d9', p);
+    g.strokeStyle = '#3b2f66'; g.lineWidth = 2.6; g.beginPath(); g.arc(x, y + p * 2.5, 7.5, -2.6, 1.9); g.stroke();
+    g.fillStyle = '#3b2f66'; g.beginPath(); const ax = x + Math.cos(1.9) * 7.5, ay = y + p * 2.5 + Math.sin(1.9) * 7.5; g.moveTo(ax + 5.5, ay - 1.5); g.lineTo(ax - 2, ay - 4.5); g.lineTo(ax - 2.5, ay + 4.5); g.closePath(); g.fill(); }
+  g.restore();
+}
+function popHit(dx, dy) {
+  if (Math.hypot(dx - 140, dy - 297) < 26) return { type: 'flip', id: 'pflip' };
+  if (popCell(dx, dy) >= 0) return { type: 'bubbles', id: 'bubbles' };
+  return null;
+}
+TOYDEF.popit = { W: 280, H: 326, render: popRender, hit: popHit };
+
+/* ---------- The phone: it switches on, has a desktop with the Claude app; in the chat the request types itself, you press send, the reply comes with an artifact card, and the game icon appears on the desktop ---------- */
+var PHONE = {};
+var PHONE_MSG = 'сделай игру воск асмр';
+var PHONE_REPLY = 'Готово! Я собрала игру «Воск ASMR»: окунай предметы в воск, дай ему застыть и разбивай корочку под приятные звуки.';
+var PH_FONT = '"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif';
+var PH_ICON = { claude: { x: 56, y: 196 }, game: { x: 124, y: 196 } };
+function phoneReset() {
+  PHONE = { scr: 'off', t: 0, fade: 1, inst: false, instShown: false, instT: 9, ct: 0, typed: 0, sent: false, ts: 0, cur: null, press0: null, acc: 0, bounce: 0 };
+}
+phoneReset();
+var _phm = null;
+function phoneWrap(txt, font, maxW) {
+  if (!_phm) _phm = document.createElement('canvas').getContext('2d');
+  _phm.font = font; const words = txt.split(' '), lines = []; let cur = '';
+  words.forEach(w => { const t = cur ? cur + ' ' + w : w; if (cur && _phm.measureText(t).width > maxW) { lines.push(cur); cur = w; } else cur = t; });
+  if (cur) lines.push(cur); return lines;
+}
+var PH_RFONT = '500 16px ' + PH_FONT;
+function phoneReplyLines() { return phoneWrap(PHONE_REPLY, PH_RFONT, 226); }
+function phoneCardY() { return 150 + phoneReplyLines().length * 22 + 14; }
+function phoneProg() { // chat timeline after "send"
+  const P = PHONE, n = PHONE_REPLY.length, tr0 = 1.7, tCard = tr0 + n / 42 + 0.25, ts = P.ts;
+  return { bub: Math.min(1, ts / 0.25), dots: ts > 0.5 && ts < tr0, reply: ts < tr0 ? 0 : Math.min(n, Math.floor((ts - tr0) * 42)), card: ts < tCard ? 0 : Math.min(1, (ts - tCard) / 0.4), tCard };
+}
+function phoneTarget(dx, dy) {
+  const s = PHONE.scr;
+  if (s === 'off') return 'wake';
+  if (s === 'lock') return 'unlock';
+  if (s === 'home') {
+    if (dy > 156 && dy < 240) { if (dx > 22 && dx < 90) return 'app_claude'; if (PHONE.inst && PHONE.instT > 0.15 && dx > 90 && dx < 158) return 'app_game'; }
+    return null;
+  }
+  if (dy > 438) return 'home';
+  if (s === 'chat') {
+    if (Math.hypot(dx - 251, dy - 409) < 22) return 'send';
+    const cy = phoneCardY(); if (phoneProg().card > 0.6 && dx > 29 && dx < 271 && dy > cy && dy < cy + 58) return 'card';
+    return null;
+  }
+  if (s === 'game') return 'bounce';
+  return null;
+}
+function phoneHome() { const P = PHONE; P.scr = 'home'; P.t = 0; if (P.inst && !P.instShown) { P.instShown = true; P.instT = 0; } }
+function phoneAct(name, x) {
+  const P = PHONE, pn = pan(x != null ? x : G.ox);
+  if (name === 'wake') { P.scr = 'lock'; P.fade = 0; Snd.phoneOn(pn); }
+  else if (name === 'unlock' || name === 'home') { phoneHome(); Snd.phoneTap(pn); }
+  else if (name === 'app_claude') { P.scr = 'chat'; P.t = 0; Snd.phoneTap(pn); }
+  else if (name === 'app_game' || name === 'card') { P.scr = 'game'; P.t = 0; P.bounce = 1; Snd.phoneTap(pn); }
+  else if (name === 'bounce') { P.bounce = 1; Snd.phoneTap(pn); }
+  else if (name === 'send') { if (!P.sent && P.typed >= PHONE_MSG.length) { P.sent = true; P.ts = 0; Snd.phoneSend(pn); } }
+  TOY.dirty = true;
+}
+function phonePower(x) {
+  const pn = pan(x);
+  if (PHONE.scr === 'off') { PHONE.scr = 'lock'; PHONE.fade = 0; Snd.phoneOn(pn); } else { phoneReset(); Snd.phoneOff(pn); }
+}
+function phoneTick(dt) { // returns true while the picture is changing
+  const P = PHONE; let mv = false;
+  if (P.fade < 1) { P.fade = Math.min(1, P.fade + dt / 0.35); mv = true; }
+  if (P.instT < 0.7) { P.instT += dt; mv = true; }
+  if (P.bounce > 0) { P.bounce = Math.max(0, P.bounce - dt * 2); mv = true; }
+  if (P.scr === 'chat') {
+    if (!P.sent) {
+      P.ct += dt; const n = Math.min(PHONE_MSG.length, Math.max(0, Math.floor((P.ct - 0.6) * 13)));
+      if (n !== P.typed) { P.typed = n; mv = true; if (n % 2) Snd.phoneType(pan(G.ox)); }
+      P.acc += dt; if (P.acc > 0.06) { P.acc = 0; mv = true; } // caret and the glow on the send button
+    } else {
+      const before = phoneProg(); P.ts += dt; const now = phoneProg();
+      if (before.card <= 0 && now.card > 0) { P.inst = true; Snd.phoneDing(pan(G.ox)); }
+      if (now.card < 1 || before.card < 1 || now.reply < PHONE_REPLY.length) mv = true; else if (P.ts < now.tCard + 0.5) mv = true;
+    }
+  }
+  if (P.cur && P.cur === P.press0) mv = true;
+  return mv;
+}
+function phTime() { const d = new Date(); return d.getHours() + ':' + (d.getMinutes() < 10 ? '0' : '') + d.getMinutes(); }
+function phDate() { try { return new Date().toLocaleDateString('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' }); } catch (e) { return ''; } }
+function phText(g, t, x, y, font, col, al) { g.font = font; g.fillStyle = col; g.textAlign = al || 'left'; g.textBaseline = 'middle'; g.fillText(t, x, y); }
+function phStatus(g, col) {
+  phText(g, phTime(), 34, 33, '700 13.5px ' + PH_FONT, col, 'left');
+  g.fillStyle = col; for (let i = 0; i < 4; i++) g.fillRect(210 + i * 4.2, 36 - (i + 1) * 2.6, 2.8, (i + 1) * 2.6);
+  g.strokeStyle = col; g.lineWidth = 1.6; g.lineCap = 'round';
+  for (let i = 1; i <= 3; i++) { g.beginPath(); g.arc(236, 37.5, i * 3.2, -2.35, -0.8); g.stroke(); }
+  g.beginPath(); g.roundRect(248, 28, 22, 11, 3.5); g.stroke(); g.fillRect(250.4, 30.4, 14, 6.2); g.fillRect(271, 31.5, 1.8, 4);
+}
+function phIconClaude(g, cx, cy, s) {
+  g.save(); g.translate(cx, cy); g.scale(s, s);
+  g.fillStyle = 'rgba(0,0,0,0.3)'; g.beginPath(); g.arc(0, 2.5, 23, 0, 7); g.fill();
+  const gr = g.createLinearGradient(0, -23, 0, 23); gr.addColorStop(0, '#f0a07e'); gr.addColorStop(1, '#d2714a');
+  g.fillStyle = gr; g.beginPath(); g.arc(0, 0, 23, 0, 7); g.fill();
+  g.fillStyle = '#fff4ea'; g.beginPath(); g.roundRect(-13, -12, 26, 19, 7); g.fill();
+  g.beginPath(); g.moveTo(-5, 6); g.lineTo(-8, 14); g.lineTo(3, 6); g.closePath(); g.fill();
+  g.fillStyle = '#d2714a'; g.beginPath(); g.moveTo(0, -9); g.quadraticCurveTo(0.9, -4, 5.6, -2.8); g.quadraticCurveTo(0.9, -1.6, 0, 3.4); g.quadraticCurveTo(-0.9, -1.6, -5.6, -2.8); g.quadraticCurveTo(-0.9, -4, 0, -9); g.fill();
+  g.restore();
+}
+function phBucket(g, cx, cy, s) { // a small wax bucket, drawn in code
+  g.save(); g.translate(cx, cy); g.scale(s, s);
+  const gb = g.createLinearGradient(-14, 0, 14, 0); gb.addColorStop(0, '#d9a93e'); gb.addColorStop(0.45, '#fbe08a'); gb.addColorStop(1, '#c48d28');
+  g.fillStyle = gb; g.strokeStyle = '#8a6118'; g.lineWidth = 1.2; g.lineJoin = 'round';
+  g.beginPath(); g.moveTo(-14, -6); g.lineTo(14, -6); g.lineTo(11, 15); g.quadraticCurveTo(0, 18, -11, 15); g.closePath(); g.fill(); g.stroke();
+  g.fillStyle = '#f4d46f'; g.beginPath(); g.ellipse(0, -6, 14, 4.6, 0, 0, 7); g.fill(); g.stroke();
+  g.fillStyle = '#c7b2f5'; g.beginPath(); g.ellipse(0, -5.6, 11.4, 3.2, 0, 0, 7); g.fill();
+  g.fillStyle = 'rgba(255,255,255,0.7)'; g.beginPath(); g.ellipse(-4, -6.4, 3.4, 1, 0, 0, 7); g.fill();
+  g.restore();
+}
+function phIconGame(g, cx, cy, s) { // the real app icon: a pink wax drop with sparkles on a dark purple disc
+  g.save(); g.translate(cx, cy); g.scale(s, s);
+  g.fillStyle = 'rgba(0,0,0,0.3)'; g.beginPath(); g.arc(0, 2.5, 23, 0, 7); g.fill();
+  const gr = g.createLinearGradient(0, -23, 0, 23); gr.addColorStop(0, '#4a385e'); gr.addColorStop(1, '#1d1627');
+  g.fillStyle = gr; g.beginPath(); g.arc(0, 0, 23, 0, 7); g.fill();
+  g.save(); g.beginPath(); g.arc(0, 0, 23, 0, 7); g.clip();
+  const f = 46 / 1024, r = 230 * f, cy2 = 20 * f; // same proportions as the installed icon
+  g.shadowColor = 'rgba(185,164,240,0.75)'; g.shadowBlur = 7; g.fillStyle = '#f4a6c0';
+  g.beginPath(); g.arc(0, cy2 + 0.45 * r, r, 0, 7); g.fill();
+  g.beginPath(); g.moveTo(0, cy2 - 1.75 * r); g.lineTo(-0.86 * r, cy2 + 0.12 * r); g.lineTo(0.86 * r, cy2 + 0.12 * r); g.closePath(); g.fill();
+  g.shadowBlur = 0; g.shadowColor = 'transparent';
+  g.fillStyle = 'rgba(255,255,255,0.6)'; g.beginPath(); g.ellipse(-0.44 * r, cy2 + 0.2 * r, 0.18 * r, 0.25 * r, 0, 0, 7); g.fill();
+  g.fillStyle = '#fff0c8';
+  [[1.15, -1.0, 36], [-1.2, 0.9, 24], [1.05, 0.8, 18]].forEach(a => { const sx = a[0] * r, sy = cy2 + a[1] * r, q = a[2] * f; g.beginPath(); g.moveTo(sx, sy - q * 1.6); g.lineTo(sx + q * 0.4, sy - q * 0.4); g.lineTo(sx + q * 1.6, sy); g.lineTo(sx + q * 0.4, sy + q * 0.4); g.lineTo(sx, sy + q * 1.6); g.lineTo(sx - q * 0.4, sy + q * 0.4); g.lineTo(sx - q * 1.6, sy); g.lineTo(sx - q * 0.4, sy - q * 0.4); g.closePath(); g.fill(); });
+  g.restore(); g.restore();
+}
+function phArtifactGlyph(g, cx, cy) {
+  g.save(); g.translate(cx, cy); g.strokeStyle = '#b0aba3'; g.lineWidth = 2; g.lineJoin = 'round';
+  g.save(); g.rotate(-0.22); g.beginPath(); g.roundRect(-11, -9, 12, 16, 3.2); g.stroke(); g.restore();
+  g.save(); g.rotate(0.2); g.fillStyle = '#3a3836'; g.beginPath(); g.roundRect(-1.5, -8, 12, 16, 3.2); g.fill(); g.stroke(); g.restore();
+  g.restore();
+}
+function phEase(t) { const c1 = 2.2, c3 = c1 + 1; return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2); }
+function phoneRender(c, parts) {
+  const S2 = c.width, L = toyLayout(S2, { toy: 'phone' }), g = c.getContext('2d'), P = parts || {}, Q = PHONE;
+  g.clearRect(0, 0, S2, S2); g.imageSmoothingQuality = 'high';
+  g.save(); g.translate(L.ox, 0); g.scale(L.k, L.k); g.lineJoin = 'round'; g.lineCap = 'round';
+  const pw = P.ppwr ? P.ppwr.k : 0;
+  // side keys
+  g.fillStyle = '#b4a6dc'; g.strokeStyle = '#7f6db0'; g.lineWidth = 2.5;
+  g.beginPath(); g.roundRect(292 - pw * 2.2, 116, 8, 54, 3); g.fill(); g.stroke();
+  g.beginPath(); g.roundRect(0, 108, 8, 34, 3); g.fill(); g.stroke(); g.beginPath(); g.roundRect(0, 150, 8, 34, 3); g.fill(); g.stroke();
+  // body and screen
+  const bg = g.createLinearGradient(0, 0, 0, 480); bg.addColorStop(0, '#f8f4fe'); bg.addColorStop(0.55, '#e0d6f4'); bg.addColorStop(1, '#bcaee3');
+  g.fillStyle = bg; g.strokeStyle = '#7f6db0'; g.lineWidth = 3.5; g.beginPath(); g.roundRect(8, 4, 284, 472, 38); g.fill(); g.stroke();
+  g.fillStyle = '#231b3d'; g.beginPath(); g.roundRect(15, 12, 270, 456, 31); g.fill();
+  g.save(); g.beginPath(); g.roundRect(19, 20, 262, 440, 26); g.clip();
+  const scr = Q.scr;
+  if (scr === 'off') { const og = g.createLinearGradient(0, 20, 0, 460); og.addColorStop(0, '#1b1530'); og.addColorStop(1, '#100c20'); g.fillStyle = og; g.fillRect(19, 20, 262, 440); }
+  else if (scr === 'lock' || scr === 'home') {
+    const wg = g.createLinearGradient(0, 20, 0, 460); wg.addColorStop(0, '#5b43a0'); wg.addColorStop(0.55, '#a65fa8'); wg.addColorStop(1, '#f19ab8');
+    g.fillStyle = wg; g.fillRect(19, 20, 262, 440);
+    g.fillStyle = 'rgba(255,255,255,0.10)'; g.beginPath(); g.arc(70, 330, 90, 0, 7); g.fill(); g.beginPath(); g.arc(250, 400, 70, 0, 7); g.fill();
+    g.fillStyle = 'rgba(255,255,255,0.07)'; g.beginPath(); g.arc(230, 120, 60, 0, 7); g.fill();
+    phStatus(g, '#ffffff');
+    if (scr === 'lock') {
+      phText(g, phTime(), 150, 118, '700 58px ' + PH_FONT, '#ffffff', 'center');
+      phText(g, phDate(), 150, 160, '500 15px ' + PH_FONT, 'rgba(255,255,255,0.9)', 'center');
+      g.strokeStyle = 'rgba(255,255,255,0.85)'; g.lineWidth = 2.4; g.beginPath(); g.moveTo(140, 412); g.lineTo(150, 404); g.lineTo(160, 412); g.stroke();
+      phText(g, 'нажми, чтобы открыть', 150, 430, '500 13px ' + PH_FONT, 'rgba(255,255,255,0.85)', 'center');
+    } else {
+      phText(g, phTime(), 150, 84, '700 44px ' + PH_FONT, '#ffffff', 'center');
+      phText(g, phDate(), 150, 118, '500 14px ' + PH_FONT, 'rgba(255,255,255,0.9)', 'center');
+      const press = n => (Q.cur === n && Q.press0 === n ? 0.9 : 1);
+      phIconClaude(g, PH_ICON.claude.x, PH_ICON.claude.y, press('app_claude'));
+      phText(g, 'Claude', PH_ICON.claude.x, PH_ICON.claude.y + 38, '600 13px ' + PH_FONT, '#ffffff', 'center');
+      if (Q.inst) {
+        const t = Math.min(1, Q.instT / 0.6), sc = Q.instT >= 9 || Q.instShown === false ? 0 : phEase(t);
+        if (sc > 0.01) { phIconGame(g, PH_ICON.game.x, PH_ICON.game.y, sc * press('app_game')); g.globalAlpha = Math.min(1, t * 1.6); phText(g, 'Воск ASMR', PH_ICON.game.x, PH_ICON.game.y + 38, '600 13px ' + PH_FONT, '#ffffff', 'center'); g.globalAlpha = 1; }
+      }
+      g.fillStyle = 'rgba(255,255,255,0.8)'; g.beginPath(); g.roundRect(114, 449, 72, 4.5, 2.2); g.fill();
+    }
+  } else if (scr === 'chat') {
+    g.fillStyle = '#1f1e1c'; g.fillRect(19, 20, 262, 440);
+    phStatus(g, '#e8e5de');
+    // top bar
+    g.strokeStyle = '#cfcbc3'; g.lineWidth = 2; for (let i = 0; i < 3; i++) { g.beginPath(); g.moveTo(34, 60 + i * 6); g.lineTo(34 + (i === 1 ? 12 : 17), 60 + i * 6); g.stroke(); }
+    phText(g, 'Новый чат', 150, 66, '600 14.5px ' + PH_FONT, '#e8e5de', 'center');
+    g.strokeStyle = '#cfcbc3'; g.lineWidth = 2; g.beginPath(); g.arc(260, 66, 9, 0, 7); g.moveTo(260, 61); g.lineTo(260, 71); g.moveTo(255, 66); g.lineTo(265, 66); g.stroke();
+    const pr = phoneProg(), full = PHONE_MSG.length;
+    if (!Q.sent) {
+      // empty chat: a spark and a greeting
+      const sp = (cx, cy, r) => { g.beginPath(); g.moveTo(cx, cy - r); g.quadraticCurveTo(cx + r * 0.1, cy - r * 0.1, cx + r, cy); g.quadraticCurveTo(cx + r * 0.1, cy + r * 0.1, cx, cy + r); g.quadraticCurveTo(cx - r * 0.1, cy + r * 0.1, cx - r, cy); g.quadraticCurveTo(cx - r * 0.1, cy - r * 0.1, cx, cy - r); g.fill(); };
+      g.fillStyle = '#d97757'; sp(150, 190, 17); g.globalAlpha = 0.8; sp(170, 172, 6); g.globalAlpha = 1;
+      phText(g, 'Чем помочь?', 150, 232, '500 21px Georgia,"Times New Roman",serif', '#ece9e3', 'center');
+    } else {
+      // my message
+      g.font = '500 17px ' + PH_FONT; const tw = g.measureText(PHONE_MSG).width, bw = tw + 28, bs = phEase(pr.bub);
+      g.save(); g.translate(271, 108); g.scale(Math.max(0.01, bs), Math.max(0.01, bs)); g.globalAlpha = Math.min(1, pr.bub * 2);
+      g.fillStyle = '#3a3835'; g.beginPath(); g.roundRect(-bw, -18, bw, 36, 16); g.fill();
+      phText(g, PHONE_MSG, -14, 0.5, '500 17px ' + PH_FONT, '#f0eee9', 'right'); g.restore(); g.globalAlpha = 1;
+      if (pr.dots) { for (let i = 0; i < 3; i++) { const a = 0.35 + 0.65 * Math.max(0, Math.sin(Q.ts * 7 - i * 0.9)); g.fillStyle = 'rgba(217,119,87,' + a + ')'; g.beginPath(); g.arc(40 + i * 12, 160, 4, 0, 7); g.fill(); } }
+      let left = pr.reply; const lines = phoneReplyLines();
+      for (let i = 0; i < lines.length && left > 0; i++) { const ln = lines[i], part = ln.slice(0, left); left -= ln.length + 1; phText(g, part, 31, 154 + i * 22, PH_RFONT, '#ece9e3', 'left'); }
+      if (pr.card > 0) {
+        const cy = phoneCardY(), e = phEase(pr.card), dy = (1 - Math.min(1, pr.card)) * 14, press = Q.cur === 'card' && Q.press0 === 'card';
+        g.save(); g.globalAlpha = Math.min(1, pr.card * 1.8); g.translate(0, dy);
+        g.fillStyle = press ? '#34322f' : '#2a2927'; g.strokeStyle = '#42403c'; g.lineWidth = 1.3; g.beginPath(); g.roundRect(29, cy, 242, 58, 14); g.fill(); g.stroke();
+        g.fillStyle = '#3a3836'; g.beginPath(); g.roundRect(39, cy + 9, 40, 40, 10); g.fill(); phArtifactGlyph(g, 59, cy + 29);
+        phText(g, 'Воск ASMR', 90, cy + 21, '700 17px ' + PH_FONT, '#f3f1ec', 'left');
+        phText(g, 'Artifact · Only you', 90, cy + 41, '500 13px ' + PH_FONT, '#9c978e', 'left');
+        g.restore();
+      }
+    }
+    // input line
+    g.fillStyle = '#2d2c2a'; g.strokeStyle = '#464441'; g.lineWidth = 1.4; g.beginPath(); g.roundRect(29, 385, 242, 48, 24); g.fill(); g.stroke();
+    const sendOk = !Q.sent && Q.typed >= full;
+    if (!Q.sent && Q.typed > 0) { phText(g, PHONE_MSG.slice(0, Q.typed), 43, 409, '500 16px ' + PH_FONT, '#f0eee9', 'left'); g.font = '500 16px ' + PH_FONT; const cx = 43 + g.measureText(PHONE_MSG.slice(0, Q.typed)).width + 1.5; if (Math.floor(Q.ct * 2.2) % 2 === 0 && !sendOk) { g.fillStyle = '#d97757'; g.fillRect(cx, 400, 1.8, 18); } }
+    else phText(g, Q.sent ? 'Ответить…' : 'Спросите что угодно', 43, 409, '500 16.5px ' + PH_FONT, '#7d7971', 'left');
+    // send button, glows when it is time to press it
+    if (sendOk) { const pl = 0.5 + 0.5 * Math.sin(Q.ct * 6); g.strokeStyle = 'rgba(217,119,87,' + (0.55 * (1 - pl)) + ')'; g.lineWidth = 3; g.beginPath(); g.arc(251, 409, 19 + pl * 5, 0, 7); g.stroke(); }
+    const sp2 = Q.cur === 'send' && Q.press0 === 'send';
+    g.fillStyle = sendOk ? (sp2 ? '#b4583a' : '#d97757') : '#4a4844'; g.beginPath(); g.arc(251, 409, sp2 ? 16 : 17, 0, 7); g.fill();
+    g.strokeStyle = sendOk ? '#fff7f0' : '#8d8980'; g.lineWidth = 2.4; g.beginPath(); g.moveTo(251, 416); g.lineTo(251, 402); g.moveTo(244.5, 408.5); g.lineTo(251, 402); g.lineTo(257.5, 408.5); g.stroke();
+    g.fillStyle = 'rgba(255,255,255,0.7)'; g.beginPath(); g.roundRect(114, 449, 72, 4.5, 2.2); g.fill();
+  } else if (scr === 'game') {
+    const gg = g.createLinearGradient(0, 20, 0, 460); gg.addColorStop(0, '#4a3790'); gg.addColorStop(1, '#1d1535'); g.fillStyle = gg; g.fillRect(19, 20, 262, 440);
+    phStatus(g, '#ffffff');
+    phText(g, 'Воск ASMR', 150, 132, '800 30px ' + PH_FONT, '#ffffff', 'center');
+    phText(g, 'окунай · жди · ломай', 150, 166, '500 14px ' + PH_FONT, '#cdbff0', 'center');
+    const bs = 4.2 + 0.5 * Math.sin(Q.bounce * Math.PI) * (Q.bounce > 0 ? 1 : 0);
+    g.fillStyle = 'rgba(255,255,255,0.85)'; [[68, 250, 7], [242, 232, 5], [216, 330, 4], [88, 345, 5]].forEach(a => { g.beginPath(); g.moveTo(a[0], a[1] - a[2]); g.quadraticCurveTo(a[0] + 1, a[1] - 1, a[0] + a[2], a[1]); g.quadraticCurveTo(a[0] + 1, a[1] + 1, a[0], a[1] + a[2]); g.quadraticCurveTo(a[0] - 1, a[1] + 1, a[0] - a[2], a[1]); g.quadraticCurveTo(a[0] - 1, a[1] - 1, a[0], a[1] - a[2]); g.fill(); });
+    phBucket(g, 150, 282 - Math.sin(Q.bounce * Math.PI) * 10, bs);
+    g.fillStyle = 'rgba(255,255,255,0.9)'; g.beginPath(); g.roundRect(90, 378, 120, 38, 19); g.fill();
+    phText(g, 'Играть', 150, 398, '800 17px ' + PH_FONT, '#3a2b6e', 'center');
+    g.fillStyle = 'rgba(255,255,255,0.7)'; g.beginPath(); g.roundRect(114, 449, 72, 4.5, 2.2); g.fill();
+  }
+  // glass: a soft diagonal reflection, a punch-hole camera, a fade while switching on
+  if (Q.fade < 1) { g.fillStyle = 'rgba(16,12,32,' + (1 - Q.fade) + ')'; g.fillRect(19, 20, 262, 440); }
+  const gl = g.createLinearGradient(19, 20, 190, 300); gl.addColorStop(0, 'rgba(255,255,255,0.13)'); gl.addColorStop(0.45, 'rgba(255,255,255,0.03)'); gl.addColorStop(0.46, 'rgba(255,255,255,0)'); g.fillStyle = gl; g.fillRect(19, 20, 262, 440);
+  g.restore();
+  g.fillStyle = '#0d0a18'; g.beginPath(); g.arc(150, 34, 5.2, 0, 7); g.fill();
+  g.restore();
+}
+function phoneHit(dx, dy) {
+  if (dx > 282 && dx < 310 && dy > 104 && dy < 182) return { type: 'ppwr', id: 'ppwr' };
+  if (dx >= 19 && dx <= 281 && dy >= 20 && dy <= 460) return { type: 'pscr', id: 'pscr' };
+  return null;
+}
+TOYDEF.phone = { W: 300, H: 480, render: phoneRender, hit: phoneHit };
 /* ---------- Helpers ---------- */
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const rnd = (a, b) => a + Math.random() * (b - a);
@@ -2152,6 +2789,9 @@ function buildObject(resetLayers) {
   const sp = makeSprite(OBJECTS[G.kind], S);
   if (sp) { G.sprite = sp.canvas; G.bot = sp.bot; }
   else { G.sprite = mkCanvas(S, S); G.bot = S * 0.8; } // a photo that is still loading
+  // a toy is also drawn at double size, so its buttons and letters stay sharp on a phone screen
+  if (OBJECTS[G.kind].toy) toyReset();
+  G.spriteHi = null; if (sp && OBJECTS[G.kind].toy) { G.spriteHi = mkCanvas(S * 2, S * 2); toyRender(G.spriteHi, null); }
   if (OBJECTS[G.kind].rag) {
     if (!G.rag) G.rag = { frozen: false, ang: {}, vel: {} };
     if (sp) ragRender(G.sprite, G.rag.ang);
@@ -4922,7 +5562,7 @@ const SHOP = [];
 const SHOP_BY_ID = {};
 function shopAdd(it) { SHOP.push(it); SHOP_BY_ID[it.id] = it; }
 (function buildCatalog() {
-  const objP = [0, 0, 0, 0, 40, 40, 60, 60, 80, 80, 100, 100, 150, 200, 150, 150, 50, 50, 60, 60, 80, 80, 0, 200, 120];
+  const objP = [0, 0, 0, 0, 40, 40, 60, 60, 80, 80, 100, 100, 150, 200, 150, 150, 50, 50, 60, 60, 80, 80, 0, 200, 120, 100, 100, 100, 120];
   OBJ_ORDER.forEach(i => { const o = OBJECTS[i]; shopAdd({ id: 'obj:' + i, g: 'Предметы', n: o.n, e: o.e, img: o.img, p: objP[i] || 0 }); });
   const toolP = { finger: 0, stick: 0, spoon: 0, whisk: 40, fork: 30, comb: 30, funnel: 50, brush: 40, glitter0: 0, glitter1: 0, glitter2: 20, glitter3: 20, glitter4: 20, glitter5: 20, pearl_blue: 40, pearl_white: 40,
     sugar: 30, confetti: 30, foil: 50, flake: 50, foam: 60, eyes: 80, oil: 50, gloss: 70, neon: 120 };
@@ -5381,7 +6021,7 @@ function sqMesh(ctx, img, x0, y0, w, h, disp) {
 // the sprite: only the elastic dent
 function sqDrawSprite() {
   const sp = G.sprite;
-  if (!sqActive()) { g.drawImage(sp, -S / 2, 0); return; }
+  if (!sqActive()) { if (G.spriteHi) g.drawImage(G.spriteHi, -S / 2, 0, S, S); else g.drawImage(sp, -S / 2, 0); return; }
   sqMesh(g, sp, -S / 2, 0, S, sp.height, (x, y) => sqElastic(x, y));
 }
 // a dent in the wax: shadow on the far wall, light on the near one
@@ -5486,9 +6126,14 @@ function sqBake() {
   const rs = document.createElement('button'); rs.type = 'button'; rs.className = 'vreset'; rs.textContent = 'Сбросить всё на 100%';
   rs.addEventListener('click', () => { prefs.vol = {}; prefs.mvol = 1; Snd.setVols(prefs.vol, prefs.mvol); savePrefs(); rows.forEach(f => f()); });
   box.appendChild(rs);
+  // a small "scroll down" hint while the settings panel has more below
+  const panel = document.getElementById('settings'), more = document.getElementById('setMore');
+  const hint = () => { if (!panel || !more) return; more.hidden = !(panel.scrollHeight - panel.clientHeight - panel.scrollTop > 14); };
+  if (panel) { panel.addEventListener('scroll', hint, { passive: true }); window.addEventListener('resize', hint); setInterval(hint, 600); }
   btn.addEventListener('click', () => {
     const open = box.hidden; box.hidden = !open; btn.setAttribute('aria-expanded', open ? 'true' : 'false');
-    if (open) { Snd.init(); setTimeout(() => box.scrollIntoView({ block: 'nearest', behavior: 'smooth' }), 30); }
+    if (open) Snd.init();
+    setTimeout(() => { if (open) btn.scrollIntoView({ block: 'start', behavior: 'smooth' }); hint(); }, 40);
   });
 })();
 /* ---------- Saving progress ---------- */
