@@ -869,6 +869,42 @@ const Snd = (() => {
     phoneDing(pan) {
       tone({ f0: 1175, f1: 1175, dur: 0.18, gain: 0.09, pan }); tone({ f0: 1568, f1: 1568, dur: 0.26, gain: 0.08, pan, delay: 0.09 });
     },
+    // keyboard: clicky (sharp click + clack) or thocky (deep, soft); a lower sound for big keys, a little spread in pitch per key
+    kbKey(pan, mode, big, idx) {
+      const v = 1 + (((idx || 0) * 37) % 11 - 5) * 0.012 + rnd(-0.015, 0.015);
+      if (!mode) {
+        burst({ type: 'bandpass', freq: 4300 * v, q: 3, dur: 0.007, gain: 0.32, pan });
+        burst({ type: 'bandpass', freq: 2300 * v, q: 2, dur: 0.012, gain: 0.18, pan, delay: 0.012 });
+        tone({ f0: (big === 2 ? 130 : 190) * v, f1: (big === 2 ? 85 : 120) * v, dur: 0.05 + big * 0.02, gain: 0.16, pan });
+        tone({ type: 'triangle', f0: 1800 * v, f1: 1200 * v, dur: 0.012, gain: 0.06, pan });
+      } else {
+        tone({ f0: (big === 2 ? 120 : big === 1 ? 150 : 175) * v, f1: (big === 2 ? 70 : 90) * v, dur: 0.07 + big * 0.03, gain: 0.26, pan });
+        burst({ buf: brown, type: 'lowpass', freq: big === 2 ? 500 : 760, q: 0.8, dur: 0.06, gain: 0.2, pan, sweepTo: 260 });
+        burst({ type: 'bandpass', freq: 2600 * v, q: 1.6, dur: 0.006, gain: 0.1, pan });
+        tone({ f0: 520 * v, f1: 330 * v, dur: 0.03, gain: 0.04, pan, delay: 0.004 });
+      }
+    },
+    kbUp(pan, mode) {
+      if (!mode) burst({ type: 'bandpass', freq: 3200, q: 2, dur: 0.006, gain: 0.1, pan });
+      else { tone({ f0: 260, f1: 200, dur: 0.02, gain: 0.06, pan }); burst({ type: 'bandpass', freq: 2000, q: 1.5, dur: 0.005, gain: 0.05, pan }); }
+    },
+    kbSw(pan) {
+      burst({ type: 'bandpass', freq: 1500, q: 1.5, dur: 0.01, gain: 0.2, pan });
+      tone({ f0: 320, f1: 420, dur: 0.04, gain: 0.1, pan });
+      burst({ type: 'bandpass', freq: 2400, q: 2, dur: 0.008, gain: 0.15, pan, delay: 0.06 });
+    },
+    // mouse: a crisp button click, a lighter release, a tick for every notch of the wheel
+    mouseDown(pan) {
+      burst({ type: 'bandpass', freq: 3800, q: 2.5, dur: 0.006, gain: 0.3, pan });
+      tone({ type: 'triangle', f0: 1400, f1: 900, dur: 0.015, gain: 0.06, pan });
+      tone({ f0: 220, f1: 150, dur: 0.03, gain: 0.08, pan });
+    },
+    mouseUp(pan) { burst({ type: 'bandpass', freq: 2800, q: 2, dur: 0.006, gain: 0.12, pan }); },
+    mouseWheel(pan) {
+      const v = 1 + rnd(-0.05, 0.05);
+      burst({ type: 'bandpass', freq: 2400 * v, q: 3, dur: 0.005, gain: 0.1, pan });
+      tone({ f0: 900 * v, f1: 700 * v, dur: 0.012, gain: 0.03, pan });
+    },
     btnUp(pan) {
       burst({ type: 'bandpass', freq: 3600, q: 1.6, dur: 0.008, gain: 0.17, pan });
       tone({ f0: 900, f1: 520, dur: 0.015, gain: 0.04, pan });
@@ -1113,7 +1149,7 @@ const Hap = {
 };
 const HAP_MAP = {
   plopIn: 22, slurpOut: 14, drip: 6, squish: 10, plop: 8, sqDown: 14, sqUp: 12, harden: [6, 70, 6, 70, 6], crack: 14, crunch: 28, crunch2: 34, boom: 60, fuse: 4, landing: 16, pop: 12,
-  btnDown: 10, calcKey: 8, popIn: 12, popOut: 6, phoneOn: 12, phoneOff: 12, phoneTap: 4, phoneSend: 8, phoneDing: [8, 50, 8], popFlip: [8, 25, 8, 25, 8, 25, 8, 25, 8], btnUp: 4, stickBack: 8, lid: 14, flush: [14, 30, 14, 30, 14, 40, 10, 60, 8, 60, 6], clink: 8, ignite: 20, thud: 55, snap: 10, foam: 9, creak: 7, ice: [10, 40, 10], scent: [8, 40, 8], chime: [18, 50, 18]
+  btnDown: 10, calcKey: 8, popIn: 12, popOut: 6, kbKey: 5, kbSw: 8, mouseDown: 7, mouseUp: 3, mouseWheel: 3, phoneOn: 12, phoneOff: 12, phoneTap: 4, phoneSend: 8, phoneDing: [8, 50, 8], popFlip: [8, 25, 8, 25, 8, 25, 8, 25, 8], btnUp: 4, stickBack: 8, lid: 14, flush: [14, 30, 14, 30, 14, 40, 10, 60, 8, 60, 6], clink: 8, ignite: 20, thud: 55, snap: 10, foam: 9, creak: 7, ice: [10, 40, 10], scent: [8, 40, 8], chime: [18, 50, 18]
 };
 Object.keys(HAP_MAP).forEach(n => {
   const f = Snd[n]; if (!f) return;
@@ -1152,7 +1188,7 @@ const SND_GROUPS = [
   { id: 'ding', n: 'Золотой молоток (динь)', fn: ['ding'], test: () => Snd.ding(0) },
   { id: 'bomb', n: 'Бомба (фитиль и взрыв)', fn: ['fuse', 'boom'], test: () => { Snd.fuse(0); setTimeout(() => Snd.fuse(0), 150); setTimeout(() => Snd.boom(0), 450); } },
   { id: 'zap', n: 'Лазер', fn: ['zap'], test: () => { Snd.zap(0); setTimeout(() => Snd.zap(0), 110); } },
-  { id: 'toy', n: 'Кнопки, стики, поп-ит, телефон', fn: ['btnDown', 'btnUp', 'stickMove', 'stickBack', 'calcKey', 'popIn', 'popOut', 'popFlip', 'phoneOn', 'phoneOff', 'phoneTap', 'phoneType', 'phoneSend', 'phoneDing'], test: () => { Snd.btnDown(0); setTimeout(() => Snd.btnUp(0), 90); setTimeout(() => Snd.popIn(0, 2), 160); setTimeout(() => Snd.popOut(0), 280); setTimeout(() => { Snd.stickMove(0); Snd.stickMove(0); }, 250); setTimeout(() => Snd.stickBack(0), 500); } },
+  { id: 'toy', n: 'Интерактив: кнопки, клавиши, мышка, поп-ит, телефон', fn: ['mouseDown', 'mouseUp', 'mouseWheel', 'kbKey', 'kbUp', 'kbSw', 'btnDown', 'btnUp', 'stickMove', 'stickBack', 'calcKey', 'popIn', 'popOut', 'popFlip', 'phoneOn', 'phoneOff', 'phoneTap', 'phoneType', 'phoneSend', 'phoneDing'], test: () => { Snd.btnDown(0); setTimeout(() => Snd.btnUp(0), 90); setTimeout(() => Snd.popIn(0, 2), 160); setTimeout(() => Snd.popOut(0), 280); setTimeout(() => { Snd.stickMove(0); Snd.stickMove(0); }, 250); setTimeout(() => Snd.stickBack(0), 500); } },
   { id: 'flush', n: 'Унитаз: смыв и крышка', fn: ['flush', 'lid', 'scrub'], test: () => { Snd.lid(0, 1); setTimeout(() => Snd.flush(0), 350); } },
   { id: 'snap', n: 'Мягкий кусочек отломился', fn: ['snap'], test: () => Snd.snap(0) },
   { id: 'creak', n: 'Скрип скрутки', fn: ['creak'], test: () => Snd.creak(0) },
@@ -1237,7 +1273,9 @@ const OBJECTS = [
   { e: '🚽', toy: 'toilet', n: 'Унитаз', zoom: 1.75 },
   { e: '🔢', toy: 'calc', n: 'Калькулятор', zoom: 1.5 },
   { e: '🌈', toy: 'popit', n: 'Поп-ит', zoom: 1.5 },
-  { e: '📱', toy: 'phone', n: 'Телефон', zoom: 1.5 }
+  { e: '📱', toy: 'phone', n: 'Телефон', zoom: 1.5 },
+  { e: '⌨️', toy: 'kbd', n: 'Клавиатура', zoom: 1.9 },
+  { e: '🖱️', toy: 'mouse', n: 'Мышка', zoom: 1.5 }
 ];
 // order of the object chips: the four free ones, then the beer (also free), then the rest
 const BEER_IDX = OBJECTS.findIndex(o => o.img === 'beerobj');
@@ -2065,6 +2103,10 @@ function toyStart(x, y, z) {
   if (z.type === 'flush') { if (toyPart('flush').t <= 0 || toyPart('flush').t > 3.2) { toyPart('flush').t = 0.001; toyPart('brush').foam = 0; Snd.flush(pan(x)); } toyPart('btn').k = 0; TOY.hold.flushBtn = time + 0.12; Snd.btnDown(pan(x)); TOY.dirty = true; TOY.act = null; return; }
   if (z.type === 'brush') { const b = toyPart('brush'); if (b.mode === undefined) { b.x = BRUSH_HOME.x; b.y = BRUSH_HOME.y; } b.inb = b.mode === 'bowl'; b.mode = 'held'; b.tx = b.x; b.ty = b.y; Snd.btnDown(pan(x)); toyMove(x, y); TOY.dirty = true; return; }
   if (z.type === 'lid') { TOY.lt = TOY.lt ? 0 : 1; { const b = TOY.parts.brush; if (b && TOY.lt < 0.5 && b.mode === 'bowl') { b.inb = false; b.mode = 'home'; b.tx = BRUSH_HOME.x; b.ty = BRUSH_HOME.y; } } Snd.lid(pan(x), TOY.lt); TOY.dirty = true; TOY.act = null; return; }
+  if (z.type === 'mbtn') { TOY.hold[z.id] = time + 0.08; Snd.mouseDown(pan(x)); TOY.dirty = true; return; }
+  if (z.type === 'mwheel') { MS.ly = popDesign(x, y).dy; MS.mv = 0; TOY.dirty = true; return; }
+  if (z.type === 'kbsw') { KB.mode = KB.mode ? 0 : 1; Snd.kbSw(pan(x)); TOY.act = null; TOY.dirty = true; return; }
+  if (z.type === 'key') { kbPress(z.k, x); TOY.dirty = true; return; }
   if (z.type === 'ppwr') { TOY.hold.ppwr = time + 0.12; phonePower(x); TOY.act = null; TOY.dirty = true; return; }
   if (z.type === 'pscr') { const d = popDesign(x, y); PHONE.press0 = PHONE.cur = phoneTarget(d.dx, d.dy); TOY.dirty = true; return; }
   if (z.type === 'flip') { TOY.hold.pflip = time + 0.12; Snd.btnDown(pan(x)); popFlip(x); TOY.act = null; TOY.dirty = true; return; }
@@ -2088,6 +2130,11 @@ function toyMove(x, y) {
     if (inb && sp > 2 && time - TOY.snd > 0.07) { TOY.snd = time; b.foam = Math.min(1, (b.foam || 0) + sp * 0.012); Snd.scrub(pan(x)); }
     TOY.dirty = true; return;
   }
+  if (z.type === 'mwheel') {
+    const d = popDesign(x, y), dy = d.dy - MS.ly; MS.ly = d.dy; const b4 = Math.floor(MS.pos / 9); MS.pos += dy; const n = Math.min(3, Math.abs(Math.floor(MS.pos / 9) - b4));
+    for (let i = 0; i < n; i++) Snd.mouseWheel(pan(x)); MS.mv += Math.abs(dy); MS.g = 1; TOY.dirty = true; return;
+  }
+  if (z.type === 'key') { const d = popDesign(x, y), k = kbAt(d.dx, d.dy); if (k && k.id !== z.id) { TOY.hold[z.id] = 0; TOY.act = { type: 'key', id: k.id, k: k }; kbPress(k, x); TOY.dirty = true; } return; }
   if (z.type === 'pscr') { const d = popDesign(x, y), t = phoneTarget(d.dx, d.dy); if (t !== PHONE.cur) { PHONE.cur = t; TOY.dirty = true; } return; }
   if (z.type === 'bubbles') { const q = popIdx(x, y); if (q >= 0 && !!POPIT.s[q] !== TOY.pmode) popSet(q, TOY.pmode, x); TOY.dirty = true; return; }
   if (z.type === 'stick') {
@@ -2110,6 +2157,9 @@ function toyEnd(x) {
   if (z.type === 'brush') { if (!p.inb && brushEntry(p.tx, p.ty)) { p.inb = true; p.tx = Math.max(82, Math.min(218, p.tx)); p.ty = Math.max(128, Math.min(235, p.ty)); Snd.plop(pan(x != null ? x : G.ox), false); } // let go over the opening: it drops in
     p.mode = p.inb ? 'bowl' : 'home'; if (p.mode === 'home') { p.inb = false; p.tx = BRUSH_HOME.x; p.ty = BRUSH_HOME.y; } Snd.btnUp(pan(x != null ? x : G.ox)); TOY.dirty = true; return; }
   if (z.type === 'bubbles') { TOY.dirty = true; return; }
+  if (z.type === 'mbtn') { Snd.mouseUp(pan(x != null ? x : G.ox)); TOY.dirty = true; return; }
+  if (z.type === 'mwheel') { if (MS.mv < 4) { const pn = pan(x != null ? x : G.ox); Snd.mouseDown(pn); setTimeout(() => Snd.mouseUp(pn), 70); } TOY.dirty = true; return; }
+  if (z.type === 'key') { Snd.kbUp(pan(x != null ? x : G.ox), KB.mode); TOY.dirty = true; return; }
   if (z.type === 'pscr') { const t = PHONE.cur, t0 = PHONE.press0; PHONE.cur = PHONE.press0 = null; if (t && t === t0) phoneAct(t, x); TOY.dirty = true; return; }
   if (z.type === 'stick') { Snd.stickBack(pan(x != null ? x : G.ox)); p.tx = 0; p.ty = 0; }
   else if (z.type === 'dpad') { p.tx = 0; p.ty = 0; Snd.btnUp(pan(x != null ? x : G.ox)); }
@@ -2134,7 +2184,7 @@ function toyStep(dt) {
     if (b.foam > 0) b.foam = Math.max(0, b.foam - dt * 0.07);
     if (Math.abs(b.tx - b.x) + Math.abs(b.ty - b.y) + Math.abs(b.vx) * 0.05 + Math.abs(b.vy) * 0.05 > 0.05 || b.foam > 0 || Math.abs(b.tilt) > 0.01) moving = true; }
   for (const id in TOY.parts) {
-    if (id === 'lid' || id === 'flush' || id === 'btn' || id === 'brush' || id === 'bubbles' || id === 'pscr' || id.indexOf('pb') === 0) continue;
+    if (id === 'lid' || id === 'flush' || id === 'btn' || id === 'brush' || id === 'bubbles' || id === 'pscr' || id.indexOf('pb') === 0 || id.indexOf('kk') === 0) continue;
     const p = TOY.parts[id], isStick = id.indexOf('stick') === 0, isPad = id === 'dpad';
     const downNow = TOY.act && TOY.act.id === id, held = downNow || (TOY.hold[id] || 0) > time;
     for (let i = 0; i < steps; i++) {
@@ -2152,6 +2202,17 @@ function toyStep(dt) {
     else if (!held && (isStick || isPad)) { p.x = p.tx; p.y = p.ty; p.vx = p.vy = 0; }
   }
   if (OBJECTS[G.kind].toy === 'phone' && phoneTick(dt)) moving = true;
+  if (OBJECTS[G.kind].toy === 'mouse' && MS.g > 0) { MS.g = Math.max(0, MS.g - dt * 1.4); moving = true; }
+  if (OBJECTS[G.kind].toy === 'kbd') {
+    if (Math.abs(KB.mode - KB.sw) > 0.01) { KB.sw += (KB.mode - KB.sw) * Math.min(1, dt * 16); moving = true; } else KB.sw = KB.mode;
+    for (const id in TOY.parts) {
+      if (id.indexOf('kk') !== 0) continue;
+      const p = TOY.parts[id], held = (TOY.act && TOY.act.id === id) || (TOY.hold[id] || 0) > time; p.g = p.g || 0;
+      for (let j = 0; j < steps; j++) { p.v += (((held ? 1 : 0) - p.k) * 700 - p.v * 22) * h; p.k += p.v * h; }
+      if (held) p.g = 1; else p.g = Math.max(0, p.g - dt * 1.5);
+      if (Math.abs((held ? 1 : 0) - p.k) + Math.abs(p.v) * 0.05 + p.g > 0.004) moving = true; else { p.k = 0; p.v = 0; p.g = 0; }
+    }
+  }
   if (OBJECTS[G.kind].toy === 'popit') for (let i = 0; i < POPIT.N; i++) {
     const p = popPart(i), tg = POPIT.s[i] ? 1 : 0;
     if (p.d > 0) { p.d -= dt; moving = true; continue; }
@@ -2174,7 +2235,7 @@ function toyFreeze() {
   G.sil = buildSilhouette(G.sprite); G.dripPts = dripPoints(G.sprite, G.bot);
 }
 // a fresh toy starts in its rest pose
-function toyReset() { TOY.parts = {}; TOY.hold = {}; TOY.act = null; TOY.lt = 0; TOY.dirty = true; phoneReset(); }
+function toyReset() { TOY.parts = {}; TOY.hold = {}; TOY.act = null; TOY.lt = 0; TOY.dirty = true; phoneReset(); if (typeof KB !== 'undefined') KB.sw = KB.mode; }
 
 /* ---------- The toilet: a flush button with water swirl and sound, and a lid that opens ---------- */
 function toiletRender(c, parts) {
@@ -2439,9 +2500,9 @@ function phoneWrap(txt, font, maxW) {
   words.forEach(w => { const t = cur ? cur + ' ' + w : w; if (cur && _phm.measureText(t).width > maxW) { lines.push(cur); cur = w; } else cur = t; });
   if (cur) lines.push(cur); return lines;
 }
-var PH_RFONT = '500 16px ' + PH_FONT;
-function phoneReplyLines() { return phoneWrap(PHONE_REPLY, PH_RFONT, 226); }
-function phoneCardY() { return 150 + phoneReplyLines().length * 22 + 14; }
+var PH_RFONT = '500 17.5px ' + PH_FONT;
+function phoneReplyLines() { return phoneWrap(PHONE_REPLY, PH_RFONT, 256); }
+function phoneCardY() { return 152 + phoneReplyLines().length * 24 + 14; }
 function phoneProg() { // chat timeline after "send"
   const P = PHONE, n = PHONE_REPLY.length, tr0 = 1.7, tCard = tr0 + n / 42 + 0.25, ts = P.ts;
   return { bub: Math.min(1, ts / 0.25), dots: ts > 0.5 && ts < tr0, reply: ts < tr0 ? 0 : Math.min(n, Math.floor((ts - tr0) * 42)), card: ts < tCard ? 0 : Math.min(1, (ts - tCard) / 0.4), tCard };
@@ -2456,8 +2517,8 @@ function phoneTarget(dx, dy) {
   }
   if (dy > 438) return 'home';
   if (s === 'chat') {
-    if (Math.hypot(dx - 251, dy - 409) < 22) return 'send';
-    const cy = phoneCardY(); if (phoneProg().card > 0.6 && dx > 29 && dx < 271 && dy > cy && dy < cy + 58) return 'card';
+    if (Math.hypot(dx - 281, dy - 409) < 22) return 'send';
+    const cy = phoneCardY(); if (phoneProg().card > 0.6 && dx > 29 && dx < 301 && dy > cy && dy < cy + 60) return 'card';
     return null;
   }
   if (s === 'game') return 'bounce';
@@ -2502,10 +2563,10 @@ function phDate() { try { return new Date().toLocaleDateString('ru-RU', { weekda
 function phText(g, t, x, y, font, col, al) { g.font = font; g.fillStyle = col; g.textAlign = al || 'left'; g.textBaseline = 'middle'; g.fillText(t, x, y); }
 function phStatus(g, col) {
   phText(g, phTime(), 34, 33, '700 13.5px ' + PH_FONT, col, 'left');
-  g.fillStyle = col; for (let i = 0; i < 4; i++) g.fillRect(210 + i * 4.2, 36 - (i + 1) * 2.6, 2.8, (i + 1) * 2.6);
+  g.fillStyle = col; for (let i = 0; i < 4; i++) g.fillRect(240 + i * 4.2, 36 - (i + 1) * 2.6, 2.8, (i + 1) * 2.6);
   g.strokeStyle = col; g.lineWidth = 1.6; g.lineCap = 'round';
-  for (let i = 1; i <= 3; i++) { g.beginPath(); g.arc(236, 37.5, i * 3.2, -2.35, -0.8); g.stroke(); }
-  g.beginPath(); g.roundRect(248, 28, 22, 11, 3.5); g.stroke(); g.fillRect(250.4, 30.4, 14, 6.2); g.fillRect(271, 31.5, 1.8, 4);
+  for (let i = 1; i <= 3; i++) { g.beginPath(); g.arc(266, 37.5, i * 3.2, -2.35, -0.8); g.stroke(); }
+  g.beginPath(); g.roundRect(278, 28, 22, 11, 3.5); g.stroke(); g.fillRect(280.4, 30.4, 14, 6.2); g.fillRect(301, 31.5, 1.8, 4);
 }
 function phIconClaude(g, cx, cy, s) {
   g.save(); g.translate(cx, cy); g.scale(s, s);
@@ -2557,29 +2618,29 @@ function phoneRender(c, parts) {
   const pw = P.ppwr ? P.ppwr.k : 0;
   // side keys
   g.fillStyle = '#b4a6dc'; g.strokeStyle = '#7f6db0'; g.lineWidth = 2.5;
-  g.beginPath(); g.roundRect(292 - pw * 2.2, 116, 8, 54, 3); g.fill(); g.stroke();
+  g.beginPath(); g.roundRect(322 - pw * 2.2, 116, 8, 54, 3); g.fill(); g.stroke();
   g.beginPath(); g.roundRect(0, 108, 8, 34, 3); g.fill(); g.stroke(); g.beginPath(); g.roundRect(0, 150, 8, 34, 3); g.fill(); g.stroke();
   // body and screen
   const bg = g.createLinearGradient(0, 0, 0, 480); bg.addColorStop(0, '#f8f4fe'); bg.addColorStop(0.55, '#e0d6f4'); bg.addColorStop(1, '#bcaee3');
-  g.fillStyle = bg; g.strokeStyle = '#7f6db0'; g.lineWidth = 3.5; g.beginPath(); g.roundRect(8, 4, 284, 472, 38); g.fill(); g.stroke();
-  g.fillStyle = '#231b3d'; g.beginPath(); g.roundRect(15, 12, 270, 456, 31); g.fill();
-  g.save(); g.beginPath(); g.roundRect(19, 20, 262, 440, 26); g.clip();
+  g.fillStyle = bg; g.strokeStyle = '#7f6db0'; g.lineWidth = 3.5; g.beginPath(); g.roundRect(8, 4, 314, 472, 38); g.fill(); g.stroke();
+  g.fillStyle = '#231b3d'; g.beginPath(); g.roundRect(15, 12, 300, 456, 31); g.fill();
+  g.save(); g.beginPath(); g.roundRect(19, 20, 292, 440, 26); g.clip();
   const scr = Q.scr;
-  if (scr === 'off') { const og = g.createLinearGradient(0, 20, 0, 460); og.addColorStop(0, '#1b1530'); og.addColorStop(1, '#100c20'); g.fillStyle = og; g.fillRect(19, 20, 262, 440); }
+  if (scr === 'off') { const og = g.createLinearGradient(0, 20, 0, 460); og.addColorStop(0, '#1b1530'); og.addColorStop(1, '#100c20'); g.fillStyle = og; g.fillRect(19, 20, 292, 440); }
   else if (scr === 'lock' || scr === 'home') {
     const wg = g.createLinearGradient(0, 20, 0, 460); wg.addColorStop(0, '#5b43a0'); wg.addColorStop(0.55, '#a65fa8'); wg.addColorStop(1, '#f19ab8');
-    g.fillStyle = wg; g.fillRect(19, 20, 262, 440);
-    g.fillStyle = 'rgba(255,255,255,0.10)'; g.beginPath(); g.arc(70, 330, 90, 0, 7); g.fill(); g.beginPath(); g.arc(250, 400, 70, 0, 7); g.fill();
-    g.fillStyle = 'rgba(255,255,255,0.07)'; g.beginPath(); g.arc(230, 120, 60, 0, 7); g.fill();
+    g.fillStyle = wg; g.fillRect(19, 20, 292, 440);
+    g.fillStyle = 'rgba(255,255,255,0.10)'; g.beginPath(); g.arc(70, 330, 90, 0, 7); g.fill(); g.beginPath(); g.arc(280, 400, 70, 0, 7); g.fill();
+    g.fillStyle = 'rgba(255,255,255,0.07)'; g.beginPath(); g.arc(260, 120, 60, 0, 7); g.fill();
     phStatus(g, '#ffffff');
     if (scr === 'lock') {
-      phText(g, phTime(), 150, 118, '700 58px ' + PH_FONT, '#ffffff', 'center');
-      phText(g, phDate(), 150, 160, '500 15px ' + PH_FONT, 'rgba(255,255,255,0.9)', 'center');
-      g.strokeStyle = 'rgba(255,255,255,0.85)'; g.lineWidth = 2.4; g.beginPath(); g.moveTo(140, 412); g.lineTo(150, 404); g.lineTo(160, 412); g.stroke();
-      phText(g, 'нажми, чтобы открыть', 150, 430, '500 13px ' + PH_FONT, 'rgba(255,255,255,0.85)', 'center');
+      phText(g, phTime(), 165, 118, '700 58px ' + PH_FONT, '#ffffff', 'center');
+      phText(g, phDate(), 165, 160, '500 15px ' + PH_FONT, 'rgba(255,255,255,0.9)', 'center');
+      g.strokeStyle = 'rgba(255,255,255,0.85)'; g.lineWidth = 2.4; g.beginPath(); g.moveTo(155, 412); g.lineTo(165, 404); g.lineTo(175, 412); g.stroke();
+      phText(g, 'нажми, чтобы открыть', 165, 430, '500 13px ' + PH_FONT, 'rgba(255,255,255,0.85)', 'center');
     } else {
-      phText(g, phTime(), 150, 84, '700 44px ' + PH_FONT, '#ffffff', 'center');
-      phText(g, phDate(), 150, 118, '500 14px ' + PH_FONT, 'rgba(255,255,255,0.9)', 'center');
+      phText(g, phTime(), 165, 84, '700 44px ' + PH_FONT, '#ffffff', 'center');
+      phText(g, phDate(), 165, 118, '500 14px ' + PH_FONT, 'rgba(255,255,255,0.9)', 'center');
       const press = n => (Q.cur === n && Q.press0 === n ? 0.9 : 1);
       phIconClaude(g, PH_ICON.claude.x, PH_ICON.claude.y, press('app_claude'));
       phText(g, 'Claude', PH_ICON.claude.x, PH_ICON.claude.y + 38, '600 13px ' + PH_FONT, '#ffffff', 'center');
@@ -2587,76 +2648,286 @@ function phoneRender(c, parts) {
         const t = Math.min(1, Q.instT / 0.6), sc = Q.instT >= 9 || Q.instShown === false ? 0 : phEase(t);
         if (sc > 0.01) { phIconGame(g, PH_ICON.game.x, PH_ICON.game.y, sc * press('app_game')); g.globalAlpha = Math.min(1, t * 1.6); phText(g, 'Воск ASMR', PH_ICON.game.x, PH_ICON.game.y + 38, '600 13px ' + PH_FONT, '#ffffff', 'center'); g.globalAlpha = 1; }
       }
-      g.fillStyle = 'rgba(255,255,255,0.8)'; g.beginPath(); g.roundRect(114, 449, 72, 4.5, 2.2); g.fill();
+      g.fillStyle = 'rgba(255,255,255,0.8)'; g.beginPath(); g.roundRect(129, 449, 72, 4.5, 2.2); g.fill();
     }
   } else if (scr === 'chat') {
-    g.fillStyle = '#1f1e1c'; g.fillRect(19, 20, 262, 440);
+    g.fillStyle = '#1f1e1c'; g.fillRect(19, 20, 292, 440);
     phStatus(g, '#e8e5de');
     // top bar
     g.strokeStyle = '#cfcbc3'; g.lineWidth = 2; for (let i = 0; i < 3; i++) { g.beginPath(); g.moveTo(34, 60 + i * 6); g.lineTo(34 + (i === 1 ? 12 : 17), 60 + i * 6); g.stroke(); }
-    phText(g, 'Новый чат', 150, 66, '600 14.5px ' + PH_FONT, '#e8e5de', 'center');
-    g.strokeStyle = '#cfcbc3'; g.lineWidth = 2; g.beginPath(); g.arc(260, 66, 9, 0, 7); g.moveTo(260, 61); g.lineTo(260, 71); g.moveTo(255, 66); g.lineTo(265, 66); g.stroke();
+    phText(g, 'Новый чат', 165, 66, '600 14.5px ' + PH_FONT, '#e8e5de', 'center');
+    g.strokeStyle = '#cfcbc3'; g.lineWidth = 2; g.beginPath(); g.arc(290, 66, 9, 0, 7); g.moveTo(290, 61); g.lineTo(290, 71); g.moveTo(285, 66); g.lineTo(295, 66); g.stroke();
     const pr = phoneProg(), full = PHONE_MSG.length;
     if (!Q.sent) {
       // empty chat: a spark and a greeting
       const sp = (cx, cy, r) => { g.beginPath(); g.moveTo(cx, cy - r); g.quadraticCurveTo(cx + r * 0.1, cy - r * 0.1, cx + r, cy); g.quadraticCurveTo(cx + r * 0.1, cy + r * 0.1, cx, cy + r); g.quadraticCurveTo(cx - r * 0.1, cy + r * 0.1, cx - r, cy); g.quadraticCurveTo(cx - r * 0.1, cy - r * 0.1, cx, cy - r); g.fill(); };
-      g.fillStyle = '#d97757'; sp(150, 190, 17); g.globalAlpha = 0.8; sp(170, 172, 6); g.globalAlpha = 1;
-      phText(g, 'Чем помочь?', 150, 232, '500 21px Georgia,"Times New Roman",serif', '#ece9e3', 'center');
+      g.fillStyle = '#d97757'; sp(165, 190, 17); g.globalAlpha = 0.8; sp(185, 172, 6); g.globalAlpha = 1;
+      phText(g, 'Чем помочь?', 165, 232, '500 21px Georgia,"Times New Roman",serif', '#ece9e3', 'center');
     } else {
       // my message
-      g.font = '500 17px ' + PH_FONT; const tw = g.measureText(PHONE_MSG).width, bw = tw + 28, bs = phEase(pr.bub);
-      g.save(); g.translate(271, 108); g.scale(Math.max(0.01, bs), Math.max(0.01, bs)); g.globalAlpha = Math.min(1, pr.bub * 2);
-      g.fillStyle = '#3a3835'; g.beginPath(); g.roundRect(-bw, -18, bw, 36, 16); g.fill();
-      phText(g, PHONE_MSG, -14, 0.5, '500 17px ' + PH_FONT, '#f0eee9', 'right'); g.restore(); g.globalAlpha = 1;
+      g.font = '500 18.5px ' + PH_FONT; const tw = g.measureText(PHONE_MSG).width, bw = tw + 30, bs = phEase(pr.bub);
+      g.save(); g.translate(301, 108); g.scale(Math.max(0.01, bs), Math.max(0.01, bs)); g.globalAlpha = Math.min(1, pr.bub * 2);
+      g.fillStyle = '#3a3835'; g.beginPath(); g.roundRect(-bw, -19, bw, 38, 17); g.fill();
+      phText(g, PHONE_MSG, -15, 0.5, '500 18.5px ' + PH_FONT, '#f0eee9', 'right'); g.restore(); g.globalAlpha = 1;
       if (pr.dots) { for (let i = 0; i < 3; i++) { const a = 0.35 + 0.65 * Math.max(0, Math.sin(Q.ts * 7 - i * 0.9)); g.fillStyle = 'rgba(217,119,87,' + a + ')'; g.beginPath(); g.arc(40 + i * 12, 160, 4, 0, 7); g.fill(); } }
       let left = pr.reply; const lines = phoneReplyLines();
-      for (let i = 0; i < lines.length && left > 0; i++) { const ln = lines[i], part = ln.slice(0, left); left -= ln.length + 1; phText(g, part, 31, 154 + i * 22, PH_RFONT, '#ece9e3', 'left'); }
+      for (let i = 0; i < lines.length && left > 0; i++) { const ln = lines[i], part = ln.slice(0, left); left -= ln.length + 1; phText(g, part, 31, 156 + i * 24, PH_RFONT, '#ece9e3', 'left'); }
       if (pr.card > 0) {
         const cy = phoneCardY(), e = phEase(pr.card), dy = (1 - Math.min(1, pr.card)) * 14, press = Q.cur === 'card' && Q.press0 === 'card';
         g.save(); g.globalAlpha = Math.min(1, pr.card * 1.8); g.translate(0, dy);
-        g.fillStyle = press ? '#34322f' : '#2a2927'; g.strokeStyle = '#42403c'; g.lineWidth = 1.3; g.beginPath(); g.roundRect(29, cy, 242, 58, 14); g.fill(); g.stroke();
+        g.fillStyle = press ? '#34322f' : '#2a2927'; g.strokeStyle = '#42403c'; g.lineWidth = 1.3; g.beginPath(); g.roundRect(29, cy, 272, 60, 14); g.fill(); g.stroke();
         g.fillStyle = '#3a3836'; g.beginPath(); g.roundRect(39, cy + 9, 40, 40, 10); g.fill(); phArtifactGlyph(g, 59, cy + 29);
-        phText(g, 'Воск ASMR', 90, cy + 21, '700 17px ' + PH_FONT, '#f3f1ec', 'left');
-        phText(g, 'Artifact · Only you', 90, cy + 41, '500 13px ' + PH_FONT, '#9c978e', 'left');
+        phText(g, 'Воск ASMR', 90, cy + 22, '700 18.5px ' + PH_FONT, '#f3f1ec', 'left');
+        phText(g, 'Artifact · Only you', 90, cy + 42, '500 14px ' + PH_FONT, '#9c978e', 'left');
         g.restore();
       }
     }
     // input line
-    g.fillStyle = '#2d2c2a'; g.strokeStyle = '#464441'; g.lineWidth = 1.4; g.beginPath(); g.roundRect(29, 385, 242, 48, 24); g.fill(); g.stroke();
+    g.fillStyle = '#2d2c2a'; g.strokeStyle = '#464441'; g.lineWidth = 1.4; g.beginPath(); g.roundRect(29, 385, 272, 48, 24); g.fill(); g.stroke();
     const sendOk = !Q.sent && Q.typed >= full;
-    if (!Q.sent && Q.typed > 0) { phText(g, PHONE_MSG.slice(0, Q.typed), 43, 409, '500 16px ' + PH_FONT, '#f0eee9', 'left'); g.font = '500 16px ' + PH_FONT; const cx = 43 + g.measureText(PHONE_MSG.slice(0, Q.typed)).width + 1.5; if (Math.floor(Q.ct * 2.2) % 2 === 0 && !sendOk) { g.fillStyle = '#d97757'; g.fillRect(cx, 400, 1.8, 18); } }
-    else phText(g, Q.sent ? 'Ответить…' : 'Спросите что угодно', 43, 409, '500 16.5px ' + PH_FONT, '#7d7971', 'left');
+    if (!Q.sent && Q.typed > 0) { phText(g, PHONE_MSG.slice(0, Q.typed), 43, 409, '500 17.5px ' + PH_FONT, '#f0eee9', 'left'); g.font = '500 17.5px ' + PH_FONT; const cx = 43 + g.measureText(PHONE_MSG.slice(0, Q.typed)).width + 1.5; if (Math.floor(Q.ct * 2.2) % 2 === 0 && !sendOk) { g.fillStyle = '#d97757'; g.fillRect(cx, 400, 1.8, 18); } }
+    else phText(g, Q.sent ? 'Ответить…' : 'Спросите что угодно', 43, 409, '500 17.5px ' + PH_FONT, '#7d7971', 'left');
     // send button, glows when it is time to press it
-    if (sendOk) { const pl = 0.5 + 0.5 * Math.sin(Q.ct * 6); g.strokeStyle = 'rgba(217,119,87,' + (0.55 * (1 - pl)) + ')'; g.lineWidth = 3; g.beginPath(); g.arc(251, 409, 19 + pl * 5, 0, 7); g.stroke(); }
+    if (sendOk) { const pl = 0.5 + 0.5 * Math.sin(Q.ct * 6); g.strokeStyle = 'rgba(217,119,87,' + (0.55 * (1 - pl)) + ')'; g.lineWidth = 3; g.beginPath(); g.arc(281, 409, 19 + pl * 5, 0, 7); g.stroke(); }
     const sp2 = Q.cur === 'send' && Q.press0 === 'send';
-    g.fillStyle = sendOk ? (sp2 ? '#b4583a' : '#d97757') : '#4a4844'; g.beginPath(); g.arc(251, 409, sp2 ? 16 : 17, 0, 7); g.fill();
-    g.strokeStyle = sendOk ? '#fff7f0' : '#8d8980'; g.lineWidth = 2.4; g.beginPath(); g.moveTo(251, 416); g.lineTo(251, 402); g.moveTo(244.5, 408.5); g.lineTo(251, 402); g.lineTo(257.5, 408.5); g.stroke();
-    g.fillStyle = 'rgba(255,255,255,0.7)'; g.beginPath(); g.roundRect(114, 449, 72, 4.5, 2.2); g.fill();
+    g.fillStyle = sendOk ? (sp2 ? '#b4583a' : '#d97757') : '#4a4844'; g.beginPath(); g.arc(281, 409, sp2 ? 16 : 17, 0, 7); g.fill();
+    g.strokeStyle = sendOk ? '#fff7f0' : '#8d8980'; g.lineWidth = 2.4; g.beginPath(); g.moveTo(281, 416); g.lineTo(281, 402); g.moveTo(274.5, 408.5); g.lineTo(281, 402); g.lineTo(287.5, 408.5); g.stroke();
+    g.fillStyle = 'rgba(255,255,255,0.7)'; g.beginPath(); g.roundRect(129, 449, 72, 4.5, 2.2); g.fill();
   } else if (scr === 'game') {
-    const gg = g.createLinearGradient(0, 20, 0, 460); gg.addColorStop(0, '#4a3790'); gg.addColorStop(1, '#1d1535'); g.fillStyle = gg; g.fillRect(19, 20, 262, 440);
+    const gg = g.createLinearGradient(0, 20, 0, 460); gg.addColorStop(0, '#4a3790'); gg.addColorStop(1, '#1d1535'); g.fillStyle = gg; g.fillRect(19, 20, 292, 440);
     phStatus(g, '#ffffff');
-    phText(g, 'Воск ASMR', 150, 132, '800 30px ' + PH_FONT, '#ffffff', 'center');
-    phText(g, 'окунай · жди · ломай', 150, 166, '500 14px ' + PH_FONT, '#cdbff0', 'center');
+    phText(g, 'Воск ASMR', 165, 132, '800 30px ' + PH_FONT, '#ffffff', 'center');
+    phText(g, 'окунай · жди · ломай', 165, 166, '500 14px ' + PH_FONT, '#cdbff0', 'center');
     const bs = 4.2 + 0.5 * Math.sin(Q.bounce * Math.PI) * (Q.bounce > 0 ? 1 : 0);
-    g.fillStyle = 'rgba(255,255,255,0.85)'; [[68, 250, 7], [242, 232, 5], [216, 330, 4], [88, 345, 5]].forEach(a => { g.beginPath(); g.moveTo(a[0], a[1] - a[2]); g.quadraticCurveTo(a[0] + 1, a[1] - 1, a[0] + a[2], a[1]); g.quadraticCurveTo(a[0] + 1, a[1] + 1, a[0], a[1] + a[2]); g.quadraticCurveTo(a[0] - 1, a[1] + 1, a[0] - a[2], a[1]); g.quadraticCurveTo(a[0] - 1, a[1] - 1, a[0], a[1] - a[2]); g.fill(); });
-    phBucket(g, 150, 282 - Math.sin(Q.bounce * Math.PI) * 10, bs);
-    g.fillStyle = 'rgba(255,255,255,0.9)'; g.beginPath(); g.roundRect(90, 378, 120, 38, 19); g.fill();
-    phText(g, 'Играть', 150, 398, '800 17px ' + PH_FONT, '#3a2b6e', 'center');
-    g.fillStyle = 'rgba(255,255,255,0.7)'; g.beginPath(); g.roundRect(114, 449, 72, 4.5, 2.2); g.fill();
+    g.fillStyle = 'rgba(255,255,255,0.85)'; [[78, 250, 7], [272, 232, 5], [246, 330, 4], [98, 345, 5]].forEach(a => { g.beginPath(); g.moveTo(a[0], a[1] - a[2]); g.quadraticCurveTo(a[0] + 1, a[1] - 1, a[0] + a[2], a[1]); g.quadraticCurveTo(a[0] + 1, a[1] + 1, a[0], a[1] + a[2]); g.quadraticCurveTo(a[0] - 1, a[1] + 1, a[0] - a[2], a[1]); g.quadraticCurveTo(a[0] - 1, a[1] - 1, a[0], a[1] - a[2]); g.fill(); });
+    phBucket(g, 165, 282 - Math.sin(Q.bounce * Math.PI) * 10, bs);
+    g.fillStyle = 'rgba(255,255,255,0.9)'; g.beginPath(); g.roundRect(105, 378, 120, 38, 19); g.fill();
+    phText(g, 'Играть', 165, 398, '800 17px ' + PH_FONT, '#3a2b6e', 'center');
+    g.fillStyle = 'rgba(255,255,255,0.7)'; g.beginPath(); g.roundRect(129, 449, 72, 4.5, 2.2); g.fill();
   }
   // glass: a soft diagonal reflection, a punch-hole camera, a fade while switching on
-  if (Q.fade < 1) { g.fillStyle = 'rgba(16,12,32,' + (1 - Q.fade) + ')'; g.fillRect(19, 20, 262, 440); }
-  const gl = g.createLinearGradient(19, 20, 190, 300); gl.addColorStop(0, 'rgba(255,255,255,0.13)'); gl.addColorStop(0.45, 'rgba(255,255,255,0.03)'); gl.addColorStop(0.46, 'rgba(255,255,255,0)'); g.fillStyle = gl; g.fillRect(19, 20, 262, 440);
+  if (Q.fade < 1) { g.fillStyle = 'rgba(16,12,32,' + (1 - Q.fade) + ')'; g.fillRect(19, 20, 292, 440); }
+  const gl = g.createLinearGradient(19, 20, 190, 300); gl.addColorStop(0, 'rgba(255,255,255,0.13)'); gl.addColorStop(0.45, 'rgba(255,255,255,0.03)'); gl.addColorStop(0.46, 'rgba(255,255,255,0)'); g.fillStyle = gl; g.fillRect(19, 20, 292, 440);
   g.restore();
-  g.fillStyle = '#0d0a18'; g.beginPath(); g.arc(150, 34, 5.2, 0, 7); g.fill();
+  g.fillStyle = '#0d0a18'; g.beginPath(); g.arc(165, 34, 5.2, 0, 7); g.fill();
   g.restore();
 }
 function phoneHit(dx, dy) {
-  if (dx > 282 && dx < 310 && dy > 104 && dy < 182) return { type: 'ppwr', id: 'ppwr' };
-  if (dx >= 19 && dx <= 281 && dy >= 20 && dy <= 460) return { type: 'pscr', id: 'pscr' };
+  if (dx > 312 && dx < 340 && dy > 104 && dy < 182) return { type: 'ppwr', id: 'ppwr' };
+  if (dx >= 19 && dx <= 311 && dy >= 20 && dy <= 460) return { type: 'pscr', id: 'pscr' };
   return null;
 }
-TOYDEF.phone = { W: 300, H: 480, render: phoneRender, hit: phoneHit };
+TOYDEF.phone = { W: 330, H: 480, render: phoneRender, hit: phoneHit };
+
+/* ---------- The keyboard: keycaps press in with a glow under them, slide a finger over the keys to type, a switch picks clicky or thocky sound ---------- */
+var KB = { mode: 0, sw: 0 };
+var KB_U = 34, KB_X0 = 19, KB_Y0 = 40;
+var KB_ROWS = [
+  [['1', 1, 'n'], ['2', 1, 'n'], ['3', 1, 'n'], ['4', 1, 'n'], ['5', 1, 'n'], ['6', 1, 'n'], ['7', 1, 'n'], ['8', 1, 'n'], ['9', 1, 'n'], ['0', 1, 'n']],
+  [['Q'], ['W'], ['E'], ['R'], ['T'], ['Y'], ['U'], ['I'], ['O'], ['P']],
+  [['A'], ['S'], ['D'], ['F'], ['G'], ['H'], ['J'], ['K'], ['L'], ['<', 1, 'bs']],
+  [['Shift', 1.5, 'm'], ['Z'], ['X'], ['C'], ['V'], ['B'], ['N'], ['M'], ['Enter', 1.5, 'en']],
+  [['Ctrl', 1.5, 'm'], ['Alt', 1.5, 'm'], ['', 4, 'sp'], ['Alt', 1.5, 'm'], ['Ctrl', 1.5, 'm']]
+];
+var KB_KEYS = [];
+(function () {
+  let idx = 0;
+  KB_ROWS.forEach((row, r) => { let x = KB_X0; row.forEach(k => { const w = (k[1] || 1) * KB_U, kind = k[2] || 'l'; KB_KEYS.push({ id: 'kk' + idx, idx, r, x, w, label: k[0], kind }); idx++; x += w; }); });
+})();
+function kbAt(dx, dy) {
+  const r = Math.floor((dy - KB_Y0) / KB_U); if (r < 0 || r > 4) return null;
+  for (let i = 0; i < KB_KEYS.length; i++) { const k = KB_KEYS[i]; if (k.r === r && dx >= k.x && dx < k.x + k.w) return k; }
+  return null;
+}
+function kbPress(k, x) {
+  TOY.hold[k.id] = time + 0.08; const p = toyPart(k.id); p.g = 1;
+  Snd.kbKey(pan(x), KB.mode, k.kind === 'sp' ? 2 : (k.kind === 'm' || k.kind === 'en' || k.kind === 'bs') ? 1 : 0, k.idx);
+}
+function kbCol(k) { return k.kind === 'sp' ? '#e4daf4' : k.kind === 'm' ? '#b7a9d9' : k.kind === 'en' ? '#f4a6c0' : k.kind === 'bs' ? '#f58f84' : k.kind === 'n' ? '#e6def6' : '#f6f1fd'; }
+function kbCap(g, k, press, gl) {
+  const x = k.x + 2, y = KB_Y0 + k.r * KB_U + 2, w = k.w - 4, h = KB_U - 4, col = kbCol(k), dy = press * 3;
+  if (gl > 0.02) { g.save(); g.shadowColor = 'hsla(' + ((k.idx * 17 + k.x) % 360) + ',90%,70%,' + Math.min(1, gl * 0.9) + ')'; g.shadowBlur = 14; g.fillStyle = 'rgba(255,255,255,0.01)'; g.beginPath(); g.roundRect(x + 1, y + 1, w - 2, h - 2, 7); g.fill(); g.restore(); }
+  g.fillStyle = padShade(col, -0.4); g.beginPath(); g.roundRect(x, y + 3.5, w, h, 7); g.fill();
+  const gr = g.createLinearGradient(0, y + dy, 0, y + h + dy); gr.addColorStop(0, padShade(col, 0.25 - press * 0.15)); gr.addColorStop(1, padShade(col, -0.06 - press * 0.06));
+  g.fillStyle = gr; g.strokeStyle = padShade(col, -0.42); g.lineWidth = 1.5; g.beginPath(); g.roundRect(x, y + dy, w, h, 7); g.fill(); g.stroke();
+  g.fillStyle = 'rgba(255,255,255,' + (0.3 - press * 0.15) + ')'; g.beginPath(); g.roundRect(x + 3.5, y + dy + 2.5, w - 7, h - 9, 5); g.fill();
+  g.fillStyle = '#3b2f66'; g.textAlign = 'center'; g.textBaseline = 'middle';
+  const cx = x + w / 2, cy = y + dy + h / 2 - 0.5;
+  if (k.kind === 'bs') { g.strokeStyle = '#3b2f66'; g.lineWidth = 2.2; g.lineCap = 'round'; g.beginPath(); g.moveTo(cx + 7, cy); g.lineTo(cx - 7, cy); g.moveTo(cx - 2, cy - 5.5); g.lineTo(cx - 7.5, cy); g.lineTo(cx - 2, cy + 5.5); g.stroke(); }
+  else if (k.label) { g.font = (k.label.length > 1 ? '800 12px ' : '800 16px ') + '"Segoe UI",Roboto,Arial,sans-serif'; g.fillText(k.label, cx, cy + 1); }
+}
+function kbRender(c, parts) {
+  const S2 = c.width, L = toyLayout(S2, { toy: 'kbd' }), g = c.getContext('2d'), P = parts || {};
+  g.clearRect(0, 0, S2, S2); g.imageSmoothingQuality = 'high';
+  g.save(); g.translate(L.ox, 0); g.scale(L.k, L.k); g.lineJoin = 'round'; g.lineCap = 'round';
+  const bg = g.createLinearGradient(0, 0, 0, 226); bg.addColorStop(0, '#f8f4fe'); bg.addColorStop(0.5, '#ddd2f3'); bg.addColorStop(1, '#b7a8e0');
+  g.fillStyle = bg; g.strokeStyle = '#7f6db0'; g.lineWidth = 3.5; g.beginPath(); g.roundRect(4, 4, 370, 218, 22); g.fill(); g.stroke();
+  g.fillStyle = 'rgba(255,255,255,0.5)'; g.beginPath(); g.roundRect(24, 8, 330, 5, 2.5); g.fill();
+  // the plate the keys sit in
+  g.fillStyle = '#7d6eb0'; g.strokeStyle = '#5d4f8c'; g.lineWidth = 2; g.beginPath(); g.roundRect(13, 36, 352, 178, 12); g.fill(); g.stroke();
+  // LEDs and the sound switch
+  [['#7ed6a0', 30], ['#f6cf72', 44], ['#f58f84', 58]].forEach(a => { g.fillStyle = a[0]; g.beginPath(); g.arc(a[1], 23, 4.2, 0, 7); g.fill(); g.strokeStyle = 'rgba(60,40,100,0.5)'; g.lineWidth = 1.2; g.stroke(); });
+  g.font = '800 12px "Segoe UI",Roboto,Arial,sans-serif'; g.textBaseline = 'middle'; g.textAlign = 'right'; g.fillStyle = KB.sw < 0.5 ? '#3b2f66' : 'rgba(59,47,102,0.45)'; g.fillText('КЛИК', 252, 23);
+  g.textAlign = 'left'; g.fillStyle = KB.sw >= 0.5 ? '#3b2f66' : 'rgba(59,47,102,0.45)'; g.fillText('ТУК', 318, 23);
+  g.fillStyle = '#5d4f8c'; g.beginPath(); g.roundRect(260, 14, 50, 18, 9); g.fill();
+  g.fillStyle = KB.sw < 0.5 ? '#8fb8f0' : '#f6cf72'; g.strokeStyle = '#3f3466'; g.lineWidth = 1.6; g.beginPath(); g.arc(269 + KB.sw * 32, 23, 7.5, 0, 7); g.fill(); g.stroke();
+  KB_KEYS.forEach(k => { const p = P[k.id]; kbCap(g, k, p ? Math.max(0, Math.min(1.1, p.k)) : 0, p ? p.g || 0 : 0); });
+  g.restore();
+}
+function kbHit(dx, dy) {
+  if (dy >= 6 && dy <= 34 && dx >= 228 && dx <= 366) return { type: 'kbsw', id: 'kbsw' };
+  const k = kbAt(dx, dy); return k ? { type: 'key', id: k.id, k: k } : null;
+}
+/* backlight: drawn only in the dark. A static layer (the glow between the keys, the legends) is made once and its hue is turned over time; a pressed key gets a brighter halo on top */
+var KBG = { w: 0, base: null };
+function kbHue(k) { return (k.x / 378) * 300; }
+function kbGlowBase(S2) {
+  const c = document.createElement('canvas'); c.width = c.height = S2; const g = c.getContext('2d'), L = toyLayout(S2, { toy: 'kbd' });
+  g.translate(L.ox, 0); g.scale(L.k, L.k);
+  const gr = g.createLinearGradient(13, 0, 365, 0); for (let i = 0; i <= 10; i++) gr.addColorStop(i / 10, 'hsl(' + (i * 30) + ',100%,60%)');
+  g.fillStyle = gr; g.beginPath(); g.roundRect(13, 36, 352, 178, 12); g.fill();
+  g.globalCompositeOperation = 'destination-out'; g.fillStyle = '#000';
+  KB_KEYS.forEach(k => { g.beginPath(); g.roundRect(k.x + 3.6, KB_Y0 + k.r * KB_U + 3.6, k.w - 7.2, KB_U - 7.2, 6); g.fill(); });
+  g.globalCompositeOperation = 'source-over'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.lineCap = 'round';
+  KB_KEYS.forEach(k => {
+    const cx = k.x + k.w / 2, cy = KB_Y0 + k.r * KB_U + KB_U / 2 - 0.5, col = 'hsl(' + kbHue(k) + ',100%,78%)';
+    g.fillStyle = col; g.strokeStyle = col;
+    if (k.kind === 'bs') { g.lineWidth = 2.2; g.beginPath(); g.moveTo(cx + 7, cy); g.lineTo(cx - 7, cy); g.moveTo(cx - 2, cy - 5.5); g.lineTo(cx - 7.5, cy); g.lineTo(cx - 2, cy + 5.5); g.stroke(); }
+    else if (k.label) { g.font = (k.label.length > 1 ? '800 12px ' : '800 16px ') + '"Segoe UI",Roboto,Arial,sans-serif'; g.fillText(k.label, cx, cy + 1); }
+  });
+  [[30, 'hsl(140,90%,70%)'], [44, 'hsl(48,100%,70%)'], [58, 'hsl(5,100%,72%)']].forEach(a => { g.fillStyle = a[1]; g.beginPath(); g.arc(a[0], 23, 4.2, 0, 7); g.fill(); });
+  // soft halo: a blurred copy underneath, then the sharp one on top
+  const out = document.createElement('canvas'); out.width = out.height = S2; const o = out.getContext('2d');
+  try { o.filter = 'blur(' + Math.max(2, S2 * 0.012) + 'px)'; } catch (e) { }
+  o.globalAlpha = 0.9; o.drawImage(c, 0, 0); o.filter = 'none'; o.globalAlpha = 1; o.drawImage(c, 0, 0);
+  return out;
+}
+function kbGlow(c, parts, t) {
+  const g = c.getContext('2d'), S2 = c.width, hr = (t * 40) % 360;
+  if (!KBG.base || KBG.w !== S2) { KBG.base = kbGlowBase(S2); KBG.w = S2; }
+  g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, S2, S2);
+  g.save(); try { g.filter = 'hue-rotate(' + hr + 'deg)'; } catch (e) { } g.globalAlpha = 0.5; g.drawImage(KBG.base, 0, 0); g.restore();
+  const L = toyLayout(S2, { toy: 'kbd' }); g.save(); g.translate(L.ox, 0); g.scale(L.k, L.k); g.lineJoin = 'round';
+  for (const id in parts || {}) {
+    if (id.indexOf('kk') !== 0) continue;
+    const p = parts[id], a = Math.min(1, p.g || 0); if (a < 0.02) continue;
+    const k = KB_KEYS[+id.slice(2)], hue = (kbHue(k) + hr) % 360, x = k.x + 2, y = KB_Y0 + k.r * KB_U + 2 + 3 * Math.min(1, p.k || 0), w = k.w - 4, h = KB_U - 4;
+    g.shadowColor = 'hsla(' + hue + ',100%,62%,' + a + ')'; g.shadowBlur = 18 * L.k;
+    g.fillStyle = 'hsla(' + hue + ',100%,66%,' + (0.34 * a) + ')'; g.beginPath(); g.roundRect(x, y, w, h, 7); g.fill();
+    g.strokeStyle = 'hsla(' + hue + ',100%,80%,' + a + ')'; g.lineWidth = 2.6; g.stroke();
+    g.shadowBlur = 8 * L.k; g.fillStyle = 'hsla(' + hue + ',100%,90%,' + a + ')'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    const cx = x + w / 2, cy = y + h / 2 - 0.5;
+    if (k.kind === 'bs') { g.strokeStyle = 'hsla(' + hue + ',100%,92%,' + a + ')'; g.lineWidth = 2.4; g.lineCap = 'round'; g.beginPath(); g.moveTo(cx + 7, cy); g.lineTo(cx - 7, cy); g.moveTo(cx - 2, cy - 5.5); g.lineTo(cx - 7.5, cy); g.lineTo(cx - 2, cy + 5.5); g.stroke(); }
+    else if (k.label) { g.font = (k.label.length > 1 ? '800 12px ' : '800 16px ') + '"Segoe UI",Roboto,Arial,sans-serif'; g.fillText(k.label, cx, cy + 1); }
+  }
+  g.restore();
+}
+TOYDEF.kbd = { W: 378, H: 226, render: kbRender, hit: kbHit, glow: kbGlow };
+
+/* ---------- The mouse: two buttons, a wheel that scrolls with ticks (a tap on it is a middle click). Its cover picture is the outline of the sitting cat; in the dark it glows ---------- */
+var MS = { pos: 0, ly: 0, mv: 0, g: 0, ring: null, ringS: 0, tint: null, tintS: 0, gtint: null, base: null, baseS: 0 };
+function msBody(g) {
+  g.beginPath(); g.moveTo(95, 4); g.bezierCurveTo(146, 4, 184, 52, 186, 116); g.bezierCurveTo(188, 190, 184, 256, 152, 278);
+  g.bezierCurveTo(132, 292, 58, 292, 38, 278); g.bezierCurveTo(6, 256, 2, 190, 4, 116); g.bezierCurveTo(6, 52, 44, 4, 95, 4); g.closePath();
+}
+function msBtnPath(g, right) {
+  g.beginPath();
+  if (!right) { g.moveTo(0, 0); g.lineTo(80, 0); g.lineTo(80, 124); g.quadraticCurveTo(40, 136, 0, 116); g.closePath(); }
+  else { g.moveTo(110, 0); g.lineTo(190, 0); g.lineTo(190, 116); g.quadraticCurveTo(150, 136, 110, 124); g.closePath(); }
+}
+function msCatImg() { const o = OBJECTS.find(q => q.img === 'cat2obj'); return o && o.ready && o.el && o.el.naturalWidth ? o.el : null; }
+function msRing(S2) { // a white outline of the sitting cat, placed on the palm area of the mouse
+  if (MS.ring && MS.ringS === S2) return MS.ring;
+  const im = msCatImg(), L = toyLayout(S2, { toy: 'mouse' });
+  const A = document.createElement('canvas'); A.width = A.height = S2; const a = A.getContext('2d');
+  a.translate(L.ox, 0); a.scale(L.k, L.k);
+  if (im) { const bw = 112, bh = 126, sc = Math.min(bw / im.naturalWidth, bh / im.naturalHeight), w = im.naturalWidth * sc, h = im.naturalHeight * sc; a.drawImage(im, 95 - w / 2, 140 + (bh - h) / 2, w, h); }
+  else { a.fillStyle = '#fff'; a.beginPath(); a.ellipse(95, 215, 40, 34, 0, 0, 7); a.fill(); a.beginPath(); a.moveTo(60, 200); a.lineTo(62, 160); a.lineTo(88, 184); a.fill(); a.beginPath(); a.moveTo(130, 200); a.lineTo(128, 160); a.lineTo(102, 184); a.fill(); }
+  a.setTransform(1, 0, 0, 1, 0, 0); a.globalCompositeOperation = 'source-in'; a.fillStyle = '#fff'; a.fillRect(0, 0, S2, S2);
+  const R = document.createElement('canvas'); R.width = R.height = S2; const r = R.getContext('2d'), rad = Math.max(1.3, 2.7 * L.k);
+  for (let i = 0; i < 16; i++) r.drawImage(A, Math.cos(i * Math.PI / 8) * rad, Math.sin(i * Math.PI / 8) * rad);
+  r.globalCompositeOperation = 'destination-out'; r.drawImage(A, 0, 0);
+  if (im) { MS.ring = R; MS.ringS = S2; MS.tint = null; MS.base = null; }
+  return R;
+}
+function msTinted(S2, glow) { // the outline painted: pastel print for the daylight, a rainbow for the dark
+  const key = glow ? 'gtint' : 'tint';
+  if (MS[key] && MS[key].width === S2 && MS.ring && MS.ringS === S2) return MS[key];
+  const R = msRing(S2), T = document.createElement('canvas'); T.width = T.height = S2; const t = T.getContext('2d');
+  t.drawImage(R, 0, 0); t.globalCompositeOperation = 'source-in';
+  const gr = t.createLinearGradient(0, S2 * 0.3, 0, S2 * 0.95);
+  if (glow) for (let i = 0; i <= 6; i++) gr.addColorStop(i / 6, 'hsl(' + (i * 50) + ',100%,66%)'); else { gr.addColorStop(0, '#ec86ad'); gr.addColorStop(1, '#8c74e0'); }
+  t.fillStyle = gr; t.fillRect(0, 0, S2, S2); if (msCatImg()) MS[key] = T; return T;
+}
+function msRender(c, parts) {
+  const S2 = c.width, L = toyLayout(S2, { toy: 'mouse' }), g = c.getContext('2d'), P = parts || {};
+  g.clearRect(0, 0, S2, S2); g.imageSmoothingQuality = 'high';
+  g.save(); g.translate(L.ox, 0); g.scale(L.k, L.k); g.lineJoin = 'round'; g.lineCap = 'round';
+  const bg = g.createLinearGradient(0, 0, 0, 292); bg.addColorStop(0, '#f8f4fe'); bg.addColorStop(0.5, '#ddd2f3'); bg.addColorStop(1, '#b7a8e0');
+  g.fillStyle = bg; msBody(g); g.fill();
+  g.save(); msBody(g); g.clip();
+  g.fillStyle = '#8f80c4'; g.fillRect(80, 0, 30, 130); // the gap between the buttons
+  [false, true].forEach(rt => {
+    const p = P[rt ? 'mr' : 'ml'], k = p ? Math.max(0, Math.min(1.1, p.k)) : 0;
+    g.save(); g.translate(0, k * 3); msBtnPath(g, rt);
+    const gr = g.createLinearGradient(0, 0, 0, 130); gr.addColorStop(0, padShade('#f1ebfb', 0.25 - k * 0.12)); gr.addColorStop(1, padShade('#d3c7ee', -0.04 - k * 0.08));
+    g.fillStyle = gr; g.fill(); g.strokeStyle = '#7f6db0'; g.lineWidth = 2.6; g.stroke();
+    g.fillStyle = 'rgba(255,255,255,' + (0.45 - k * 0.2) + ')'; g.beginPath(); g.ellipse(rt ? 150 : 40, 30, 22, 9, rt ? 0.25 : -0.25, 0, 7); g.fill();
+    g.restore();
+  });
+  g.restore();
+  g.strokeStyle = '#7f6db0'; g.lineWidth = 3.5; msBody(g); g.stroke();
+  // the wheel
+  const wp = P.mw && MS.mv < 4 ? Math.max(0, Math.min(1.1, P.mw.k)) : 0, off = ((MS.pos % 9) + 9) % 9;
+  g.fillStyle = '#4b3f78'; g.beginPath(); g.roundRect(82, 26, 26, 74, 11); g.fill();
+  g.save(); g.beginPath(); g.roundRect(86, 30 + wp * 2, 18, 66, 8); g.clip();
+  const wg = g.createLinearGradient(86, 0, 104, 0); wg.addColorStop(0, '#9a8bd0'); wg.addColorStop(0.5, '#d6ccf2'); wg.addColorStop(1, '#8a7bc2'); g.fillStyle = wg; g.fillRect(86, 28, 18, 72);
+  g.strokeStyle = 'rgba(70,55,120,0.55)'; g.lineWidth = 2.2; for (let y = 24 - 9 + off; y < 104; y += 9) { g.beginPath(); g.moveTo(86, y); g.lineTo(104, y); g.stroke(); }
+  g.restore();
+  // the picture on the palm: outline of the sitting cat (lit in the dark)
+  g.restore();
+  g.drawImage(msTinted(S2, false), 0, 0);
+}
+function msHit(dx, dy) {
+  if (dx > 80 && dx < 110 && dy > 22 && dy < 104) return { type: 'mwheel', id: 'mw' };
+  if (((dx - 95) / 95) * ((dx - 95) / 95) + ((dy - 148) / 148) * ((dy - 148) / 148) > 1) return null;
+  if (dy < 124) { if (dx <= 80) return { type: 'mbtn', id: 'ml' }; if (dx >= 110) return { type: 'mbtn', id: 'mr' }; }
+  return null;
+}
+function msGlowBase(S2) {
+  const L = toyLayout(S2, { toy: 'mouse' }), c = document.createElement('canvas'); c.width = c.height = S2; const g = c.getContext('2d');
+  const hue = (x, y) => 'hsl(' + (((y / 292) * 280 + (x / 190) * 40) % 360) + ',100%,64%)';
+  g.save(); g.translate(L.ox, 0); g.scale(L.k, L.k); g.lineJoin = 'round';
+  const rg = g.createLinearGradient(0, 0, 0, 292); for (let i = 0; i <= 8; i++) rg.addColorStop(i / 8, 'hsl(' + (i * 40) + ',100%,62%)');
+  g.strokeStyle = rg; g.lineWidth = 5; msBody(g); g.stroke();
+  g.lineWidth = 2.4; g.beginPath(); g.moveTo(80, 6); g.lineTo(80, 124); g.moveTo(110, 6); g.lineTo(110, 124); g.stroke();
+  g.lineWidth = 3; g.beginPath(); g.roundRect(82, 26, 26, 74, 11); g.stroke();
+  g.restore(); g.drawImage(msTinted(S2, true), 0, 0);
+  const out = document.createElement('canvas'); out.width = out.height = S2; const o = out.getContext('2d');
+  try { o.filter = 'blur(' + Math.max(2, S2 * 0.014) + 'px)'; } catch (e) { }
+  o.globalAlpha = 0.95; o.drawImage(c, 0, 0); o.filter = 'none'; o.globalAlpha = 1; o.drawImage(c, 0, 0);
+  return out;
+}
+function msGlow(c, parts, t) {
+  const g = c.getContext('2d'), S2 = c.width, hr = (t * 40) % 360;
+  if (!MS.base || MS.baseS !== S2 || (msCatImg() && !MS.tint && !MS.gtint)) { MS.base = msGlowBase(S2); MS.baseS = S2; }
+  g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, S2, S2);
+  g.save(); try { g.filter = 'hue-rotate(' + hr + 'deg)'; } catch (e) { } g.globalAlpha = 0.72; g.drawImage(MS.base, 0, 0); g.restore();
+  const L = toyLayout(S2, { toy: 'mouse' }); g.save(); g.translate(L.ox, 0); g.scale(L.k, L.k);
+  [['ml', false], ['mr', true]].forEach(a => {
+    const p = (parts || {})[a[0]], k = p ? Math.min(1, Math.max(0, p.k)) : 0; if (k < 0.03) return;
+    g.save(); msBody(g); g.clip(); g.shadowColor = 'hsla(' + ((a[1] ? 200 : 320) + hr) % 360 + ',100%,62%,' + k + ')'; g.shadowBlur = 20 * L.k; msBtnPath(g, a[1]);
+    g.fillStyle = 'hsla(' + ((a[1] ? 200 : 320) + hr) % 360 + ',100%,66%,' + (0.24 * k) + ')'; g.fill(); g.restore();
+  });
+  if (MS.g > 0.02) { // the wheel flares up while it is turned
+    const a = Math.min(1, MS.g), off = ((MS.pos % 9) + 9) % 9;
+    g.save(); g.beginPath(); g.roundRect(86, 30, 18, 66, 8); g.clip(); g.shadowColor = 'hsla(' + (hr + 120) % 360 + ',100%,62%,' + a + ')'; g.shadowBlur = 12 * L.k;
+    g.strokeStyle = 'hsla(' + (hr + 120) % 360 + ',100%,82%,' + a + ')'; g.lineWidth = 3; for (let y = 24 - 9 + off; y < 104; y += 9) { g.beginPath(); g.moveTo(86, y); g.lineTo(104, y); g.stroke(); }
+    g.restore();
+  }
+  g.restore();
+}
+TOYDEF.mouse = { W: 190, H: 292, render: msRender, hit: msHit, glow: msGlow };
 /* ---------- Helpers ---------- */
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const rnd = (a, b) => a + Math.random() * (b - a);
@@ -5562,7 +5833,7 @@ const SHOP = [];
 const SHOP_BY_ID = {};
 function shopAdd(it) { SHOP.push(it); SHOP_BY_ID[it.id] = it; }
 (function buildCatalog() {
-  const objP = [0, 0, 0, 0, 40, 40, 60, 60, 80, 80, 100, 100, 150, 200, 150, 150, 50, 50, 60, 60, 80, 80, 0, 200, 120, 100, 100, 100, 120];
+  const objP = [0, 0, 0, 0, 40, 40, 60, 60, 80, 80, 100, 100, 150, 200, 150, 150, 50, 50, 60, 60, 80, 80, 0, 200, 120, 100, 100, 100, 120, 100, 100];
   OBJ_ORDER.forEach(i => { const o = OBJECTS[i]; shopAdd({ id: 'obj:' + i, g: 'Предметы', n: o.n, e: o.e, img: o.img, p: objP[i] || 0 }); });
   const toolP = { finger: 0, stick: 0, spoon: 0, whisk: 40, fork: 30, comb: 30, funnel: 50, brush: 40, glitter0: 0, glitter1: 0, glitter2: 20, glitter3: 20, glitter4: 20, glitter5: 20, pearl_blue: 40, pearl_white: 40,
     sugar: 30, confetti: 30, foil: 50, flake: 50, foam: 60, eyes: 80, oil: 50, gloss: 70, neon: 120 };
@@ -7294,6 +7565,31 @@ function drawNeonGlow() {
   }
   g.restore();
 }
+// the backlight of a toy that has one (the keyboard) glows in the dark; it is cut by the pot and the wax like the neon glow
+let tglCv = null, tglG = null;
+function drawToyGlow() {
+  const td = OBJECTS[G.kind].toy && TOYDEF[OBJECTS[G.kind].toy];
+  if (!td || !td.glow || DARKK < 0.01 || !G.sprite) return;
+  const S2 = Math.round(S * 2), cv = g.canvas;
+  if (!G.glowSpr || G.glowSpr.width !== S2) { G.glowSpr = document.createElement('canvas'); G.glowSpr.width = G.glowSpr.height = S2; }
+  td.glow(G.glowSpr, TOY.parts, time);
+  if (!tglCv) { tglCv = document.createElement('canvas'); tglG = tglCv.getContext('2d'); }
+  if (tglCv.width !== cv.width || tglCv.height !== cv.height) { tglCv.width = cv.width; tglCv.height = cv.height; }
+  const q = tglG; q.setTransform(1, 0, 0, 1, 0, 0); q.clearRect(0, 0, tglCv.width, tglCv.height); q.setTransform(dpr, 0, 0, dpr, 0, 0);
+  q.save(); q.translate(G.ox, G.oy); q.rotate(G.swing + (G.inWax ? 0 : Math.sin(time * 1.3) * 0.012));
+  q.globalAlpha = clamp(DARKK * (G.layers.length ? 0.45 : 1), 0, 1); q.drawImage(G.glowSpr, -S / 2, 0, S, S); q.restore();
+  q.save(); q.globalCompositeOperation = 'destination-out'; q.fillStyle = '#000';
+  const rx = potRx, bx = potRx * 0.92, bot = potBottom;
+  q.beginPath(); q.moveTo(potCx - rx, rimY); q.ellipse(potCx, rimY, rx, potRy, 0, Math.PI, 0, true);
+  q.lineTo(potCx + bx, bot - 22); q.quadraticCurveTo(potCx + bx, bot, potCx + bx - 22, bot);
+  q.lineTo(potCx - bx + 22, bot); q.quadraticCurveTo(potCx - bx, bot, potCx - bx, bot - 22); q.closePath(); q.fill();
+  if (G.dispLevel > 0.02) {
+    q.beginPath(); q.ellipse(potCx, rimY, potRx - 8, potRy - 4, 0, 0, Math.PI * 2); q.clip();
+    q.beginPath(); q.ellipse(potCx, waxY, waxRx(), potRy - 4, 0, 0, Math.PI); q.closePath(); q.fill();
+  }
+  q.restore();
+  g.save(); g.setTransform(1, 0, 0, 1, 0, 0); g.globalCompositeOperation = 'lighter'; g.drawImage(tglCv, 0, 0); g.restore();
+}
 function drawDark() {
   if (DARKK > 0.01) { g.save(); g.fillStyle = 'rgba(5,3,14,' + (0.8 * DARKK) + ')'; g.fillRect(-20, -20, W + 40, H + 40); g.restore(); }
   // neon wax in the pot glows too
@@ -7310,6 +7606,7 @@ function drawDark() {
     g.restore();
   }
   drawNeonGlow();
+  drawToyGlow();
 }
 
 function draw() {
