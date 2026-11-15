@@ -130,7 +130,7 @@
   .opt.sub { padding-left: 26px; font-size: 13px; }
   .opt .chev { transition: transform .2s; opacity: .7; }
   .opt[aria-expanded="true"] .chev { transform: rotate(180deg); }
-  #sndAdv { margin: 2px 0 8px; padding: 6px 4px 4px 12px; border-left: 2px solid rgba(255,255,255,0.14); }
+  #sndAdv, #fxAdv { margin: 2px 0 8px; padding: 6px 4px 4px 12px; border-left: 2px solid rgba(255,255,255,0.14); }
   #sndAdv .vrow { display: grid; grid-template-columns: 1fr auto 34px; align-items: center; column-gap: 8px; padding: 5px 0; font-size: 13px; }
   #sndAdv .vrow input[type=range] { grid-column: 1 / 3; width: 100%; accent-color: #f4a6c0; margin: 0; height: 22px; }
   #sndAdv .vrow .vv { opacity: .75; font-variant-numeric: tabular-nums; }
@@ -355,6 +355,10 @@
   .otabs button { flex: 1; height: 34px; border-radius: 12px; border: 1px solid var(--line, rgba(255,255,255,0.14)); background: transparent; color: var(--fg-dim); font: inherit; font-size: 14px; }
   .otabs button[aria-pressed="true"] { background: rgba(255,255,255,0.14); color: var(--fg); border-color: rgba(255,255,255,0.35); }
   .sheet .chip[hidden] { display: none; }
+  .shop-h { display: flex; width: 100%; align-items: center; justify-content: space-between; background: transparent; border: 0; border-bottom: 1px solid var(--panel-line); color: var(--fg); font-family: var(--font-display); font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; padding: 11px 4px; margin: 6px 0 8px; cursor: pointer; }
+  .shop-h .chev { transition: transform .2s; opacity: .7; }
+  .shop-h[aria-expanded="true"] .chev { transform: rotate(180deg); }
+  .shop-h .cnt { opacity: .6; font-size: 11px; letter-spacing: 0; margin-left: 8px; }
   .sheet-title { font-family: var(--font-display); font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--fg-dim); margin: 0 2px 10px; }
   .sheet .grid { display: none; grid-template-columns: repeat(auto-fill, minmax(58px, 1fr)); gap: 8px; }
   .sheet[data-open="objRow"] #objRow, .sheet[data-open="colorRow"] #colorRow, .sheet[data-open="typeRow"] #typeRow,
@@ -457,6 +461,8 @@
       <div id="sndAdv" hidden></div>
       <button type="button" class="opt" id="optVibe" role="switch" aria-checked="true"><span>📳 Вибрация</span><i class="sw"></i></button>
       <button type="button" class="opt" id="optFx" role="switch" aria-checked="true"><span>🏆 Эффекты наград (все сразу)</span><i class="sw"></i></button>
+      <button type="button" class="opt sub" id="optFxMore" aria-expanded="false"><span>🎛️ Эффекты наград по отдельности</span><i class="chev">▾</i></button>
+      <div id="fxAdv" hidden></div>
       <button type="button" class="opt" id="optFree" role="switch" aria-checked="true"><span>🔓 Всё открыто (без магазина)</span><i class="sw"></i></button>
       <div class="opt-note" id="freeNote">Выключи, чтобы предметы, добавки и цвета открывались за монеты</div>
       <div class="secret" id="secretRow" hidden><input type="password" id="secretIn" inputmode="numeric" placeholder="пароль" autocomplete="off" maxlength="20"><button type="button" id="secretOk">OK</button></div>
@@ -952,6 +958,13 @@ const Snd = (() => {
       tone({ type: 'triangle', f0: open ? 520 : 400, f1: open ? 300 : 210, dur: 0.045, gain: 0.08, pan });
       tone({ f0: 140, f1: 90, dur: 0.07, gain: 0.12, pan });
     },
+    // lamp: a pull-chain click, a tiny rattle of beads, and a soft thunk of the switch
+    lampClick(pan, on) {
+      burst({ type: 'bandpass', freq: on ? 2900 : 2300, q: 2, dur: 0.008, gain: 0.26, pan });
+      tone({ type: 'triangle', f0: on ? 1100 : 800, f1: on ? 700 : 480, dur: 0.02, gain: 0.07, pan });
+      tone({ f0: 180, f1: 110, dur: 0.05, gain: 0.12, pan });
+      for (let i = 0; i < 4; i++) burst({ type: 'bandpass', freq: rnd(4200, 6200), q: 3, dur: 0.004, gain: 0.05, pan, delay: 0.02 + i * rnd(0.014, 0.024) });
+    },
     // tv remote: a soft rubber key, a hollow little thump, a faint release
     remoteKey(pan, idx) {
       const v = 1 + ((idx || 0) % 5) * 0.035 + rnd(-0.02, 0.02);
@@ -1210,7 +1223,7 @@ const Hap = {
 };
 const HAP_MAP = {
   plopIn: 22, slurpOut: 14, drip: 6, squish: 10, plop: 8, sqDown: 14, sqUp: 12, harden: [6, 70, 6, 70, 6], crack: 14, crunch: 28, crunch2: 34, boom: 60, fuse: 4, landing: 16, pop: 12,
-  btnDown: 10, calcKey: 8, popIn: 12, popOut: 6, kbKey: 5, kbSw: 8, mouseDown: 7, mouseUp: 3, remoteKey: 6, remoteUp: 3, pianoKey: 5, tapLever: 8, alarmBell: 10, alarmBtn: 8, mouseWheel: 3, phoneOn: 12, phoneOff: 12, phoneTap: 4, phoneSend: 8, phoneDing: [8, 50, 8], popFlip: [8, 25, 8, 25, 8, 25, 8, 25, 8], btnUp: 4, stickBack: 8, lid: 14, flush: [14, 30, 14, 30, 14, 40, 10, 60, 8, 60, 6], clink: 8, ignite: 20, thud: 55, snap: 10, foam: 9, creak: 7, ice: [10, 40, 10], scent: [8, 40, 8], chime: [18, 50, 18]
+  btnDown: 10, calcKey: 8, popIn: 12, popOut: 6, kbKey: 5, kbSw: 8, mouseDown: 7, mouseUp: 3, remoteKey: 6, remoteUp: 3, pianoKey: 5, lampClick: 8, tapLever: 8, alarmBell: 10, alarmBtn: 8, mouseWheel: 3, phoneOn: 12, phoneOff: 12, phoneTap: 4, phoneSend: 8, phoneDing: [8, 50, 8], popFlip: [8, 25, 8, 25, 8, 25, 8, 25, 8], btnUp: 4, stickBack: 8, lid: 14, flush: [14, 30, 14, 30, 14, 40, 10, 60, 8, 60, 6], clink: 8, ignite: 20, thud: 55, snap: 10, foam: 9, creak: 7, ice: [10, 40, 10], scent: [8, 40, 8], chime: [18, 50, 18]
 };
 Object.keys(HAP_MAP).forEach(n => {
   const f = Snd[n]; if (!f) return;
@@ -1249,7 +1262,7 @@ const SND_GROUPS = [
   { id: 'ding', n: 'Золотой молоток (динь)', fn: ['ding'], test: () => Snd.ding(0) },
   { id: 'bomb', n: 'Бомба (фитиль и взрыв)', fn: ['fuse', 'boom'], test: () => { Snd.fuse(0); setTimeout(() => Snd.fuse(0), 150); setTimeout(() => Snd.boom(0), 450); } },
   { id: 'zap', n: 'Лазер', fn: ['zap'], test: () => { Snd.zap(0); setTimeout(() => Snd.zap(0), 110); } },
-  { id: 'toy', n: 'Интерактив: кнопки, клавиши, мышка, пульт, пианино, будильник, кран, поп-ит, телефон', fn: ['mouseDown', 'mouseUp', 'mouseWheel', 'remoteKey', 'remoteUp', 'pianoKey', 'tapWater', 'tapLever', 'alarmRing', 'alarmBell', 'alarmBtn', 'kbKey', 'kbUp', 'kbSw', 'btnDown', 'btnUp', 'stickMove', 'stickBack', 'calcKey', 'popIn', 'popOut', 'popFlip', 'phoneOn', 'phoneOff', 'phoneTap', 'phoneType', 'phoneSend', 'phoneDing'], test: () => { Snd.btnDown(0); setTimeout(() => Snd.btnUp(0), 90); setTimeout(() => Snd.popIn(0, 2), 160); setTimeout(() => Snd.popOut(0), 280); setTimeout(() => { Snd.stickMove(0); Snd.stickMove(0); }, 250); setTimeout(() => Snd.stickBack(0), 500); } },
+  { id: 'toy', n: 'Интерактив: кнопки, клавиши, мышка, пульт, пианино, будильник, кран, лампа, поп-ит, телефон', fn: ['mouseDown', 'mouseUp', 'mouseWheel', 'remoteKey', 'remoteUp', 'pianoKey', 'lampClick', 'tapWater', 'tapLever', 'alarmRing', 'alarmBell', 'alarmBtn', 'kbKey', 'kbUp', 'kbSw', 'btnDown', 'btnUp', 'stickMove', 'stickBack', 'calcKey', 'popIn', 'popOut', 'popFlip', 'phoneOn', 'phoneOff', 'phoneTap', 'phoneType', 'phoneSend', 'phoneDing'], test: () => { Snd.btnDown(0); setTimeout(() => Snd.btnUp(0), 90); setTimeout(() => Snd.popIn(0, 2), 160); setTimeout(() => Snd.popOut(0), 280); setTimeout(() => { Snd.stickMove(0); Snd.stickMove(0); }, 250); setTimeout(() => Snd.stickBack(0), 500); } },
   { id: 'flush', n: 'Унитаз: смыв и крышка', fn: ['flush', 'lid', 'scrub'], test: () => { Snd.lid(0, 1); setTimeout(() => Snd.flush(0), 350); } },
   { id: 'snap', n: 'Мягкий кусочек отломился', fn: ['snap'], test: () => Snd.snap(0) },
   { id: 'creak', n: 'Скрип скрутки', fn: ['creak'], test: () => Snd.creak(0) },
@@ -1313,11 +1326,11 @@ const OBJECTS = [
   { e: '🍄', n: 'Гриб' },
   { e: '🍒', n: 'Вишни' },
   { img: 'croissant', n: 'Круассан' },
-  { img: 'cupcake', n: 'Капкейк' },
+  { img: 'cupcake', n: 'Капкейк', sq: true },
   { img: 'perfume', n: 'Флакон' },
   { img: 'shell', n: 'Ракушка' },
   { img: 'house', n: 'Домик-гриб' },
-  { img: 'macaron', n: 'Макарон' },
+  { img: 'macaron', n: 'Макарон', sq: true },
   { img: 'bacon', rag: true, n: 'Бэкон' },
   { img: 'kisyulya', n: 'Кисюля', zoom: 1.7 },
   { img: 'crownobj', n: 'Корона', zoom: 1.5 },
@@ -1340,7 +1353,8 @@ const OBJECTS = [
   { e: '📺', toy: 'remote', n: 'Пульт', zoom: 1.5 },
   { e: '🎹', toy: 'piano', n: 'Пианино', zoom: 1.95 },
   { e: '⏰', toy: 'alarm', n: 'Будильник', zoom: 1.5 },
-  { e: '🚰', toy: 'tap', n: 'Кран', zoom: 1.5 }
+  { e: '🚰', toy: 'tap', n: 'Кран', zoom: 1.5 },
+  { e: '🛋️', toy: 'lamp', n: 'Лампа', zoom: 1.5 }
 ];
 // order of the object chips: the four free ones, then the beer (also free), then the rest
 const BEER_IDX = OBJECTS.findIndex(o => o.img === 'beerobj');
@@ -2173,6 +2187,7 @@ function toyStart(x, y, z) {
   if (z.type === 'rbtn') { rmPress(z.b, x); TOY.dirty = true; return; }
   if (z.type === 'pkey') { pkPress(z.k, x); TOY.dirty = true; return; }
   if (z.type === 'abtn') { TOY.hold[z.id] = time + 0.09; alAct(z, x); TOY.dirty = true; return; }
+  if (z.type === 'lamp') { TOY.hold.lamp = time + 0.12; toggleLights(); Snd.lampClick(pan(x), !!prefs.dark); TOY.dirty = true; return; }
   if (z.type === 'tlev') { TAP.moved = false; TAP.h0 = TAP.tgt; Snd.tapLever(pan(x), 1); TOY.dirty = true; return; }
   if (z.type === 'kbsw') { KB.mode = KB.mode ? 0 : 1; Snd.kbSw(pan(x)); TOY.act = null; TOY.dirty = true; return; }
   if (z.type === 'key') { kbPress(z.k, x); TOY.dirty = true; return; }
@@ -2231,6 +2246,7 @@ function toyEnd(x) {
   if (z.type === 'bubbles') { TOY.dirty = true; return; }
   if (z.type === 'mbtn') { Snd.mouseUp(pan(x != null ? x : G.ox)); TOY.dirty = true; return; }
   if (z.type === 'mwheel') { if (MS.mv < 4) { const pn = pan(x != null ? x : G.ox); Snd.mouseDown(pn); setTimeout(() => Snd.mouseUp(pn), 70); } TOY.dirty = true; return; }
+  if (z.type === 'lamp') { TOY.dirty = true; return; }
   if (z.type === 'tlev') { if (!TAP.moved) { TAP.tgt = TAP.tgt > 0.05 ? 0 : 1; Snd.tapLever(pan(x != null ? x : G.ox), TAP.tgt > 0); } TOY.dirty = true; return; }
   if (z.type === 'pkey' || z.type === 'abtn') { TOY.dirty = true; return; }
   if (z.type === 'rbtn') { Snd.remoteUp(pan(x != null ? x : G.ox)); TOY.dirty = true; return; }
@@ -3248,6 +3264,8 @@ function pnoGlowBase(S2) {
   g.strokeStyle = gr; g.lineWidth = 2.6; g.beginPath(); g.roundRect(5.5, 5.5, 289, 189, 23); g.stroke();
   g.lineWidth = 2; g.beginPath(); g.roundRect(15, 63, 270, 126, 9); g.stroke();
   for (let i = 0; i < 8; i++) { const k = PK[i]; g.strokeStyle = 'hsla(' + k.hue + ',100%,70%,0.55)'; g.lineWidth = 1.6; pkPath(g, { x: k.x + 1.5, y: k.y + 1, w: k.w - 3, h: k.h - 2, b: 0 }); g.stroke(); }
+  g.save(); g.globalCompositeOperation = 'destination-out'; g.fillStyle = '#000'; for (let i = 8; i < 13; i++) { const k = PK[i]; g.fillRect(k.x - 1.5, k.y - 3, k.w + 3, k.h + 3.5); } g.restore();
+  for (let i = 8; i < 13; i++) { const k = PK[i]; g.strokeStyle = 'hsla(' + k.hue + ',100%,72%,0.5)'; g.lineWidth = 1.6; pkPath(g, { x: k.x + 1, y: k.y + 1, w: k.w - 2, h: k.h - 2, b: 1 }); g.stroke(); }
   [[30, 'hsl(140,90%,70%)'], [44, 'hsl(48,100%,70%)'], [58, 'hsl(5,100%,72%)']].forEach(a => { g.fillStyle = a[1]; g.beginPath(); g.arc(a[0], 30, 4.4, 0, 7); g.fill(); });
   const out = document.createElement('canvas'); out.width = out.height = S2; const o = out.getContext('2d');
   try { o.filter = 'blur(' + Math.max(2, S2 * 0.012) + 'px)'; } catch (e) { }
@@ -3262,10 +3280,12 @@ function pnoGlow(c, parts, t) {
   const L = toyLayout(S2, { toy: 'piano' }); g.save(); g.translate(L.ox, 0); g.scale(L.k, L.k); g.lineJoin = 'round';
   [0, 1].forEach(blk => PK.forEach(k => {
     if (k.b !== blk) return; const p = parts && parts[k.id], a = p ? Math.min(1, p.g || 0) : 0; if (a < 0.02) return;
+    g.save(); if (!blk) { g.beginPath(); g.rect(-20, -20, 340, 260); for (let i = 8; i < 13; i++) g.rect(PK[i].x - 0.5, PK[i].y - 4, PK[i].w + 1, PK[i].h + 1.5); g.clip('evenodd'); }
     const hue = (k.hue + hr) % 360, dy = Math.min(1, p.k || 0) * (blk ? 2.5 : 3);
     g.shadowColor = 'hsla(' + hue + ',100%,60%,' + a + ')'; g.shadowBlur = 22 * L.k;
     g.fillStyle = 'hsla(' + hue + ',100%,64%,' + (0.5 * a) + ')'; pkPath(g, { x: k.x + 1, y: k.y + dy, w: k.w - 2, h: k.h, b: blk }); g.fill();
     g.strokeStyle = 'hsla(' + hue + ',100%,82%,' + a + ')'; g.lineWidth = 2.4; g.stroke();
+    g.restore();
   }));
   g.restore();
 }
@@ -3490,6 +3510,67 @@ function tapGlow(c, parts, t) {
   g.restore();
 }
 TOYDEF.tap.glow = tapGlow;
+
+/* ---------- The lamp: a bedside lamp with a pull chain. Pulling it switches the room lights (the same switch as the light button): the room goes dark and the lamp lights up warm with a cone of light; pull again and the room is lit. ---------- */
+var LP = { base: null, baseS: 0 };
+function toggleLights() { try { prefs.dark = !prefs.dark; applyPrefs(); savePrefs(); } catch (e) { } }
+function lampHit(dx, dy) { return dx > 24 && dx < 186 && dy > 28 && dy < 284 ? { type: 'lamp', id: 'lamp' } : null; }
+function lampShadePath(g, grow) { const e = grow || 0; g.beginPath(); g.moveTo(78 + e * 0.3, 38 - e); g.lineTo(132 - e * 0.3, 38 - e); g.quadraticCurveTo(134, 38 - e, 137 + e, 52); g.lineTo(178 + e, 138 + e); g.quadraticCurveTo(180 + e, 146 + e, 172, 146 + e); g.lineTo(38, 146 + e); g.quadraticCurveTo(30 - e, 146 + e, 32 - e, 138 + e); g.lineTo(73 - e, 52); g.quadraticCurveTo(76, 38 - e, 78 + e * 0.3, 38 - e); g.closePath(); }
+function lampRender(c, parts) {
+  const S2 = c.width, L = toyLayout(S2, { toy: 'lamp' }), g = c.getContext('2d'), pk = parts && parts.lamp ? Math.max(0, Math.min(1.1, parts.lamp.k)) : 0;
+  g.clearRect(0, 0, S2, S2); g.imageSmoothingQuality = 'high';
+  g.save(); g.translate(L.ox, 0); g.scale(L.k, L.k); g.lineJoin = 'round'; g.lineCap = 'round';
+  const OUT = '#7f6db0';
+  // base and stem
+  const bg = g.createLinearGradient(0, 252, 0, 284); bg.addColorStop(0, '#e9e1f7'); bg.addColorStop(1, '#a898d4');
+  g.fillStyle = bg; g.strokeStyle = OUT; g.lineWidth = 3.4; g.beginPath(); g.moveTo(52, 282); g.quadraticCurveTo(52, 258, 80, 254); g.lineTo(130, 254); g.quadraticCurveTo(158, 258, 158, 282); g.closePath(); g.fill(); g.stroke();
+  g.fillStyle = 'rgba(255,255,255,0.5)'; g.beginPath(); g.ellipse(80, 266, 11, 4, -0.2, 0, 7); g.fill();
+  const sg = g.createLinearGradient(95, 0, 115, 0); sg.addColorStop(0, '#fbf8ff'); sg.addColorStop(1, '#b7a9d9');
+  g.fillStyle = sg; g.beginPath(); g.roundRect(95, 146, 20, 112, 7); g.fill(); g.stroke();
+  g.fillStyle = '#c9bde8'; g.beginPath(); g.roundRect(90, 190, 30, 9, 4.5); g.fill(); g.stroke();
+  // the bulb under the shade
+  g.fillStyle = '#fff6d6'; g.strokeStyle = OUT; g.lineWidth = 2.8; g.beginPath(); g.arc(105, 156, 15, 0, 7); g.fill(); g.stroke();
+  g.fillStyle = 'rgba(255,255,255,0.8)'; g.beginPath(); g.arc(100, 151, 4, 0, 7); g.fill();
+  // the shade
+  const sh = g.createLinearGradient(0, 38, 0, 146); sh.addColorStop(0, '#fbcfe0'); sh.addColorStop(1, '#ee94b8');
+  g.fillStyle = sh; g.strokeStyle = OUT; g.lineWidth = 3.6; lampShadePath(g, 0); g.fill(); g.stroke();
+  g.save(); lampShadePath(g, 0); g.clip(); g.strokeStyle = 'rgba(255,255,255,0.28)'; g.lineWidth = 7;
+  for (let i = -3; i <= 3; i++) { g.beginPath(); g.moveTo(105 + i * 11, 38); g.lineTo(105 + i * 24, 146); g.stroke(); }
+  g.fillStyle = 'rgba(255,255,255,0.4)'; g.beginPath(); g.ellipse(64, 108, 6, 22, 0.28, 0, 7); g.fill(); g.restore();
+  g.fillStyle = '#f6cf72'; g.strokeStyle = OUT; g.lineWidth = 2.4; g.beginPath(); g.ellipse(105, 40, 15, 4.5, 0, 0, 7); g.fill(); g.stroke();
+  // the pull chain, which stretches a little when pulled
+  const cx = 160, y0 = 142, y1 = 192 + pk * 13;
+  g.strokeStyle = OUT; g.lineWidth = 3; g.beginPath(); g.moveTo(cx, y0); g.lineTo(cx, y1); g.stroke();
+  g.strokeStyle = '#f6cf72'; g.lineWidth = 1.6; g.setLineDash([2.6, 3.4]); g.beginPath(); g.moveTo(cx, y0); g.lineTo(cx, y1); g.stroke(); g.setLineDash([]);
+  g.fillStyle = '#f6cf72'; g.strokeStyle = OUT; g.lineWidth = 2.4; g.beginPath(); g.roundRect(cx - 5.5, y1, 11, 17, 5.5); g.fill(); g.stroke();
+  g.restore();
+}
+TOYDEF.lamp = { W: 210, H: 290, render: lampRender, hit: lampHit };
+function lampGlowBase(S2) {
+  const c = document.createElement('canvas'); c.width = c.height = S2; const g = c.getContext('2d'), L = toyLayout(S2, { toy: 'lamp' });
+  g.translate(L.ox, 0); g.scale(L.k, L.k); g.lineJoin = g.lineCap = 'round';
+  // the cone of light under the shade and the glow round the bulb
+  const cg = g.createLinearGradient(0, 146, 0, 290); cg.addColorStop(0, 'rgba(255,214,120,0.5)'); cg.addColorStop(1, 'rgba(255,200,110,0)');
+  g.fillStyle = cg; g.beginPath(); g.moveTo(40, 146); g.lineTo(170, 146); g.lineTo(206, 290); g.lineTo(4, 290); g.closePath(); g.fill();
+  const hg = g.createRadialGradient(105, 150, 4, 105, 150, 118); hg.addColorStop(0, 'rgba(255,235,160,0.8)'); hg.addColorStop(0.4, 'rgba(255,210,120,0.32)'); hg.addColorStop(1, 'rgba(255,190,100,0)');
+  g.fillStyle = hg; g.beginPath(); g.arc(105, 150, 118, 0, 7); g.fill();
+  // the warm shade
+  const sg = g.createLinearGradient(0, 38, 0, 146); sg.addColorStop(0, 'rgba(255,196,120,0.55)'); sg.addColorStop(1, 'rgba(255,170,150,0.8)');
+  g.fillStyle = sg; lampShadePath(g, -1); g.fill();
+  g.strokeStyle = 'hsl(40,100%,72%)'; g.lineWidth = 2.8; lampShadePath(g, -0.5); g.stroke();
+  g.fillStyle = '#fff4c4'; g.beginPath(); g.arc(105, 156, 14, 0, 7); g.fill();
+  g.strokeStyle = 'hsl(40,100%,78%)'; g.lineWidth = 2.2; g.beginPath(); g.roundRect(96, 147, 18, 109, 6); g.stroke();
+  const out = document.createElement('canvas'); out.width = out.height = S2; const o = out.getContext('2d');
+  try { o.filter = 'blur(' + Math.max(2, S2 * 0.01) + 'px)'; } catch (e) { }
+  o.globalAlpha = 0.8; o.drawImage(c, 0, 0); o.filter = 'none'; o.globalAlpha = 1; o.drawImage(c, 0, 0);
+  return out;
+}
+function lampGlow(c, parts, t) {
+  const g = c.getContext('2d'), S2 = c.width;
+  if (!LP.base || LP.baseS !== S2) { LP.base = lampGlowBase(S2); LP.baseS = S2; }
+  g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, S2, S2); g.globalAlpha = 0.92 + 0.05 * Math.sin(t * 7.3) * Math.sin(t * 2.1); g.drawImage(LP.base, 0, 0); g.globalAlpha = 1;
+}
+TOYDEF.lamp.glow = lampGlow;
 /* ---------- Helpers ---------- */
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const rnd = (a, b) => a + Math.random() * (b - a);
@@ -6395,7 +6476,7 @@ const SHOP = [];
 const SHOP_BY_ID = {};
 function shopAdd(it) { SHOP.push(it); SHOP_BY_ID[it.id] = it; }
 (function buildCatalog() {
-  const objP = [0, 0, 0, 0, 40, 40, 60, 60, 80, 80, 100, 100, 150, 200, 150, 150, 50, 50, 60, 60, 80, 80, 0, 200, 120, 100, 100, 100, 120, 100, 100, 100, 100, 100, 100];
+  const objP = [0, 0, 0, 0, 40, 40, 60, 60, 80, 80, 100, 100, 150, 200, 150, 150, 50, 50, 60, 60, 80, 80, 0, 200, 120, 100, 100, 100, 120, 100, 100, 100, 100, 100, 100, 100];
   OBJ_ORDER.forEach(i => { const o = OBJECTS[i]; shopAdd({ id: 'obj:' + i, g: 'Предметы', n: o.n, e: o.e, img: o.img, p: objP[i] || 0 }); });
   const toolP = { finger: 0, stick: 0, spoon: 0, whisk: 40, fork: 30, comb: 30, funnel: 50, brush: 40, glitter0: 0, glitter1: 0, glitter2: 20, glitter3: 20, glitter4: 20, glitter5: 20, pearl_blue: 40, pearl_white: 40,
     sugar: 30, confetti: 30, foil: 50, flake: 50, foam: 60, eyes: 80, oil: 50, gloss: 70, neon: 120 };
@@ -6487,16 +6568,27 @@ function iconFor(it) {
   if (it.timg) { const im = document.createElement('img'); im.alt = ''; im.src = it.timg === 'oil' ? OIL_SVG : TOOL_IMG[it.timg]; if (it.pearl) im.className = 'round'; w.appendChild(im); return w; }
   w.textContent = it.e || '🫙'; return w;
 }
+var SHOP_OPEN = {};
 function renderShop(root) {
   const top = h('div', 'ord');
   top.appendChild(h('div', 'ord-n', '🪙 ' + QS.coins));
   top.appendChild(h('div', 'opt-note', prefs.free ? 'Сейчас всё открыто: покупки не нужны, монеты просто копятся' : 'Закрытое открывается за монеты. Монеты дают за заказы и этапы достижений'));
   if (prefs.free) { const sw = h('button', null, '🔒 Включить режим магазина'); sw.type = 'button'; sw.className = 'shopmode'; sw.addEventListener('click', () => setFree(false)); top.appendChild(sw); }
   root.appendChild(top);
-  let grp = null;
+  let grp = null, box = root;
+  const cnt = {};
+  for (const it of SHOP) { if (it.p === 0) continue; const c = cnt[it.g] = cnt[it.g] || { o: 0, n: 0 }; c.n++; if (isOpen(it.id)) c.o++; }
   for (const it of SHOP) {
     if (it.p === 0) continue;
-    if (it.g !== grp) { if (grp && EQ_GROUP[grp]) plainRow(root, EQ_GROUP[grp]); grp = it.g; root.appendChild(h('div', 'sheet-title', grp)); }
+    if (it.g !== grp) {
+      if (grp && EQ_GROUP[grp]) plainRow(box, EQ_GROUP[grp]);
+      grp = it.g; const g0 = grp;
+      const hb = h('button', 'shop-h'); hb.type = 'button'; hb.setAttribute('aria-expanded', SHOP_OPEN[g0] ? 'true' : 'false');
+      const ti = h('span', null, g0); ti.appendChild(h('span', 'cnt', cnt[g0].o + '/' + cnt[g0].n)); hb.appendChild(ti); hb.appendChild(h('i', 'chev', '▾'));
+      box = h('div', 'shop-sec'); box.hidden = !SHOP_OPEN[g0]; const bx = box;
+      hb.addEventListener('click', () => { SHOP_OPEN[g0] = bx.hidden; bx.hidden = !bx.hidden; hb.setAttribute('aria-expanded', bx.hidden ? 'false' : 'true'); });
+      root.appendChild(hb); root.appendChild(box);
+    }
     const open = isOpen(it.id), own = !!QS.owned[it.id];
     const row = h('div', 'shop-r' + (open ? ' own' : ''));
     row.appendChild(iconFor(it));
@@ -6510,9 +6602,9 @@ function renderShop(root) {
       btn = h('button', 'buy', it.p + ' 🪙'); btn.disabled = QS.coins < it.p;
       btn.addEventListener('click', () => shopBuy(it.id));
     }
-    btn.type = 'button'; row.appendChild(btn); root.appendChild(row);
+    btn.type = 'button'; row.appendChild(btn); box.appendChild(row);
   }
-  if (grp && EQ_GROUP[grp]) plainRow(root, EQ_GROUP[grp]); // the plain choices can always be put back
+  if (grp && EQ_GROUP[grp]) plainRow(box, EQ_GROUP[grp]); // the plain choices can always be put back
 }
 function plainRow(root, eq) {
   const r = h('div', 'shop-r own'); r.appendChild(iconFor({ e: EQ_PLAIN[eq][1] })); r.appendChild(h('span', 'shop-n', EQ_PLAIN[eq][0]));
@@ -6642,12 +6734,19 @@ document.getElementById('shelfBtn').addEventListener('click', () => {
 function fxOn(ach) { return prefs.fx !== false && !(prefs.fxs && prefs.fxs[ach] === false) && rewardOn(ach); }
 // every reward effect can be switched off on its own (the main switch turns them all off at once)
 const FX_LIST = [['drained', '🕳️ Чёрная дыра вместо мусорки'], ['pieces', '💥 Супер-хруст'], ['layers', '🏆 Золотое ведро'], ['melted', '🔵 Синий огонь'], ['orders', '🖼️ Золотая рамка и VIP-заказы']];
-var fxRows = null; fxRows = FX_LIST.slice().reverse().map(([id, name]) => {
+var fxRows = null; fxRows = FX_LIST.slice().map(([id, name]) => {
   const b = document.createElement('button'); b.type = 'button'; b.className = 'opt sub'; b.setAttribute('role', 'switch');
   b.innerHTML = '<span></span><i class="sw"></i>'; b.firstChild.textContent = name;
   b.addEventListener('click', () => { prefs.fxs = prefs.fxs || {}; prefs.fxs[id] = prefs.fxs[id] === false; applyPrefs(); savePrefs(); Snd.tick(0); });
-  document.getElementById('optFx').after(b); return [id, b];
+  document.getElementById('fxAdv').appendChild(b); return [id, b];
 });
+(function () {
+  const btn = document.getElementById('optFxMore'), box = document.getElementById('fxAdv');
+  if (btn && box) btn.addEventListener('click', () => {
+    const open = box.hidden; box.hidden = !open; btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    setTimeout(() => { if (open) btn.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }, 40);
+  });
+})();
 function syncFxRows() { (fxRows || []).forEach(([id, b]) => { b.setAttribute('aria-checked', !(prefs.fxs && prefs.fxs[id] === false) ? 'true' : 'false'); b.style.opacity = prefs.fx !== false ? '' : '0.45'; }); }
 syncFxRows();
 function holeOn() { return fxOn('drained'); }
