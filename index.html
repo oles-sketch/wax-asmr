@@ -3855,7 +3855,7 @@ function gbInit() {
   GB.fl = [];
   for (let i = 0; i < 150; i++) GB.fl.push({ x: rnd(46, 194), y: 166, vx: 0, vy: 0, s: rnd(1.0, 2.5), rest: true, ph: rnd(0, 7), g: Math.random() < 0.2 ? 1 + Math.floor(Math.random() * 4) : 0 });
 }
-function gbReset() { gbInit(); GB.turb = 0.8; GB.gx = GB.gy = GB.gvx = GB.gvy = GB.tx = GB.ty = 0; GB.drag = false; }
+function gbReset() { GB.px = GB.py = undefined; gbInit(); GB.turb = 0.8; GB.gx = GB.gy = GB.gvx = GB.gvy = GB.tx = GB.ty = 0; GB.drag = false; }
 function gbActive() { return isToy() && OBJECTS[G.kind].toy === 'globe' && !G.layers.length && !G.inWax; }
 function gbHit(dx, dy) {
   if (Math.hypot(dx - 120, dy - 236) < 18) return { type: 'gkey', id: 'gl_k' };
@@ -3884,6 +3884,11 @@ if (typeof window !== 'undefined' && window.addEventListener) {
 function gbStep(dt, steps, h) {
   let moving = true;
   if (!GB.fl) gbInit();
+  { // the whole toy being carried about or shaken: the flakes swirl and the glass rocks
+    const mx = G.ox - (GB.px === undefined ? G.ox : GB.px), my = G.oy - (GB.py === undefined ? G.oy : GB.py); GB.px = G.ox; GB.py = G.oy;
+    const sp = Math.min(4000, Math.hypot(mx, my) / Math.max(0.004, dt));
+    if (sp > 70) { GB.turb = Math.min(1.6, GB.turb + (sp - 70) * dt * 0.0016); GB.gvx -= Math.max(-1, Math.min(1, mx / Math.max(0.004, dt) / 1200)) * 90 * dt * 12; for (const f of GB.fl) if (!f.rest) f.vx -= Math.max(-1, Math.min(1, mx / Math.max(0.004, dt) / 1200)) * 40 * dt * 12; }
+  }
   const T = GB.turb;
   for (let i = 0; i < steps; i++) { GB.gvx += ((GB.tx - GB.gx) * 170 - GB.gvx * 8) * h; GB.gvy += ((GB.ty - GB.gy) * 170 - GB.gvy * 8) * h; GB.gx += GB.gvx * h; GB.gy += GB.gvy * h; }
   const kp = toyPart('gl_k'); kp.k = kp.k || 0; const kh = ((TOY.hold.gl_k || 0) > time) ? 1 : 0; kp.k += (kh - kp.k) * Math.min(1, dt * 26);
@@ -4088,12 +4093,16 @@ let time = 0, dripTimer = 0, bubbleTimer = 1;
 const pan = (x) => clamp((x - W / 2) / (W / 2), -1, 1) * 0.7;
 
 /* ---------- Layout ---------- */
+var layoutForce = false;
 function layout() {
   const r = stage.getBoundingClientRect();
+  // while the app is being minimised or brought back the field can be measured as (almost) nothing: keep the old size then
+  if (S && (r.width < 150 || r.height < 150)) return;
   const nw = Math.max(280, Math.round(r.width)), nh = Math.max(300, Math.round(r.height));
   const ndpr = Math.min(window.devicePixelRatio || 1, 2.5);
   // resizing a canvas wipes it, so only touch it when the size really changed
-  if (S && nw === W && nh === H && ndpr === dpr) return;
+  if (S && !layoutForce && nw === W && nh === H && ndpr === dpr) return;
+  layoutForce = false;
   W = nw; H = nh; dpr = ndpr;
   cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
   g.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -5283,6 +5292,7 @@ const GHR = 3; // the puddle picture is drawn at 3x the field resolution so its 
 const gridCv = mkCanvas(NG * GHR, NG * GHR), gridG = gridCv.getContext('2d'), gridImg = gridG.createImageData(NG * GHR, NG * GHR);
 const GCR = new Float32Array(NN_()), GCG = new Float32Array(NN_()), GCB = new Float32Array(NN_()), GCA = new Float32Array(NN_());
 function NN_() { return 64 * 64; }
+const GSM = new Float32Array(64 * 64), GSA = new Float32Array(64 * 64), GSA2 = new Float32Array(64 * 64), GCC = new Float32Array(64 * 64), GTR = new Float32Array(64 * 64), GTG = new Float32Array(64 * 64), GTB = new Float32Array(64 * 64), GTW = new Float32Array(64 * 64);
 /* ----- surface waves: a small wave equation on the same grid. Stirring, falling add-ins and drops push the surface;
    the rings that spread are shaded in the picture, so they show even in a puddle of one colour ----- */
 const WH = new Float32Array(NN_()), WVL = new Float32Array(NN_());
@@ -5932,6 +5942,13 @@ function neonize(r, g, b, k) {
   return [clamp(lum + (r - lum) * s, 0, 255) * (1 - br) + 255 * br * 0.5 + 8 * k, clamp(lum + (g - lum) * s, 0, 255) * (1 - br) + 255 * br * 0.5 + 8 * k, clamp(lum + (b - lum) * s, 0, 255) * (1 - br) + 255 * br * 0.5 + 8 * k];
 }
 function stRenderGrid() {
+  // the thickness is nearly on/off per cell, which leaves little stairs (and a stepped dark rim) along a slanted edge: a softened copy of it is used for the edge and the shading
+  for (let k = 0; k < NN; k++) GSA[k] = (!MASK[k] || FA[k] < 0.02) ? 0 : FA[k];
+  for (let pass = 0; pass < 2; pass++) {
+    for (let y = 0; y < NG; y++) for (let x = 0; x < NG; x++) { const k = y * NG + x; GSM[k] = (GSA[x > 0 ? k - 1 : k] + 2 * GSA[k] + GSA[x < NG - 1 ? k + 1 : k]) * 0.25; }
+    for (let y = 0; y < NG; y++) for (let x = 0; x < NG; x++) { const k = y * NG + x; GSA[k] = (GSM[y > 0 ? k - NG : k] + 2 * GSM[k] + GSM[y < NG - 1 ? k + NG : k]) * 0.25; }
+  }
+  GSA2.set(GSA);
   // 1) colour of every field cell (same as before) ...
   for (let k = 0; k < NN; k++) {
     const a = FA[k];
@@ -5940,7 +5957,7 @@ function stRenderGrid() {
     const vv = vivid(r, g2, b); r = vv[0]; g2 = vv[1]; b = vv[2];
     if (ST.neon > 0.04) { const nv = neonize(r, g2, b, ST.neon); r = nv[0]; g2 = nv[1]; b = nv[2]; }
     // a little shading from the thickness gives the puddle some body
-    const gx = (FA[k + 1] || 0) - (FA[k - 1] || 0), gy = (FA[k + NG] || 0) - (FA[k - NG] || 0);
+    const gx = window.NOSMOOTH ? (FA[k + 1] || 0) - (FA[k - 1] || 0) : ((GSA2[k + 1] || 0) - (GSA2[k - 1] || 0)) * 2, gy = window.NOSMOOTH ? (FA[k + NG] || 0) - (FA[k - NG] || 0) : ((GSA2[k + NG] || 0) - (GSA2[k - NG] || 0)) * 2;
     let sh = clamp(-(gx * 0.5 + gy * 0.7) * 40, -22, 26), sp = 0;
     if (waveE > 0.0005) {
       const wx = (WH[k + 1] || 0) - (WH[k - 1] || 0), wy = (WH[k + NG] || 0) - (WH[k - NG] || 0);
@@ -5950,6 +5967,18 @@ function stRenderGrid() {
     r += sp * 0.9; g2 += sp * 0.9; b += sp;
     GCA[k] = a; GCR[k] = clamp(r + sh, 0, 255); GCG[k] = clamp(g2 + sh, 0, 255); GCB[k] = clamp(b + sh, 0, 255);
   }
+  const GA = window.NOSMOOTH ? GCA : GSA2, T0 = window.NOSMOOTH ? 0.1 : 0.15, TW = window.NOSMOOTH ? 0.2 : 0.09;
+  // weight of every cell's colour; the colours of the outermost cells are also spread a little outwards so that the softened edge has a colour (not black)
+  for (let k = 0; k < NN; k++) GCC[k] = Math.min(1, GCA[k] * 8);
+  if (!window.NOSMOOTH) for (let pass = 0; pass < 2; pass++) {
+    for (let y = 0; y < NG; y++) for (let x = 0; x < NG; x++) {
+      const k = y * NG + x; GTW[k] = GCC[k]; if (GCC[k] > 0 || !GSA2[k]) continue;
+      let sr = 0, sg3 = 0, sb = 0, sw = 0;
+      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { const xx = x + dx, yy = y + dy; if (xx < 0 || yy < 0 || xx >= NG || yy >= NG) continue; const q = yy * NG + xx; if (GCC[q] > 0) { sr += GCR[q] * GCC[q]; sg3 += GCG[q] * GCC[q]; sb += GCB[q] * GCC[q]; sw += GCC[q]; } }
+      if (sw > 0) { GTR[k] = sr / sw; GTG[k] = sg3 / sw; GTB[k] = sb / sw; GTW[k] = 0.5; } else GTR[k] = -1;
+    }
+    for (let k = 0; k < NN; k++) if (GCC[k] <= 0 && GTW[k] > 0 && GTR[k] >= 0) { GCR[k] = GTR[k]; GCG[k] = GTG[k]; GCB[k] = GTB[k]; GCC[k] = GTW[k]; }
+  }
   // 2) ... then blown up with smooth interpolation: the thickness is interpolated first and only then cut into an edge
   const d = gridImg.data, W = NG * GHR;
   for (let y = 0; y < W; y++) {
@@ -5958,14 +5987,14 @@ function stRenderGrid() {
       const fx = (x + 0.5) / GHR - 0.5, x0 = Math.floor(fx), tx = fx - x0, xa = Math.max(0, x0), xb = Math.min(NG - 1, x0 + 1);
       const k00 = ya * NG + xa, k10 = ya * NG + xb, k01 = yb * NG + xa, k11 = yb * NG + xb;
       const w00 = (1 - tx) * (1 - ty), w10 = tx * (1 - ty), w01 = (1 - tx) * ty, w11 = tx * ty;
-      const A = GCA[k00] * w00 + GCA[k10] * w10 + GCA[k01] * w01 + GCA[k11] * w11, o = (y * W + x) * 4;
-      if (A < 0.04) { d[o + 3] = 0; continue; }
-      const c00 = Math.min(1, GCA[k00] * 8) * w00, c10 = Math.min(1, GCA[k10] * 8) * w10, c01 = Math.min(1, GCA[k01] * 8) * w01, c11 = Math.min(1, GCA[k11] * 8) * w11;
-      const cs = c00 + c10 + c01 + c11 || 1;
+      const A = GA[k00] * w00 + GA[k10] * w10 + GA[k01] * w01 + GA[k11] * w11, o = (y * W + x) * 4;
+      if (A < 0.03) { d[o + 3] = 0; continue; }
+      const c00 = GCC[k00] * w00, c10 = GCC[k10] * w10, c01 = GCC[k01] * w01, c11 = GCC[k11] * w11;
+      const cs = c00 + c10 + c01 + c11; if (cs < 0.02) { d[o + 3] = 0; continue; } // no colour known here (it would come out black)
       d[o] = (GCR[k00] * c00 + GCR[k10] * c10 + GCR[k01] * c01 + GCR[k11] * c11) / cs;
       d[o + 1] = (GCG[k00] * c00 + GCG[k10] * c10 + GCG[k01] * c01 + GCG[k11] * c11) / cs;
       d[o + 2] = (GCB[k00] * c00 + GCB[k10] * c10 + GCB[k01] * c01 + GCB[k11] * c11) / cs;
-      const t = clamp((A - 0.1) / 0.2, 0, 1);
+      const t = clamp((A - T0) / TW, 0, 1);
       d[o + 3] = t * t * (3 - 2 * t) * 255;
     }
   }
@@ -8769,6 +8798,10 @@ loadObjectImages(o => { if (OBJECTS[G.kind] === o) buildObject(false); });
 function onResize() { layout(); if (ST.on) { stLayout(); stDraw(); } else draw(); }
 if (window.ResizeObserver) new ResizeObserver(onResize).observe(stage);
 else window.addEventListener('resize', onResize);
+// coming back to the app (it was only minimised, not closed): measure the field again a few times while the system finishes its window animation
+function relayoutSoon() { for (const ms of [0, 150, 450, 1000]) setTimeout(() => { try { layoutForce = true; onResize(); } catch (e) { } }, ms); }
+document.addEventListener('visibilitychange', () => { if (!document.hidden) relayoutSoon(); });
+window.addEventListener('pageshow', relayoutSoon); window.addEventListener('focus', relayoutSoon); window.addEventListener('orientationchange', relayoutSoon);
 
 let lastT = performance.now();
 function frame(now) {
