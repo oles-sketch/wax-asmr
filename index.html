@@ -1426,12 +1426,14 @@ function hsl2rgb(h, s, l) {
   return [f(0) * 255, f(8) * 255, f(4) * 255];
 }
 const GLASS_ALPHA = 0.5;
+// how see-through a layer is: glass wax, or a mix with the clear additive (up to the same look as glass)
+function layerAlpha(l) { return l.type === 'glass' ? GLASS_ALPHA : 1 - (1 - GLASS_ALPHA) * Math.min(1, l.clear || 0); }
 
 // the bucket of mixed wax made in the workshop (a 64x64 colour picture plus extras)
 const NG = 64;
 const MIX = {
   pd: new Float32Array(NG * NG * 3).map((v, i) => [226, 208, 236][i % 3]), pat: null,
-  avg: [226, 208, 236], gl: {}, sp: 0, charms: {}, ex: { sugar: 0, confetti: 0, foil: 0, flake: 0, foam: 0, eyes: 0 }, fz: 0.6, pearl: 0, ptint: [255, 255, 255], oil: 0, gloss: 0, neon: 0, url: '', urlDirty: true
+  avg: [226, 208, 236], gl: {}, sp: 0, charms: {}, ex: { sugar: 0, confetti: 0, foil: 0, flake: 0, foam: 0, eyes: 0 }, fz: 0.6, pearl: 0, ptint: [255, 255, 255], oil: 0, gloss: 0, neon: 0, clear: 0, pr: { ice: 0, lava: 0, soft: 0, glow: 0 }, url: '', urlDirty: true
 };
 
 function mulberry32(a) {
@@ -1948,12 +1950,12 @@ function buildShell(sil, S, layers, bot) {
   for (let k = layers.length - 1; k >= 0; k--) {
     const r = radii[k];
     const shape = buildLayerShape(sil, S, r, layers[k], bot);
-    const glass = layers[k].type === 'glass';
+    const la = layerAlpha(layers[k]), glass = la < 0.99;
     g.shadowColor = glass ? 'rgba(70,25,80,0.18)' : 'rgba(70,25,80,0.35)';
     g.shadowBlur = 4;
-    if (glass) g.globalAlpha = GLASS_ALPHA;
+    if (glass) g.globalAlpha = la;
     g.drawImage(shape, 0, 0);
-    if (glass) { g.shadowBlur = 0; g.shadowColor = 'transparent'; g.globalAlpha = 0.7; g.drawImage(buildRim(shape), 0, 0); g.globalAlpha = 1; }
+    if (glass) { g.shadowBlur = 0; g.shadowColor = 'transparent'; g.globalAlpha = 0.7 * clamp((1 - la) / (1 - GLASS_ALPHA), 0.3, 1); g.drawImage(buildRim(shape), 0, 0); g.globalAlpha = 1; }
     g.shadowBlur = 0;
     g.shadowColor = 'transparent';
   }
@@ -1962,12 +1964,12 @@ function buildShell(sil, S, layers, bot) {
     for (const l of layers) if (l.charm) bakeCharm(g, C, l, d);
   }
   // where the pearl layers are what you see: the mask that the sliding shimmer is clipped to
-  shell.pk = Math.max(0, ...layers.map(l => l.pearl || 0)); shell.gk = Math.max(0, ...layers.map(l => l.gloss || 0)); shell.nk = Math.max(0, ...layers.map(l => l.neon || 0));
+  shell.pk = Math.max(0, ...layers.map(l => l.pearl || 0)); shell.gk = Math.max(0, ...layers.map(l => l.gloss || 0)); shell.nk = Math.max(0, ...layers.map(l => Math.max(l.neon || 0, 0.8 * layerPr(l, 'lava'), 0.55 * layerPr(l, 'glow'))));
   if (shell.pk > 0.03) {
     const pm = mkCanvas(C, C), pg = pm.getContext('2d');
     for (let k = layers.length - 1; k >= 0; k--) {
       const l = layers[k], shape = buildLayerShape(sil, S, radii[k], Object.assign({}, l, { pearl: 0, gloss: 0, oil: 0, sp: 0, ex: null, charm: null }), bot);
-      if ((l.pearl || 0) > 0.03) { pg.globalAlpha = l.type === 'glass' ? GLASS_ALPHA : 1; pg.drawImage(shape, 0, 0); pg.globalAlpha = 1; shell.ptint = l.ptint; }
+      if ((l.pearl || 0) > 0.03) { pg.globalAlpha = layerAlpha(l); pg.drawImage(shape, 0, 0); pg.globalAlpha = 1; shell.ptint = l.ptint; }
       else { pg.globalCompositeOperation = 'destination-out'; pg.drawImage(shape, 0, 0); pg.globalCompositeOperation = 'source-over'; }
     }
     shell.pm = pm;
@@ -2032,7 +2034,7 @@ function makePieces(shell) {
   for (let i = 0; i < C * C; i++) if (src[i * 4 + 3] > 12) opaque.push(i);
   if (!opaque.length) return { list: [], idx: new Uint8Array(C * C), C };
 
-  const target = 18;
+  const target = Math.round(clamp(18 + 12 * waxPr('ice') - 8 * waxPr('soft'), 8, 30));
   const dmin = Math.sqrt(opaque.length / target) * 0.85;
   const seeds = [];
   for (let t = 0; t < 900 && seeds.length < 40; t++) {
@@ -3997,20 +3999,31 @@ function gbGlowBase(S2) {
   o.globalAlpha = 0.9; o.drawImage(c, 0, 0); o.filter = 'none'; o.globalAlpha = 1; o.drawImage(c, 0, 0);
   return out;
 }
-function gbGlow(c, parts, t) {
+function gbGlow(c, parts, t) { // in the dark only the cosy yellow light from the house window shows (no neon outlines)
   const g = c.getContext('2d'), S2 = c.width, L = toyLayout(S2, { toy: 'globe' }), gc = GB_C;
-  if (!GB.base || GB.baseS !== S2) { GB.base = gbGlowBase(S2); GB.baseS = S2; }
-  g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, S2, S2); g.globalAlpha = 0.55; g.drawImage(GB.base, 0, 0); g.globalAlpha = 1;
+  g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, S2, S2);
   g.save(); g.translate(L.ox, 0); g.scale(L.k, L.k);
-  g.save(); g.translate(120, 206); g.rotate(GB.gx * 0.004); g.translate(-120 + GB.gx * 0.6, -206 + GB.gy * 0.4);
+  g.translate(120, 206); g.rotate(GB.gx * 0.004); g.translate(-120 + GB.gx * 0.6, -206 + GB.gy * 0.4);
   const hy = gbGround(120) + 1, fl = 0.85 + 0.15 * Math.sin(time * 5.3) * Math.sin(time * 2.1);
-  const wg = g.createRadialGradient(106, hy - 14, 3, 106, hy - 14, 70); wg.addColorStop(0, 'rgba(255,214,107,' + 0.55 * fl + ')'); wg.addColorStop(1, 'rgba(255,214,107,0)'); g.fillStyle = wg; g.beginPath(); g.arc(gc.x, gc.y, gc.R - 2, 0, 7); g.fill();
-  g.fillStyle = 'rgba(255,222,140,' + fl + ')'; g.beginPath(); g.roundRect(99, hy - 21, 15, 13, 2); g.fill();
   g.save(); g.beginPath(); g.arc(gc.x, gc.y, gc.R - 3, 0, 7); g.clip();
-  for (const f of GB.fl || []) { if (f.rest) continue; g.fillStyle = f.g ? GB_COL[f.g - 1] : 'rgba(255,255,255,0.95)'; g.globalAlpha = f.g ? 0.6 + 0.4 * Math.sin(time * 7 + f.ph * 3) : 0.95; g.beginPath(); g.arc(f.x, f.y, f.s + 0.3, 0, 7); g.fill(); }
+  const wg = g.createRadialGradient(106, hy - 14, 2, 106, hy - 14, 105); wg.addColorStop(0, 'rgba(255,208,100,' + 0.95 * fl + ')'); wg.addColorStop(0.4, 'rgba(255,190,90,' + 0.5 * fl + ')'); wg.addColorStop(1, 'rgba(255,170,80,0)');
+  // the sky: a cold soft glow from the top of the sphere, a slow aurora and a few twinkling stars
+  const sk = g.createLinearGradient(0, gc.y - gc.R, 0, gc.y + 10); sk.addColorStop(0, 'rgba(150,185,255,0.55)'); sk.addColorStop(0.45, 'rgba(120,150,255,0.22)'); sk.addColorStop(1, 'rgba(120,150,255,0)');
+  g.fillStyle = sk; g.fillRect(0, 0, 240, 240);
+  for (let i = 0; i < 3; i++) {
+    const ay = gc.y - 62 + i * 9 + Math.sin(time * 0.6 + i * 1.7) * 5, ax = gc.x + Math.sin(time * 0.4 + i) * 14;
+    const ag = g.createRadialGradient(ax, ay, 2, ax, ay, 58); const cc = i === 1 ? '120,255,200' : '170,140,255';
+    ag.addColorStop(0, 'rgba(' + cc + ',' + (0.2 + 0.06 * Math.sin(time * 1.3 + i)) + ')'); ag.addColorStop(1, 'rgba(' + cc + ',0)');
+    g.save(); g.translate(ax, ay); g.scale(1.6, 0.42); g.translate(-ax, -ay); g.fillStyle = ag; g.fillRect(ax - 60, ay - 60, 120, 120); g.restore();
+  }
+  for (let i = 0; i < 9; i++) { const a = i * 2.399, rr = 20 + (i * 37 % 55), sx = gc.x + Math.cos(a) * rr * 1.1, sy2 = gc.y - 20 - Math.abs(Math.sin(a)) * rr * 0.95, tw = 0.35 + 0.65 * Math.abs(Math.sin(time * (1.1 + i * 0.23) + i)); g.fillStyle = 'rgba(235,245,255,' + tw * 0.9 + ')'; g.beginPath(); g.arc(sx, sy2, 0.9 + (i % 3) * 0.35, 0, 7); g.fill(); }
+  g.fillStyle = wg; g.fillRect(0, 0, 240, 240);
+  // a patch of warm light on the snow in front of the house
+  const sg = g.createRadialGradient(104, hy + 6, 2, 104, hy + 6, 40); sg.addColorStop(0, 'rgba(255,215,120,' + 0.5 * fl + ')'); sg.addColorStop(1, 'rgba(255,200,100,0)');
+  g.save(); g.translate(104, hy + 6); g.scale(1.5, 0.45); g.translate(-104, -(hy + 6)); g.fillStyle = sg; g.fillRect(40, hy - 40, 140, 100); g.restore();
+  g.fillStyle = 'rgba(255,226,140,' + fl + ')'; g.beginPath(); g.roundRect(99, hy - 21, 15, 13, 2); g.fill();
+  for (const f of GB.fl || []) { if (f.rest) continue; const dd = Math.hypot(f.x - 106, f.y - (hy - 14)), lit = Math.max(0.28, 1 - dd / 110); g.fillStyle = f.g ? GB_COL[f.g - 1] : 'rgba(255,240,205,1)'; g.globalAlpha = (f.g ? 0.5 + 0.4 * Math.sin(time * 7 + f.ph * 3) : 0.9) * lit; g.beginPath(); g.arc(f.x, f.y, f.s + 0.3, 0, 7); g.fill(); }
   g.globalAlpha = 1; g.restore();
-  g.restore();
-  const p = Math.max(0, Math.min(1, (parts && parts.gl_k && parts.gl_k.k) || 0)); if (p > 0.1) { g.shadowColor = 'hsla(335,100%,65%,' + p + ')'; g.shadowBlur = 16 * L.k; g.fillStyle = 'hsla(335,100%,72%,' + 0.5 * p + ')'; g.beginPath(); g.arc(120, 236, 13, 0, 7); g.fill(); }
   g.restore();
 }
 TOYDEF.globe.glow = gbGlow;
@@ -4132,6 +4145,7 @@ function shellCost() { return G.layers.reduce((a, l) => a + l.cost, 0); }
 function rgbHex(c) { return '#' + c.map(v => Math.round(v).toString(16).padStart(2, '0')).join(''); }
 function ensurePieces() {
   if (G.pieces) return;
+  waxSoundSync();
   sqBake();
   G.pieces = makePieces(G.shell);
   const total = G.pieces.list.reduce((a, p) => a + p.area, 0) || 1;
@@ -4148,6 +4162,7 @@ function showLevel() {
 
 function buildObject(resetLayers) {
   S = Math.round(baseS * (OBJECTS[G.kind].zoom || 1)); // wide, low objects (the cat) are drawn bigger so they do not look tiny
+  if (typeof SQ !== 'undefined') SQ.orig = null;
   const sp = makeSprite(OBJECTS[G.kind], S);
   if (sp) { G.sprite = sp.canvas; G.bot = sp.bot; }
   else { G.sprite = mkCanvas(S, S); G.bot = S * 0.8; } // a photo that is still loading
@@ -4242,7 +4257,7 @@ function newLayer(cov, cost, t) {
       for (const k of keys) { r -= MIX.charms[k]; if (r <= 0) { pick = k; break; } }
       MIX.charms[pick]--; charm = { kind: pick };
     }
-    return { charm, color: av, color2: av, type: 'mix', src: 'mix', pat, sp: MIX.sp, ex: Object.assign({}, MIX.ex), fz: MIX.fz, spCols: cols, pearl: MIX.pearl, ptint: MIX.ptint.slice(), oil: MIX.oil, gloss: MIX.gloss, neon: MIX.neon || 0, seed: (Math.random() * 1e9) | 0, cov, t, cost };
+    return { charm, color: av, color2: av, type: 'mix', src: 'mix', pat, sp: MIX.sp, ex: Object.assign({}, MIX.ex), fz: MIX.fz, spCols: cols, pearl: MIX.pearl, ptint: MIX.ptint.slice(), oil: MIX.oil, gloss: Math.max(MIX.gloss, 0.7 * ((MIX.pr && MIX.pr.ice) || 0)), neon: MIX.neon || 0, clear: MIX.clear || 0, pr: Object.assign(specPr0(), MIX.pr || {}), seed: (Math.random() * 1e9) | 0, cov, t, cost };
   }
   const c = COLORS[G.colorIdx], type = WAX_TYPES[G.typeIdx].id;
   if (type === 'rainbow') { const hh = (time * 40) % 360; return { color: rgbHex(hsl2rgb(hh, 0.9, 0.72)), color2: rgbHex(hsl2rgb(hh + 90, 0.9, 0.72)), type, src: 'pot', sp: 0, seed: (Math.random() * 1e9) | 0, cov, t, cost }; }
@@ -4292,6 +4307,7 @@ function rebuildShell() {
     pickEyes();
     G.gloss = buildGloss(G.shell);
   } else { G.shell = null; G.gloss = null; G.eyes = []; }
+  waxSoundSync();
   pickGlitter();
   layerCountEl.textContent = G.layers.length;
 }
@@ -4619,6 +4635,7 @@ function finishBreak() {
   for (const L of G.layers) if (L.charm && !L.charm.found && L.cpos) foundCharm(L);
   G.twist = 0; G.freezeP = 0; G.twistBusy = false;
   G.layers = []; G.pieces = null; G.broken++; G.justCleared = true; G.cool = 1; G.committed = false;
+  if (typeof sqRestore === 'function') sqRestore();
   rebuildShell();
   G.air = [];
   brokenCountEl.textContent = G.broken;
@@ -5192,7 +5209,9 @@ const STCOL = ['#f4a6c0', '#e8434f', '#f58f84', '#ff9a3c', '#f6cf72', '#9fe0c6',
   // second page of the shelf ("+" button next to black): персиковый, бордовый, малиновый, фуксия, лимонный, салатовый, оливковый, хвойный,
   // лазурный, тёмно-синий, сиреневый, бежевый, серебро, терракотовый, золотой
   '#ffc9a8', '#8e1f3a', '#d6336c', '#e040b0', '#f4ee6a', '#b5e550', '#7a8450', '#2f6b4f',
-  '#2aa5d8', '#27346b', '#cf9ae0', '#e6cfb0', '#b9bcc8', '#c4694a', '#d4a72c']);
+  '#2aa5d8', '#27346b', '#cf9ae0', '#e6cfb0', '#b9bcc8', '#c4694a', '#d4a72c']).concat([
+  // third page: special colours with a property (see p9h_special.js): ice, lava, soft, firefly
+  '#bdefff', '#ff5a1f', '#f6d9ff', '#d9ff7a']);
 const SHELF_PAGE = 15;   // colours per shelf page; the 16th slot of each page is the switch button
 const PLATE_FULL = Math.PI / ((2 / NG) * (2 / NG)); // liquid in a plate that is full to depth 1
 const SAT_BOOST = 1.4;         // mixed pastel colours turn grey-ish, so they get a little extra punch
@@ -5232,6 +5251,9 @@ TOOL_IMG.flake = svgUri('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60
 TOOL_IMG.gloss = svgUri('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 70"><rect x="15" y="2" width="10" height="16" rx="4" fill="#f6f1ea"/>' +
   '<rect x="12" y="16" width="16" height="8" rx="2" fill="#8d9bb8"/><path d="M8 30 Q8 24 14 24 H26 Q32 24 32 30 V62 Q32 68 26 68 H14 Q8 68 8 62Z" fill="#bfe3f5" fill-opacity=".85" stroke="#8fc3e0" stroke-width="1.5"/>' +
   '<rect x="11" y="32" width="5" height="26" rx="2.5" fill="#fff" opacity=".85"/><path d="M26 46 l2 -5 2 5 5 2 -5 2 -2 5 -2 -5 -5 -2z" fill="#fff"/></svg>');
+TOOL_IMG.clear = svgUri('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 70"><rect x="15" y="2" width="10" height="16" rx="4" fill="#dff3ff" fill-opacity=".8" stroke="#9fd0ee"/>' +
+  '<rect x="12" y="16" width="16" height="8" rx="2" fill="#b8d8ee"/><path d="M8 30 Q8 24 14 24 H26 Q32 24 32 30 V62 Q32 68 26 68 H14 Q8 68 8 62Z" fill="#eaf8ff" fill-opacity=".35" stroke="#8fc3e0" stroke-width="1.5"/>' +
+  '<path d="M10 44 Q20 40 30 44 V62 Q30 66 26 66 H14 Q10 66 10 62Z" fill="#bfe6fa" fill-opacity=".55"/><rect x="11" y="30" width="4" height="24" rx="2" fill="#fff" opacity=".9"/><circle cx="25" cy="52" r="2.2" fill="#fff" opacity=".8"/><circle cx="21" cy="58" r="1.4" fill="#fff" opacity=".8"/></svg>');
 TOOL_IMG.neon = svgUri('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 70"><rect x="15" y="2" width="10" height="16" rx="4" fill="#2a2a3a"/>' +
   '<rect x="12" y="16" width="16" height="8" rx="2" fill="#3b3b52"/><path d="M8 30 Q8 24 14 24 H26 Q32 24 32 30 V62 Q32 68 26 68 H14 Q8 68 8 62Z" fill="#7dff5a" fill-opacity=".9" stroke="#c8ffb0" stroke-width="1.5"/>' +
   '<rect x="11" y="32" width="5" height="26" rx="2.5" fill="#fff" opacity=".7"/><path d="M24 40 l-4 8 h4 l-3 9 7 -11 h-4 l3 -6z" fill="#fffbb0"/></svg>');
@@ -5272,7 +5294,8 @@ const TOOLS = [
   ...CHARMS.map(c => ({ id: 'ch_' + c.id, kind: 'charm', ch: c.id, img: 'ch_' + c.id, n: c.n + ' (сюрприз)', short: c.n })),
   { id: 'oil', kind: 'oil', img: 'oil', n: 'Ароматические капли', short: 'Аромат' },
   { id: 'gloss', kind: 'gloss', img: 'gloss', n: 'Глянцевый усилитель', short: 'Глянец' },
-  { id: 'neon', kind: 'neon', img: 'neon', n: 'Неоновая добавка', short: 'Неон' }
+  { id: 'neon', kind: 'neon', img: 'neon', n: 'Неоновая добавка', short: 'Неон' },
+  { id: 'clear', kind: 'clear', img: 'clear', n: 'Добавка «Прозрачность»', short: 'Прозрачн.' }
 ];
 const TIMG = {};
 Object.keys(TOOL_IMG).forEach(k => { TIMG[k] = new Image(); TIMG[k].src = TOOL_IMG[k]; });
@@ -5341,7 +5364,7 @@ const ST = {
   flame: false, flameK: 0, speed: 1.4, tool: TOOLS[0],
   nbin: STCOL.map(() => BIN_START), cubes: [], parts: [], drops: [], bubs: [], rings: [], wisps: [],
   drag: null, down: null, ptr: null, stirLast: null, spr: false, sprT: 0,
-  V: 0, oil: 0, gloss: 0, neon: 0, time: 0, blubT: 0, hintT: 0,
+  V: 0, oil: 0, gloss: 0, neon: 0, clear: 0, dep: 0, pp: { ice: 0, lava: 0, soft: 0, glow: 0 }, time: 0, blubT: 0, hintT: 0,
   pouring: false, snap: null, pourK: 0, patT: 0, tool_el: null
 };
 
@@ -5409,6 +5432,9 @@ function stMergeMix(f, snap) {
   MIX.oil += (snap.oil - MIX.oil) * t;
   MIX.gloss += (snap.gloss - MIX.gloss) * t;
   MIX.neon += ((snap.neon || 0) - MIX.neon) * t;
+  MIX.clear += ((snap.clear || 0) - (MIX.clear || 0)) * t;
+  if (!MIX.pr) MIX.pr = specPr0();
+  for (const k in MIX.pr) MIX.pr[k] += (((snap.pr && snap.pr[k]) || 0) - MIX.pr[k]) * t;
   const keys = new Set([...Object.keys(MIX.gl), ...Object.keys(snap.gl)]);
   keys.forEach(c => { MIX.gl[c] = (MIX.gl[c] || 0) * (1 - t) + (snap.gl[c] || 0) * t; });
   setLvl('mix', w0 + f);
@@ -5566,6 +5592,8 @@ function stCell(x, y) {
   const i = clamp(Math.round((x + 1) / 2 * NG - 0.5), 0, NG - 1), j = clamp(Math.round((y + 1) / 2 * NG - 0.5), 0, NG - 1);
   return j * NG + i;
 }
+function stSpecReset() { ST.dep = 0; for (const k in ST.pp) ST.pp[k] = 0; }
+function stSpecShare() { const r = {}; for (const k in ST.pp) r[k] = ST.dep > 1 ? clamp(ST.pp[k] / ST.dep, 0, 1) : 0; return r; }
 function stEmptyPlate() { WH.fill(0); WVL.fill(0); FA.fill(0); FR.fill(0); FG.fill(0); FB.fill(0); FU.fill(0); FV.fill(0); }
 
 /* ----- cubes ----- */
@@ -5626,7 +5654,9 @@ function stUpdate(dt) {
       const s2 = Math.max(0, c.s - 0.036 * ST.speed * dt);
       const dm = c.s * c.s - s2 * s2;
       const col = hexRgb(c.c);
-      stDeposit(c.x, c.y, KD * dm / ((2 / NG) * (2 / NG)), col, Math.max(0.09, c.s * 1.7));
+      const dAmt = KD * dm / ((2 / NG) * (2 / NG));
+      stDeposit(c.x, c.y, dAmt, col, Math.max(0.09, c.s * 1.7));
+      ST.dep += dAmt; { const sp = STSPEC[c.c]; if (sp) ST.pp[sp.id] += dAmt; }
       c.s = s2; c.melting = true;
       if (c.s < 0.012) { ST.cubes.splice(i, 1); if (!c.crumb) Q.stat('melted'); }
     }
@@ -5684,7 +5714,7 @@ function stUpdate(dt) {
   stWaves(dt);
   stLevel();
   ST.V = stVolume();
-  if (ST.V < 3 && !ST.pouring) { stEmptyPlate(); ST.V = 0; ST.oil = Math.max(0, ST.oil - dt * 0.5); ST.gloss = Math.max(0, ST.gloss - dt * 0.5); ST.neon = Math.max(0, ST.neon - dt * 0.5); }
+  if (ST.V < 3 && !ST.pouring) { stEmptyPlate(); ST.V = 0; stSpecReset(); ST.oil = Math.max(0, ST.oil - dt * 0.5); ST.gloss = Math.max(0, ST.gloss - dt * 0.5); ST.neon = Math.max(0, ST.neon - dt * 0.5); ST.clear = Math.max(0, ST.clear - dt * 0.5); }
 
   // sound for stirring: the same thick slide as dipping
   Snd.slide(stirSpeed * 1.1, stirSpeed > 8 && ST.V > 60 && !ST.pouring, pn);
@@ -5751,6 +5781,7 @@ function stUpdate(dt) {
       ST.rings.push({ x: d.x, y: d.y, r: 0, life: 0 }); stWaveAt(d.x, d.y, 0.24, 0.09);
       if (d.gk) { ST.gloss = Math.min(1, ST.gloss + 0.34); Snd.drip(stPan(stFrom(d.x, d.y)[0])); }
       else if (d.nk) { ST.neon = Math.min(1, ST.neon + 0.34); Snd.drip(stPan(stFrom(d.x, d.y)[0])); }
+      else if (d.ck) { ST.clear = Math.min(1, ST.clear + 0.34); Snd.drip(stPan(stFrom(d.x, d.y)[0])); }
       else {
         ST.oil = Math.min(1, ST.oil + 0.25);
         for (let q = 0; q < 5; q++) ST.wisps.push({ x: d.x + rnd(-0.12, 0.12), y: d.y + rnd(-0.08, 0.08), t0: ST.time + q * 0.12, ph: Math.random() * 6.28, h: rnd(50, 90) });
@@ -5832,12 +5863,12 @@ function stPourStep(dt) {
 function stFinishPour() {
   ST.pouring = false; Snd.pour(false);
   if (ST.snap && ST.snap.trash) {
-    stEmptyPlate(); ST.parts.length = 0; ST.V = 0; ST.oil = 0; ST.gloss = 0; ST.neon = 0; ST.wisps.length = 0; ST.snap = null; Q.stat('drained');
+    stEmptyPlate(); ST.parts.length = 0; ST.V = 0; stSpecReset(); ST.oil = 0; ST.gloss = 0; ST.neon = 0; ST.clear = 0; ST.wisps.length = 0; ST.snap = null; Q.stat('drained');
     if (holeOn()) Snd.hole(0); else { Snd.blub(0); Snd.squish(0.5); }
     return;
   }
   mixAvg(); mixPatRefresh(); Q.stat('pours');
-  if (ST.V < 400) { for (const q of ST.parts) if (q.ch) MIX.charms[q.ch] = (MIX.charms[q.ch] || 0) + 1; stEmptyPlate(); ST.parts.length = 0; ST.V = 0; ST.oil = 0; ST.gloss = 0; ST.neon = 0; }
+  if (ST.V < 400) { for (const q of ST.parts) if (q.ch) MIX.charms[q.ch] = (MIX.charms[q.ch] || 0) + 1; stEmptyPlate(); ST.parts.length = 0; ST.V = 0; stSpecReset(); ST.oil = 0; ST.gloss = 0; ST.neon = 0; ST.clear = 0; }
   Snd.chime();
 }
 // The picture of the mix covers the liquid only; it is stretched over the whole bucket surface,
@@ -5907,7 +5938,7 @@ function stStartPour() {
   Object.keys(gl).forEach(c => { gl[c] = Math.min(1, gl[c] / (vf * 220)); });
   const sp = Math.min(1, glN / (vf * 220));
   ST.snap = {
-    V0: ST.V, pd, avg, gl, sp, ex: { sugar: Math.min(1, exN.sugar / (vf * 50)), confetti: Math.min(1, exN.confetti / (vf * 110)), foil: Math.min(1, exN.foil / (vf * 110)), flake: Math.min(1, exN.flake / (vf * 90)), foam: Math.min(1, exN.foam / (vf * 14)), eyes: Math.min(1, exN.eyes / (Math.max(vf, 0.3) * 24)) }, fz: exN.foam > 0 ? fzSum / exN.foam : 0.6, gloss: ST.gloss, neon: ST.neon, pearl: Math.min(1, prN / (vf * 420)),
+    V0: ST.V, pd, avg, gl, sp, ex: { sugar: Math.min(1, exN.sugar / (vf * 50)), confetti: Math.min(1, exN.confetti / (vf * 110)), foil: Math.min(1, exN.foil / (vf * 110)), flake: Math.min(1, exN.flake / (vf * 90)), foam: Math.min(1, exN.foam / (vf * 14)), eyes: Math.min(1, exN.eyes / (Math.max(vf, 0.3) * 24)) }, fz: exN.foam > 0 ? fzSum / exN.foam : 0.6, gloss: ST.gloss, neon: ST.neon, clear: ST.clear, pr: stSpecShare(), pearl: Math.min(1, prN / (vf * 420)),
     ptint: prN ? [tint[0] / prN, tint[1] / prN, tint[2] / prN] : [255, 255, 255], oil: ST.oil
   };
   ST.pouring = true; ST.patT = 0; Snd.pour(true);
@@ -5980,7 +6011,7 @@ function stRenderGrid() {
     for (let k = 0; k < NN; k++) if (GCC[k] <= 0 && GTW[k] > 0 && GTR[k] >= 0) { GCR[k] = GTR[k]; GCG[k] = GTG[k]; GCB[k] = GTB[k]; GCC[k] = GTW[k]; }
   }
   // 2) ... then blown up with smooth interpolation: the thickness is interpolated first and only then cut into an edge
-  const d = gridImg.data, W = NG * GHR;
+  const d = gridImg.data, W = NG * GHR, clA = 1 - 0.45 * (ST.clear || 0); // clear additive: the liquid turns see-through
   for (let y = 0; y < W; y++) {
     const fy = (y + 0.5) / GHR - 0.5, y0 = Math.floor(fy), ty = fy - y0, ya = Math.max(0, y0), yb = Math.min(NG - 1, y0 + 1);
     for (let x = 0; x < W; x++) {
@@ -5995,7 +6026,7 @@ function stRenderGrid() {
       d[o + 1] = (GCG[k00] * c00 + GCG[k10] * c10 + GCG[k01] * c01 + GCG[k11] * c11) / cs;
       d[o + 2] = (GCB[k00] * c00 + GCB[k10] * c10 + GCB[k01] * c01 + GCB[k11] * c11) / cs;
       const t = clamp((A - T0) / TW, 0, 1);
-      d[o + 3] = t * t * (3 - 2 * t) * 255;
+      d[o + 3] = t * t * (3 - 2 * t) * 255 * clA;
     }
   }
   gridG.putImageData(gridImg, 0, 0);
@@ -6056,6 +6087,7 @@ function stDraw() {
     }
     sg.fillStyle = 'rgba(244,236,247,0.75)'; sg.font = '600 11px Fredoka, system-ui, sans-serif'; sg.textAlign = 'center';
     sg.fillText('×' + n, b.x + b.w / 2, b.y + b.h - 4);
+    { const spc = STSPEC[STCOL[i]]; if (spc) { sg.font = '12px system-ui'; sg.textAlign = 'right'; sg.fillText(spc.e, b.x + b.w - 2, b.y + 13); sg.textAlign = 'center'; } }
     if (binLocked(i)) { sg.fillStyle = 'rgba(32,22,44,0.62)'; stRoundRect(b.x, b.y, b.w, b.h, 8); sg.fill(); sg.font = '16px system-ui'; sg.fillStyle = '#fff'; sg.fillText('🔒', b.x + b.w / 2, b.y + b.h * 0.58); }
   });
   { // the button that flips the shelf between the main colours and the extra ones
@@ -6064,11 +6096,11 @@ function stDraw() {
     sg.strokeStyle = 'rgba(255,255,255,0.28)'; sg.lineWidth = 1; stRoundRect(b.x, b.y, b.w, b.h, 8); sg.stroke();
     const sw = Math.min(8, b.w * 0.15), cx0 = b.x + b.w / 2, cy0 = b.y + b.h * 0.3;
     for (let q = 0; q < 4; q++) {
-      sg.fillStyle = STCOL[(ST.page ? 0 : SHELF_PAGE) + [0, 4, 9, 13][q]];
+      sg.fillStyle = ((ST.page || 0) === 1 ? STCOL[30 + q] : STCOL[((((ST.page || 0) + 1) % 3) * SHELF_PAGE) + [0, 4, 9, 13][q]]);
       stRoundRect(cx0 + (q % 2 ? 1 : -sw * 2 - 1), cy0 + (q > 1 ? sw + 1 : -sw - 1), sw * 2, sw * 1.6, 2); sg.fill();
     }
     sg.fillStyle = 'rgba(244,236,247,0.85)'; sg.font = '600 11px Fredoka, system-ui, sans-serif'; sg.textAlign = 'center';
-    sg.fillText(ST.page ? '← назад' : '+ ещё', b.x + b.w / 2, b.y + b.h - 4);
+    sg.fillText(ST.page === 2 ? '← назад' : (ST.page === 1 ? 'особые' : '+ ещё'), b.x + b.w / 2, b.y + b.h - 4);
   }
 
   // bucket for the mix
@@ -6344,7 +6376,7 @@ function stDrawBucket() {
     const sy = topY + (1 - lv) * b.ry * 1.2;
     sg.save(); stEll(b.cx, sy, b.w / 2 - 6, b.ry - 3); sg.clip();
     const pt = sy - b.ry + 3, pb = topY + b.ry - 3;
-    sg.drawImage(MIX.pat, b.cx - b.w / 2 + 6, pt, b.w - 12, Math.max(3, pb - pt));
+    sg.globalAlpha = 1 - 0.45 * (MIX.clear || 0); sg.drawImage(MIX.pat, b.cx - b.w / 2 + 6, pt, b.w - 12, Math.max(3, pb - pt)); sg.globalAlpha = 1;
     sg.restore();
     sg.fillStyle = 'rgba(255,255,255,0.22)'; sg.beginPath(); sg.ellipse(b.cx - b.w * 0.16, sy - b.ry * 0.25, b.w * 0.1, b.ry * 0.25, 0, 0, 7); sg.fill();
     sg.save(); stEll(b.cx, sy, b.w / 2 - 6, b.ry - 3); sg.clip();
@@ -6379,13 +6411,13 @@ sv.addEventListener('pointerdown', (e) => {
   if (p.x > ST.tb.cx - ST.tb.w / 2 - 6 && p.x < ST.tb.cx + ST.tb.w / 2 + 6 && p.y > ST.tb.top - 8) { stStartTrash(); return; }
   { const bk = ST.bk; if (p.x > bk.cx - bk.w / 2 && p.x < bk.cx + bk.w / 2 && p.y > bk.top && p.y < bk.top + bk.h + bk.ry) { askDrain('mix', true); return; } }
   ST.ptr = p; ST.down = { x: p.x, y: p.y, moved: 0, mode: null };
-  { const pb = ST.pgBtn; if (pb && p.x > pb.x && p.x < pb.x + pb.w && p.y > pb.y && p.y < pb.y + pb.h) { ST.page = ST.page ? 0 : 1; ST.down = null; Snd.tick(stPan(p.x)); return; } }
+  { const pb = ST.pgBtn; if (pb && p.x > pb.x && p.x < pb.x + pb.w && p.y > pb.y && p.y < pb.y + pb.h) { ST.page = ((ST.page || 0) + 1) % 3; ST.down = null; Snd.tick(stPan(p.x)); return; } }
   for (let i = 0; i < ST.bins.length; i++) {
     if (((i / SHELF_PAGE) | 0) !== ST.page) continue;
     const b = ST.bins[i];
     if (p.x > b.x && p.x < b.x + b.w && p.y > b.y && p.y < b.y + b.h && binLocked(i)) { ST.down = null; shopDeny(colsPack(i)); return; }
     if (p.x > b.x && p.x < b.x + b.w && p.y > b.y && p.y < b.y + b.h && ST.nbin[i] > 0) {
-      ST.nbin[i]--; ST.drag = { cube: stMakeCube(i), from: 'bin', t: 0 }; ST.down.mode = 'cube'; Snd.clink(stPan(p.x)); return;
+      ST.nbin[i]--; ST.drag = { cube: stMakeCube(i), from: 'bin', t: 0 }; ST.down.mode = 'cube'; Snd.clink(stPan(p.x)); { const spc = STSPEC[STCOL[i]]; if (spc) showInfo(spc.e + ' ' + spc.n + ': ' + spc.d, 3200); } return;
     }
   }
   const c = stCubeAt(p.x, p.y);
@@ -6402,8 +6434,8 @@ sv.addEventListener('pointerdown', (e) => {
       const u = stTo(p.x, p.y - 12);
       ST.parts.push({ ch: ST.tool.ch, x: clamp(u[0], -0.8, 0.8), y: clamp(u[1], -0.8, 0.8), z: 1.1, sz: 13, ph: 0, sp: 1 });
       Snd.plopIn ? Snd.drip(stPan(p.x)) : 0; ST.down.mode = 'charm';
-    } else if (k === 'oil' || k === 'gloss' || k === 'neon') {
-      const u = stTo(p.x, p.y); ST.drops.push({ x: clamp(u[0], -0.8, 0.8), y: clamp(u[1], -0.8, 0.8), z: 1, gk: k === 'gloss', nk: k === 'neon' }); ST.down.mode = 'oil';
+    } else if (k === 'oil' || k === 'gloss' || k === 'neon' || k === 'clear') {
+      const u = stTo(p.x, p.y); ST.drops.push({ x: clamp(u[0], -0.8, 0.8), y: clamp(u[1], -0.8, 0.8), z: 1, gk: k === 'gloss', nk: k === 'neon', ck: k === 'clear' }); ST.down.mode = 'oil';
     }
   }
 });
@@ -6701,7 +6733,7 @@ function layerFx(L) {
   const f = [];
   if (L.sp > 0.15) f.push('glitter');
   if (L.ex) { if (L.ex.foil > 0.1) f.push('foil'); if (L.ex.sugar > 0.1) f.push('sugar'); if (L.ex.confetti > 0.1) f.push('confetti'); if (L.ex.flake > 0.1) f.push('flake'); if (L.ex.foam > 0.1) f.push('foam'); if (L.ex.eyes > 0.1) f.push('eyes'); }
-  if (L.pearl > 0.1) f.push('pearl'); if (L.gloss > 0.1) f.push('gloss'); if (L.neon > 0.1) f.push('neon'); if (L.oil > 0.2) f.push('scent'); if (L.charm) f.push('charm');
+  if (L.pearl > 0.1) f.push('pearl'); if (L.gloss > 0.1) f.push('gloss'); if (L.neon > 0.1) f.push('neon'); if (L.clear > 0.3 && L.type !== 'glass') { f.push('clear'); f.push('glass'); } if (L.oil > 0.2) f.push('scent'); if (L.charm) f.push('charm');
   if (L.type === 'glass') f.push('glass'); if (L.type === 'grad') f.push('grad'); if (L.type === 'rainbow') f.push('rainbow'); if (L.type === 'cosmos') f.push('cosmos'); if (L.type === 'gold') f.push('gold');
   return f;
 }
@@ -6764,7 +6796,7 @@ const ORDERS = [
 const ORD_REWARD = { 1: 2, 2: 4, 3: 7 };
 function orderById(id) { return ORDERS.find(o => o.id === id); }
 // in the shop mode an order must be doable with what is already open (objects and add-ins)
-const FX_SRC = { foil: ['foil'], sugar: ['sugar'], confetti: ['confetti'], flake: ['flake'], foam: ['foam'], eyes: ['eyes'], pearl: ['pearl_blue', 'pearl_white'], gloss: ['gloss'], neon: ['neon'], scent: ['oil'], charm: ['ch_coin', 'ch_star', 'ch_heart', 'ch_pearl', 'ch_gem'] };
+const FX_SRC = { foil: ['foil'], sugar: ['sugar'], confetti: ['confetti'], flake: ['flake'], foam: ['foam'], eyes: ['eyes'], pearl: ['pearl_blue', 'pearl_white'], gloss: ['gloss'], neon: ['neon'], clear: ['clear'], scent: ['oil'], charm: ['ch_coin', 'ch_star', 'ch_heart', 'ch_pearl', 'ch_gem'] };
 function reqOpen(r) {
   if (r.obj && !isOpen('obj:' + OID(r.obj))) return false;
   const src = r.fxk && FX_SRC[r.fxk]; return !src || src.some(t => isOpen('tool:' + t));
@@ -6802,7 +6834,7 @@ function orderHandIn() {
   for (let i = 0; i < n; i++) ST.nbin[(Math.random() * ST.nbin.length) | 0]++;
   QS.coins += st.o.d * 10 * vipK; Q.stat('orders');
   G.twist = 0; G.freezeP = 0; G.twistBusy = false;
-  G.layers = []; G.pieces = null; G.justCleared = true; G.cool = 1; G.committed = false; rebuildShell(); G.air = [];
+  G.layers = []; G.pieces = null; G.justCleared = true; G.cool = 1; G.committed = false; if (typeof sqRestore === 'function') sqRestore(); rebuildShell(); G.air = [];
   Snd.init(); Snd.chime(); setTimeout(() => Snd.chime(), 180);
   orderNew(); saveNow();
   showInfo((vipK > 1 ? '⭐ VIP-заказ сдан! ' : 'Заказ сдан! ') + '+' + n + ' ' + (n < 5 ? 'кубика' : 'кубиков') + ' на полку, +' + st.o.d * 10 * vipK + ' 🪙', 3400);
@@ -6967,14 +6999,14 @@ function shopAdd(it) { SHOP.push(it); SHOP_BY_ID[it.id] = it; }
   const objP = [0, 0, 0, 0, 40, 40, 60, 60, 80, 80, 100, 100, 150, 200, 150, 150, 50, 50, 60, 60, 80, 80, 0, 200, 120, 100, 100, 100, 120, 100, 100, 100, 100, 100, 100, 100, 100, 100];
   OBJ_ORDER.forEach(i => { const o = OBJECTS[i]; shopAdd({ id: 'obj:' + i, g: 'Предметы', n: o.n, e: o.e, img: o.img, p: objP[i] || 0 }); });
   const toolP = { finger: 0, stick: 0, spoon: 0, whisk: 40, fork: 30, comb: 30, funnel: 50, brush: 40, glitter0: 0, glitter1: 0, glitter2: 20, glitter3: 20, glitter4: 20, glitter5: 20, pearl_blue: 40, pearl_white: 40,
-    sugar: 30, confetti: 30, foil: 50, flake: 50, foam: 60, eyes: 80, oil: 50, gloss: 70, neon: 120 };
+    sugar: 30, confetti: 30, foil: 50, flake: 50, foam: 60, eyes: 80, oil: 50, gloss: 70, neon: 120, clear: 90 };
   TOOLS.forEach(t => {
     if (t.kind === 'charm' && CHARMS.find(c => c.id === t.ch).rare) return; // rare surprises are a reward, not for sale
     const p = t.kind === 'charm' ? 40 : (toolP[t.id] == null ? 40 : toolP[t.id]);
     shopAdd({ id: 'tool:' + t.id, g: t.kind === 'stir' ? 'Мешалки' : 'Добавки', n: t.n, e: t.e, timg: t.img, pearl: t.kind === 'pearl', p });
   });
-  const packs = [['Ягодно-лимонные цвета', ['#ffc9a8', '#8e1f3a', '#d6336c', '#e040b0', '#f4ee6a']], ['Зелёно-синие цвета', ['#b5e550', '#7a8450', '#2f6b4f', '#2aa5d8', '#27346b']], ['Редкие цвета', ['#cf9ae0', '#e6cfb0', '#b9bcc8', '#c4694a', '#d4a72c']]];
-  packs.forEach((pk, i) => shopAdd({ id: 'cols:' + (i + 1), g: 'Цвета кубиков', n: pk[0], sw: pk[1], p: 40 }));
+  const packs = [['Ягодно-лимонные цвета', ['#ffc9a8', '#8e1f3a', '#d6336c', '#e040b0', '#f4ee6a']], ['Зелёно-синие цвета', ['#b5e550', '#7a8450', '#2f6b4f', '#2aa5d8', '#27346b']], ['Редкие цвета', ['#cf9ae0', '#e6cfb0', '#b9bcc8', '#c4694a', '#d4a72c']], ['Особые цвета (лёд, лава, мягкий, светлячок)', ['#bdefff', '#ff5a1f', '#f6d9ff', '#d9ff7a']]];
+  packs.forEach((pk, i) => shopAdd({ id: 'cols:' + (i + 1), g: 'Цвета кубиков', n: pk[0], sw: pk[1], p: i === 3 ? 150 : 40 }));
   [['night', 'Ночь', 0], ['sunset', 'Закат', 100], ['mint', 'Мята', 100], ['space', 'Космос', 150]].forEach(b => shopAdd({ id: 'bg:' + b[0], g: 'Фоны', n: 'Фон «' + b[1] + '»', e: '🖼️', eq: 'bg', val: b[0], p: b[2] }));
   POT_SKINS.forEach(k => { if (k.p) shopAdd({ id: 'skin:' + k.id, g: 'Скины ведра', n: k.n, e: k.e, eq: 'skin', val: k.id, p: k.p }); });
   SND_SETS.forEach(k => { if (k.p) shopAdd({ id: 'snd:' + k.id, g: 'Звуки хруста', n: k.n, e: k.e, eq: 'snd', val: k.id, p: k.p }); });
@@ -6988,7 +7020,7 @@ const STAGE_COINS = [10, 25, 60, 150, 400];
 function rareCharm(id) { const m = /^tool:ch_(.+)$/.exec(id); const c = m && CHARMS.find(x => x.id === m[1]); return !!(c && c.rare); }
 function isOpen(id) { if (rareCharm(id)) return rewardOn('finds'); return isOpenShop(id); }
 function isOpenShop(id) { const it = SHOP_BY_ID[id]; return prefs.free || !it || it.p === 0 || !!QS.owned[id]; }
-function colsPack(i) { return 'cols:' + (((i - SHELF_PAGE) / 5 | 0) + 1); }
+function colsPack(i) { return i >= SHELF_PAGE * 2 ? 'cols:4' : 'cols:' + (((i - SHELF_PAGE) / 5 | 0) + 1); }
 function binLocked(i) { return i >= SHELF_PAGE && !isOpen(colsPack(i)); }
 function shopDeny(id) {
   if (rareCharm(id)) { Snd.tick(0); showInfo('🔒 Награда за последний этап: ' + rewardName('finds'), 3000); return; }
@@ -7148,7 +7180,7 @@ function shelfPack() {
 function shelfClearCurrent() {
   G.twist = 0; G.freezeP = 0; G.twistBusy = false;
   G.layers = []; G.pieces = null; G.justCleared = true; G.cool = 1; G.committed = false; G.maxCov = 0; G.cov = 0;
-  G.hardened = true; rebuildShell(); G.air = [];
+  G.hardened = true; if (typeof sqRestore === 'function') sqRestore(); rebuildShell(); G.air = [];
   if (typeof questTick === 'function') questTick();
 }
 function shelfSave() {
@@ -7298,6 +7330,8 @@ function isSquishy() { return !!(OBJECTS[G.kind] && OBJECTS[G.kind].sq); }
 function sqActive() { return isSquishy() && (SQ.down || Math.abs(SQ.k) > 0.004 || Math.abs(SQ.v) > 0.02); }
 function sqPlasticOn() { return !!(SQ.plastic && G.layers.length && SQ.plastic.C === S + MARGIN * 2); }
 function sqResetPlastic() { SQ.plastic = null; }
+// the wax is gone: the toy goes back to its undented picture
+function sqRestore() { if (SQ.orig) { G.sprite = SQ.orig.sprite; G.sil = SQ.orig.sil; SQ.orig = null; SQ.silD = null; } SQ.plastic = null; SQ.k = 0; SQ.v = 0; SQ.down = false; }
 
 // where on the object a screen point lands
 function sqLocal(x, y) { const c = worldToCanvas(x, y), C = S + MARGIN * 2; return { x: c.x - C / 2, y: c.y - MARGIN }; }
@@ -7503,13 +7537,16 @@ function sqBake() {
     cg.restore();
   }
   // the toy inside sets in the same dent
+  // (the plain picture is kept aside: when the wax is broken off the squishy comes back whole and can be squeezed again)
+  if (!SQ.orig) SQ.orig = { sprite: G.sprite, sil: G.sil };
   for (const k of ['sprite', 'sil']) {
-    const cv2 = G[k]; if (!cv2 || !cv2.getContext) continue;
-    const tmp = mkCanvas(cv2.width, cv2.height); tmp.getContext('2d').drawImage(cv2, 0, 0);
-    const cg = cv2.getContext('2d'); cg.clearRect(0, 0, cv2.width, cv2.height);
-    cg.save(); cg.translate(cv2.width / 2, 0);
-    sqMesh(cg, tmp, -cv2.width / 2, 0, cv2.width, cv2.height, (x, y) => sqPlasticAt(x, y));
+    const src = SQ.orig[k]; if (!src || !src.getContext) continue;
+    const nc = mkCanvas(src.width, src.height), cg = nc.getContext('2d');
+    cg.save(); cg.translate(src.width / 2, 0);
+    const hw = src.width / 2, hh = src.height; // the picture has no spare room: a bulge is pressed back inside instead of being cropped off
+    sqMesh(cg, src, -hw, 0, src.width, src.height, (x, y) => { const d = sqPlasticAt(x, y); return [clamp(x + d[0], -hw + 0.5, hw - 0.5) - x, clamp(y + d[1], 0.5, hh - 0.5) - y]; });
     cg.restore();
+    G[k] = nc;
   }
   SQ.silD = null;
   SQ.plastic = null;
@@ -7568,6 +7605,31 @@ function sqBake() {
     setTimeout(() => { if (open) btn.scrollIntoView({ block: 'start', behavior: 'smooth' }); hint(); }, 40);
   });
 })();
+/* ---------- Special colours: a colour that brings a property to the wax ----------
+   The property is a smooth share (0..1) = how much of the liquid came from that special cube.
+   Mixed with plain colours it is simply diluted, two special colours both work, each weaker. */
+var SPEC = [
+  { id: 'ice', hex: '#bdefff', e: '❄️', n: 'Ледяной', d: 'Застывает быстрее, искрится, ломается на много звонких осколков' },
+  { id: 'lava', hex: '#ff5a1f', e: '🌋', n: 'Лавовый', d: 'Долго остаётся мягким, а застыв светится в темноте' },
+  { id: 'soft', hex: '#f6d9ff', e: '☁️', n: 'Мягкий', d: 'Застывает дольше, ломается на крупные куски с мягким хрустом' },
+  { id: 'glow', hex: '#d9ff7a', e: '✨', n: 'Светлячок', d: 'Слабо светится в темноте сам по себе' }
+];
+var STSPEC = {}; SPEC.forEach(s => { STSPEC[s.hex] = s; });
+function specPr0() { return { ice: 0, lava: 0, soft: 0, glow: 0 }; }
+function layerPr(l, k) { return (l && l.pr && l.pr[k]) || 0; }
+// strongest property over all layers (what the shell as a whole does when it breaks / glows)
+function waxPr(k) { let m = 0; for (const l of G.layers || []) m = Math.max(m, layerPr(l, k)); return m; }
+// the wax that was dipped last decides how fast it sets
+function waxCoolMul() {
+  const l = G.layers && G.layers[G.layers.length - 1]; if (!l || !l.pr) return 1;
+  return Math.max(0.25, (1 + 1.8 * layerPr(l, 'ice')) * (1 - 0.6 * layerPr(l, 'lava')) * (1 - 0.35 * layerPr(l, 'soft')));
+}
+// ice and soft wax break with their own crunch, whatever set is chosen in the shop
+function waxSoundSync() {
+  if (typeof Snd === 'undefined' || !Snd.setSet) return;
+  const ice = waxPr('ice'), soft = waxPr('soft');
+  Snd.setSet(ice > 0.4 && ice >= soft ? 'ice' : (soft > 0.4 ? 'soft' : (typeof QS !== 'undefined' ? QS.snd : 'classic')));
+}
 /* ---------- Saving progress ---------- */
 // Everything that took effort to collect: cubes on the shelf, both buckets, the mix with its add-ins,
 // counters and finds. The object on the string is not saved: its wax goes back to the buckets.
@@ -7589,7 +7651,7 @@ function saveSnapshot() {
     v: 1, t: Date.now(), shelf, lv, src: G.src,
     Q: Q.save(),
     G: { kind: G.kind, colorIdx: G.colorIdx, typeIdx: G.typeIdx, broken: G.broken, foundTotal: G.foundTotal, foundBy: G.foundBy },
-    MIX: { pd: b64enc(px), avg: MIX.avg, gl: MIX.gl, sp: MIX.sp, ex: MIX.ex, charms: MIX.charms, pearl: MIX.pearl, ptint: MIX.ptint, oil: MIX.oil, gloss: MIX.gloss, neon: MIX.neon || 0, fz: MIX.fz }
+    MIX: { pd: b64enc(px), avg: MIX.avg, gl: MIX.gl, sp: MIX.sp, ex: MIX.ex, charms: MIX.charms, pearl: MIX.pearl, ptint: MIX.ptint, oil: MIX.oil, gloss: MIX.gloss, neon: MIX.neon || 0, clear: MIX.clear || 0, pr: MIX.pr || specPr0(), fz: MIX.fz }
   };
 }
 function applySnapshot(d) {
@@ -7597,7 +7659,7 @@ function applySnapshot(d) {
   STCOL.forEach((c, i) => { ST.nbin[i] = d.shelf && d.shelf[c] != null ? d.shelf[c] : ST.nbin[i]; });
   const m = d.MIX, px = b64dec(m.pd);
   if (px.length === NN * 3) for (let i = 0; i < px.length; i++) MIX.pd[i] = px[i];
-  MIX.avg = m.avg; MIX.gl = m.gl || {}; MIX.sp = m.sp || 0; MIX.charms = m.charms || {}; MIX.pearl = m.pearl || 0; MIX.ptint = m.ptint || [255, 255, 255]; MIX.oil = m.oil || 0; MIX.gloss = m.gloss || 0; MIX.neon = m.neon || 0; MIX.fz = m.fz == null ? 0.6 : m.fz;
+  MIX.avg = m.avg; MIX.gl = m.gl || {}; MIX.sp = m.sp || 0; MIX.charms = m.charms || {}; MIX.pearl = m.pearl || 0; MIX.ptint = m.ptint || [255, 255, 255]; MIX.oil = m.oil || 0; MIX.gloss = m.gloss || 0; MIX.neon = m.neon || 0; MIX.clear = m.clear || 0; MIX.pr = Object.assign(specPr0(), m.pr || {}); MIX.fz = m.fz == null ? 0.6 : m.fz;
   MIX.ex = Object.assign({ sugar: 0, confetti: 0, foil: 0, flake: 0, foam: 0, eyes: 0 }, m.ex);
   mixPatRefresh();
   STORE.pot = d.lv.pot; STORE.mix = d.lv.mix;
@@ -7679,7 +7741,7 @@ function drainStep(dt) {
   if (lvl(DRAIN.src) <= 0.002) {
     setLvl(DRAIN.src, 0); DRAIN.on = false; Q.stat('drained'); Snd.pour(false); if (holeOn()) Snd.hole(0); else { Snd.blub(0); Snd.squish(0.5); }
     if (DRAIN.src === 'mix') {
-      MIX.charms = {}; MIX.pearl = 0; MIX.gloss = 0; MIX.neon = 0; MIX.oil = 0; MIX.sp = 0; MIX.gl = {}; MIX.ex = { sugar: 0, confetti: 0, foil: 0, flake: 0, foam: 0, eyes: 0 };
+      MIX.charms = {}; MIX.pearl = 0; MIX.gloss = 0; MIX.neon = 0; MIX.clear = 0; MIX.pr = specPr0(); MIX.oil = 0; MIX.sp = 0; MIX.gl = {}; MIX.ex = { sugar: 0, confetti: 0, foil: 0, flake: 0, foam: 0, eyes: 0 };
       for (let k = 0; k < NN * 3; k++) MIX.pd[k] = [226, 208, 236][k % 3];
       MIX.avg = [226, 208, 236]; mixPatRefresh();
     }
@@ -7850,7 +7912,7 @@ function update(dt) {
 
   // cooling
   if (G.layers.length && !G.inWax && G.cool < 1) {
-    G.cool = Math.min(1, G.cool + dt / 3.2);
+    G.cool = Math.min(1, G.cool + dt / 3.2 * waxCoolMul());
     if (G.cool >= 1 && !G.hardened) {
       G.hardened = true; Snd.harden(pan(G.ox));
       // cut the shell into chunks now, so the first touch does not stall the frame
@@ -8383,7 +8445,7 @@ function drawWaxFront() {
   g.fillStyle = waxFill(); g.fillRect(potCx - potRx, waxY, potRx * 2, potRy);
   if (G.src === 'mix' && MIX.pat) {
     const pt = waxY - (potRy - 4), pb = rimY + potRy - 4;
-    g.globalAlpha = 0.85; g.drawImage(MIX.pat, potCx - waxRx(), pt, waxRx() * 2, Math.max(3, pb - pt)); g.globalAlpha = 1;
+    g.globalAlpha = 0.85 * (1 - 0.4 * (MIX.clear || 0)); g.drawImage(MIX.pat, potCx - waxRx(), pt, waxRx() * 2, Math.max(3, pb - pt)); g.globalAlpha = 1;
     mixFx(potCx - waxRx(), pt, waxRx() * 2, Math.max(3, pb - pt));
   }
   g.restore();
@@ -8738,7 +8800,11 @@ function drawToyGlow() {
   if (tglCv.width !== cv.width || tglCv.height !== cv.height) { tglCv.width = cv.width; tglCv.height = cv.height; }
   const q = tglG; q.setTransform(1, 0, 0, 1, 0, 0); q.clearRect(0, 0, tglCv.width, tglCv.height); q.setTransform(dpr, 0, 0, dpr, 0, 0);
   q.save(); q.translate(G.ox, G.oy); q.rotate(G.swing + (G.inWax ? 0 : Math.sin(time * 1.3) * 0.012));
-  q.globalAlpha = clamp(DARKK * (G.layers.length ? 0.45 : 1), 0, 1); q.drawImage(G.glowSpr, -S / 2, 0, S, S); q.restore();
+  // wax that is still on the object mutes its glow; where a piece has been chipped off the glow comes back to full
+  const pz = G.layers.length && G.pieces && G.pieces.comp;
+  q.globalAlpha = clamp(DARKK * (G.layers.length && !pz ? 0.45 : 1), 0, 1); q.drawImage(G.glowSpr, -S / 2, 0, S, S);
+  if (pz) { const C2 = S + MARGIN * 2; q.globalCompositeOperation = 'destination-out'; q.globalAlpha = 0.55; q.drawImage(pz, -C2 / 2, -MARGIN); }
+  q.restore();
   q.save(); q.globalCompositeOperation = 'destination-out'; q.fillStyle = '#000';
   const rx = potRx, bx = potRx * 0.92, bot = potBottom;
   q.beginPath(); q.moveTo(potCx - rx, rimY); q.ellipse(potCx, rimY, rx, potRy, 0, Math.PI, 0, true);
