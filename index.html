@@ -1216,6 +1216,28 @@ const Snd = (() => {
       tone({ f0: 1880, f1: 2500, dur: 0.4, gain: 0.03, pan, attack: 0.03, delay: 0.08 });
       burst({ type: 'highpass', freq: 7000, q: 0.5, dur: 0.18, gain: 0.025, pan, delay: 0.02 });
     },
+    // special colours in the workshop: each has its own small sound
+    specIce(pan) { // glassy tinkle
+      const f = rnd(2400, 3800);
+      tone({ f0: f, f1: f * 0.99, dur: 0.28, gain: 0.035, pan, attack: 0.002 });
+      tone({ f0: f * 1.5, f1: f * 1.49, dur: 0.22, gain: 0.02, pan, attack: 0.002, delay: 0.05 });
+      burst({ type: 'highpass', freq: 7500, q: 0.6, dur: 0.02, gain: 0.025, pan });
+    },
+    specLava(pan) { // thick bubble blorp with a crackle
+      const f = rnd(95, 150);
+      tone({ f0: f, f1: f * 2.2, dur: 0.14, gain: 0.1, pan });
+      burst({ buf: brown, type: 'lowpass', freq: 420, dur: 0.1, gain: 0.12, pan, delay: 0.02 });
+      for (let i = 0; i < 3; i++) burst({ type: 'bandpass', freq: rnd(1800, 4200), q: 1.4, dur: 0.01, gain: 0.04, pan, delay: 0.06 + i * rnd(0.02, 0.05) });
+    },
+    specSoft(pan) { // airy marshmallow puff
+      tone({ f0: 420, f1: 300, dur: 0.22, gain: 0.04, pan, attack: 0.05 });
+      burst({ buf: brown, type: 'bandpass', freq: 800, q: 0.7, dur: 0.22, gain: 0.06, pan, attack: 0.04 });
+    },
+    specGlow(pan) { // rising shimmer
+      const f = rnd(1300, 1700);
+      tone({ f0: f, f1: f * 1.5, dur: 0.5, gain: 0.03, pan, attack: 0.08 });
+      tone({ f0: f * 1.5, f1: f * 2.2, dur: 0.45, gain: 0.018, pan, attack: 0.08, delay: 0.07 });
+    },
     chime() {
       tone({ f0: 880, f1: 870, dur: 1.2, gain: 0.06, attack: 0.01 });
       tone({ f0: 1320, f1: 1310, dur: 1.0, gain: 0.04, attack: 0.01, delay: 0.09 });
@@ -1310,6 +1332,7 @@ const SND_GROUPS = [
   { id: 'ice', n: 'Мороз', fn: ['ice'], test: () => Snd.ice(0) },
   { id: 'hiss', n: 'Фен', fn: ['hiss'], test: () => Snd.hiss(0) },
   { id: 'scent', n: 'Аромат', fn: ['scent'], test: () => Snd.scent(0) },
+  { id: 'spec', n: 'Особые цвета в мастерской (лёд, лава, мягкий, светлячок)', fn: ['specIce', 'specLava', 'specSoft', 'specGlow'], test: () => { Snd.specIce(0); setTimeout(() => Snd.specLava(0), 450); setTimeout(() => Snd.specSoft(0), 900); setTimeout(() => Snd.specGlow(0), 1350); } },
   { id: 'chime', n: 'Звоночки (заказ, награда)', fn: ['chime'], test: () => Snd.chime() }
 ];
 SND_GROUPS.forEach(gr => gr.fn.forEach(n => {
@@ -5092,6 +5115,7 @@ function toolStep(dt) {
   for (let i = toolFx.length - 1; i >= 0; i--) { toolFx[i].t += dt; if (toolFx[i].t > 0.5) toolFx.splice(i, 1); }
   for (let i = iceBits.length - 1; i >= 0; i--) { const b = iceBits[i]; b.life += dt / 0.7; b.y += b.vy * dt; if (b.life >= 1) iceBits.splice(i, 1); }
   frostStep(dt);
+  specStep(dt);
 }
 
 // frozen wax breathes out cold: pale vapour sinks off it and little crystals glint around it
@@ -5657,6 +5681,7 @@ function stUpdate(dt) {
       const dAmt = KD * dm / ((2 / NG) * (2 / NG));
       stDeposit(c.x, c.y, dAmt, col, Math.max(0.09, c.s * 1.7));
       ST.dep += dAmt; { const sp = STSPEC[c.c]; if (sp) ST.pp[sp.id] += dAmt; }
+      if (!c.melting) { const spc = STSPEC[c.c]; if (spc) { const fn = Snd['spec' + spc.id[0].toUpperCase() + spc.id.slice(1)]; if (fn) fn(stPan(stFrom(c.x, c.y)[0])); } }
       c.s = s2; c.melting = true;
       if (c.s < 0.012) { ST.cubes.splice(i, 1); if (!c.crumb) Q.stat('melted'); }
     }
@@ -5816,15 +5841,17 @@ function stUpdate(dt) {
   }
   for (let i = ST.bubs.length - 1; i >= 0; i--) { ST.bubs[i].life += dt / 0.4; if (ST.bubs[i].life >= 1) ST.bubs.splice(i, 1); }
 
+  stSpecStep(dt);
   // pouring into the bucket
   if (ST.pouring) stPourStep(dt);
 
   // hint
-  ST.hintT -= dt;
+  ST.hintT -= dt; if (ST.specHintT > 0) ST.specHintT -= dt;
   if (ST.hintT <= 0) {
     ST.hintT = 0.3;
     let h;
-    if (ST.pouring) h = ST.snap && ST.snap.trash ? 'Сливаем в мусорку…' : 'Переливаем в ведро…';
+    if (ST.specHintT > 0) h = ST.specHint;
+    else if (ST.pouring) h = ST.snap && ST.snap.trash ? 'Сливаем в мусорку…' : 'Переливаем в ведро…';
     else if (!ST.cubes.length && ST.V < 60) h = 'Кубик с полки — на тарелку';
     else if (ST.cubes.length && !ST.flame) h = 'Включи огонь 🔥';
     else if (ST.cubes.length && ST.flame) h = 'Плавится… можно раскрошить кубик';
@@ -6257,6 +6284,7 @@ function stDraw() {
   // plate lip in front
   sg.strokeStyle = '#c9bce0'; sg.lineWidth = 2; stEll(ST.cx, ST.cy, ST.ix + 3, ST.iy + 2); sg.stroke();
 
+  stSpecDraw();
   drawDrainStudio();
   stDark();
   // pouring stream
@@ -6300,6 +6328,7 @@ function stDark() {
       sg.drawImage(gridCv, ST.cx - ST.ix, ST.cy - ST.iy, ST.ix * 2, ST.iy * 2); sg.restore();
     }
   }
+  stSpecDark();
   const b = ST.bk, lv = lvl('mix');
   if (MIX.neon > 0.04 && lv > 0.01) {
     const topY = b.top + b.ry, sy = topY + (1 - lv) * b.ry * 1.2, a = DARKK * MIX.neon * pulse, col = neonize(MIX.avg[0], MIX.avg[1], MIX.avg[2], 1);
@@ -6417,7 +6446,7 @@ sv.addEventListener('pointerdown', (e) => {
     const b = ST.bins[i];
     if (p.x > b.x && p.x < b.x + b.w && p.y > b.y && p.y < b.y + b.h && binLocked(i)) { ST.down = null; shopDeny(colsPack(i)); return; }
     if (p.x > b.x && p.x < b.x + b.w && p.y > b.y && p.y < b.y + b.h && ST.nbin[i] > 0) {
-      ST.nbin[i]--; ST.drag = { cube: stMakeCube(i), from: 'bin', t: 0 }; ST.down.mode = 'cube'; Snd.clink(stPan(p.x)); { const spc = STSPEC[STCOL[i]]; if (spc) showInfo(spc.e + ' ' + spc.n + ': ' + spc.d, 3200); } return;
+      ST.nbin[i]--; ST.drag = { cube: stMakeCube(i), from: 'bin', t: 0 }; ST.down.mode = 'cube'; Snd.clink(stPan(p.x)); { const spc = STSPEC[STCOL[i]]; if (spc) { ST.specHint = spc.e + ' ' + spc.n + ': ' + spc.s; ST.specHintT = 4; ST.hintT = 0; } } return;
     }
   }
   const c = stCubeAt(p.x, p.y);
@@ -7609,10 +7638,10 @@ function sqBake() {
    The property is a smooth share (0..1) = how much of the liquid came from that special cube.
    Mixed with plain colours it is simply diluted, two special colours both work, each weaker. */
 var SPEC = [
-  { id: 'ice', hex: '#bdefff', e: '❄️', n: 'Ледяной', d: 'Застывает быстрее, искрится, ломается на много звонких осколков' },
-  { id: 'lava', hex: '#ff5a1f', e: '🌋', n: 'Лавовый', d: 'Долго остаётся мягким, а застыв светится в темноте' },
-  { id: 'soft', hex: '#f6d9ff', e: '☁️', n: 'Мягкий', d: 'Застывает дольше, ломается на крупные куски с мягким хрустом' },
-  { id: 'glow', hex: '#d9ff7a', e: '✨', n: 'Светлячок', d: 'Слабо светится в темноте сам по себе' }
+  { id: 'ice', hex: '#bdefff', e: '❄️', n: 'Ледяной', d: 'Застывает быстрее, искрится, ломается на много звонких осколков', s: 'быстро застывает, звонкие осколки' },
+  { id: 'lava', hex: '#ff5a1f', e: '🌋', n: 'Лавовый', d: 'Долго остаётся мягким, а застыв светится в темноте', s: 'долго мягкий, светится в темноте' },
+  { id: 'soft', hex: '#f6d9ff', e: '☁️', n: 'Мягкий', d: 'Застывает дольше, ломается на крупные куски с мягким хрустом', s: 'крупные куски, мягкий хруст' },
+  { id: 'glow', hex: '#d9ff7a', e: '✨', n: 'Светлячок', d: 'Слабо светится в темноте сам по себе', s: 'светится в темноте' }
 ];
 var STSPEC = {}; SPEC.forEach(s => { STSPEC[s.hex] = s; });
 function specPr0() { return { ice: 0, lava: 0, soft: 0, glow: 0 }; }
@@ -7629,6 +7658,163 @@ function waxSoundSync() {
   if (typeof Snd === 'undefined' || !Snd.setSet) return;
   const ice = waxPr('ice'), soft = waxPr('soft');
   Snd.setSet(ice > 0.4 && ice >= soft ? 'ice' : (soft > 0.4 ? 'soft' : (typeof QS !== 'undefined' ? QS.snd : 'classic')));
+}
+
+/* ---------- effects around special wax: more of the colour = more of the effect ---------- */
+var specFx = [];
+function specPts(sh) { // opaque spots of the shell (canvas coords), sampled once per shell
+  if (sh.spts) return sh.spts;
+  const C = sh.width, st = 6, d = sh.getContext('2d').getImageData(0, 0, C, C).data, out = [];
+  for (let y = 0; y < C; y += st) for (let x = 0; x < C; x += st) if (d[(y * C + x) * 4 + 3] > 120) out.push(x + 3, y + 3);
+  return (sh.spts = out);
+}
+function specPoint() {
+  const sh = G.shell; if (!sh) return null;
+  const pts = specPts(sh), n = pts.length / 2; if (!n) return null;
+  const P = G.pieces;
+  for (let t = 0; t < 8; t++) {
+    const i = (Math.random() * n) | 0, x = pts[i * 2], y = pts[i * 2 + 1];
+    if (P && P.idx) { const id = P.idx[(y | 0) * P.C + (x | 0)]; if (id && P.list[id - 1] && !P.list[id - 1].alive) continue; }
+    return objToWorld(x, y);
+  }
+  return null;
+}
+// pushes a point away from a centre (so sparks and fireflies start outside the thing they come from)
+function specOut(w, d, cx, cy) { const dx = w.x - cx, dy = w.y - cy, l = Math.hypot(dx, dy) || 1; return { x: w.x + dx / l * d, y: w.y + dy / l * d * 0.8 }; }
+// one new particle of kind k at point w (centre cx,cy of the source); rate = per second at full share
+var SPEC_EM = {
+  ice: { rate: 11, mk(w, c, r) { return Math.random() < 0.65 ? { t: 'mist', x: w.x + r(-6, 6), y: w.y + r(-4, 8), vx: r(-7, 7), vy: r(10, 26), r: r(9, 16), lt: r(1.3, 2.1) } : { t: 'flake', x: w.x + r(-14, 14), y: w.y + r(-14, 14), vx: r(-5, 5), vy: r(-4, 14), r: r(2.2, 4), lt: r(0.8, 1.5) }; } },
+  lava: { rate: 14, mk(w0, c, r) { const w = specOut(w0, r(2, 12), c.x, c.y); return Math.random() < 0.6 ? { t: 'ember', x: w.x + r(-4, 4), y: w.y + r(-4, 2), vx: r(-10, 10), vy: r(-48, -22), r: r(2.2, 3.6), lt: r(1.0, 2.0) } : { t: 'haze', x: w.x + r(-8, 8), y: w.y - 4, vx: r(-4, 4), vy: r(-20, -10), r: r(12, 22), lt: r(1.2, 1.9) }; } },
+  soft: { rate: 8, mk(w0, c, r) { const w = specOut(w0, r(4, 14), c.x, c.y); return Math.random() < 0.7 ? { t: 'cloud', x: w.x + r(-6, 6), y: w.y + r(-6, 2), vx: r(-5, 5), vy: r(-17, -8), r: r(9, 16), lt: r(1.6, 2.6) } : { t: 'heart', x: w.x + r(-6, 6), y: w.y - 4, vx: r(-6, 6), vy: r(-26, -14), r: r(3, 4.6), lt: r(1.2, 1.9) }; } },
+  glow: { rate: 6, mk(w0, c, r) { const w = specOut(w0, r(8, 30), c.x, c.y); return { t: 'fly', x: w.x, y: w.y, vx: r(-7, 7), vy: r(-9, 5), r: r(2.6, 4), lt: r(2.6, 4.2) }; } }
+};
+function specEmit(list, shares, dt, ptFn, centre, cap) {
+  const r = (a, b) => a + Math.random() * (b - a);
+  list.acc = list.acc || {};
+  for (const k in SPEC_EM) {
+    const f = shares[k]; if (!(f >= 0.03)) continue;
+    list.acc[k] = (list.acc[k] || 0) + dt * SPEC_EM[k].rate * f;
+    while (list.acc[k] >= 1) {
+      list.acc[k] -= 1; if (list.length > (cap || 70)) break;
+      const w = ptFn(); if (w) list.push(Object.assign({ k, life: 0, ph: Math.random() * 6 }, SPEC_EM[k].mk(w, centre, r)));
+    }
+  }
+}
+function specAdvance(list, dt, on) {
+  for (let i = list.length - 1; i >= 0; i--) {
+    const f = list[i]; f.life += dt / f.lt;
+    if (f.t === 'fly') { f.vx += Math.cos(time * 2.1 + f.ph) * 26 * dt; f.vy += Math.sin(time * 1.7 + f.ph * 2) * 22 * dt; f.vx *= 0.985; f.vy *= 0.985; }
+    f.x += f.vx * dt; f.y += f.vy * dt;
+    if (f.t === 'mist') f.vy += 6 * dt;
+    if (f.life >= 1 || (!on && f.life > 0.5)) list.splice(i, 1);
+  }
+}
+function specStep(dt) {
+  const on = G.layers.length && G.shell && !G.inWax && (G.cool >= 0.3 || G.pieces);
+  if (on) specEmit(specFx, { ice: waxPr('ice'), lava: waxPr('lava'), soft: waxPr('soft'), glow: waxPr('glow') }, dt, specPoint, { x: G.ox, y: G.oy + G.bot * 0.5 });
+  specAdvance(specFx, dt, on);
+}
+function drawSpecFx() { drawSpecParts(g, specFx); }
+function drawSpecParts(c, list) {
+  if (!list.length) return;
+  c.save();
+  for (const f of list) {
+    const a = Math.sin(Math.min(1, f.life) * Math.PI);
+    if (f.t === 'mist' || f.t === 'haze' || f.t === 'cloud') {
+      const r = f.r * (0.8 + f.life * 0.7), gr = c.createRadialGradient(f.x, f.y, 0, f.x, f.y, r);
+      const col = f.t === 'mist' ? '205,238,255' : f.t === 'haze' ? '255,150,70' : '250,232,255', al = f.t === 'cloud' ? 0.6 : f.t === 'haze' ? 0.3 : 0.4;
+      c.globalCompositeOperation = f.t === 'haze' ? 'lighter' : 'source-over';
+      gr.addColorStop(0, 'rgba(' + col + ',' + al * a + ')'); gr.addColorStop(1, 'rgba(' + col + ',0)');
+      c.fillStyle = gr; c.fillRect(f.x - r, f.y - r, r * 2, r * 2);
+    } else if (f.t === 'flake') {
+      const s = f.r * (0.6 + 0.4 * Math.abs(Math.sin(time * 6 + f.ph)));
+      c.globalCompositeOperation = 'source-over'; c.globalAlpha = a; c.fillStyle = '#eaf8ff';
+      c.beginPath(); c.moveTo(f.x, f.y - s * 1.6); c.lineTo(f.x + s * 0.25, f.y - s * 0.25); c.lineTo(f.x + s * 1.6, f.y); c.lineTo(f.x + s * 0.25, f.y + s * 0.25);
+      c.lineTo(f.x, f.y + s * 1.6); c.lineTo(f.x - s * 0.25, f.y + s * 0.25); c.lineTo(f.x - s * 1.6, f.y); c.lineTo(f.x - s * 0.25, f.y - s * 0.25); c.closePath(); c.fill(); c.globalAlpha = 1;
+    } else if (f.t === 'ember') {
+      c.globalCompositeOperation = 'lighter';
+      const fl = 0.6 + 0.4 * Math.sin(time * 18 + f.ph), r = f.r * (1.2 - f.life * 0.6);
+      const gr = c.createRadialGradient(f.x, f.y, 0, f.x, f.y, r * 3.2); gr.addColorStop(0, 'rgba(255,225,120,' + a * fl + ')'); gr.addColorStop(0.4, 'rgba(255,120,30,' + 0.7 * a * fl + ')'); gr.addColorStop(1, 'rgba(255,60,0,0)');
+      c.fillStyle = gr; c.fillRect(f.x - r * 3.2, f.y - r * 3.2, r * 6.4, r * 6.4);
+    } else if (f.t === 'heart') {
+      c.globalCompositeOperation = 'source-over'; c.globalAlpha = a * 0.9; c.fillStyle = '#ffb8d8'; const s = f.r;
+      c.beginPath(); c.moveTo(f.x, f.y + s * 0.9); c.bezierCurveTo(f.x - s * 1.7, f.y - s * 0.2, f.x - s * 0.8, f.y - s * 1.5, f.x, f.y - s * 0.5); c.bezierCurveTo(f.x + s * 0.8, f.y - s * 1.5, f.x + s * 1.7, f.y - s * 0.2, f.x, f.y + s * 0.9); c.fill(); c.globalAlpha = 1;
+    } else if (f.t === 'fly') {
+      c.globalCompositeOperation = 'lighter';
+      const tw = 0.45 + 0.55 * Math.abs(Math.sin(time * 4.2 + f.ph * 3)), r = f.r * 4.2;
+      const gr = c.createRadialGradient(f.x, f.y, 0, f.x, f.y, r); gr.addColorStop(0, 'rgba(235,255,150,' + 0.95 * a * tw + ')'); gr.addColorStop(0.3, 'rgba(190,255,90,' + 0.45 * a * tw + ')'); gr.addColorStop(1, 'rgba(170,255,60,0)');
+      c.fillStyle = gr; c.fillRect(f.x - r, f.y - r, r * 2, r * 2);
+    }
+  }
+  c.restore();
+}
+
+/* ---------- in the workshop: the special liquid on the plate shows its nature too ---------- */
+var sfxCv = null, sfxG = null;
+function stSpecDraw() { // called from stDraw after the liquid; f = share of each property in what is on the plate
+  const f = stSpecShare(), V = ST.V; ST.sfxF = null;
+  if (V < 40) { if (ST.sfx && ST.sfx.length) ST.sfx.length = 0; return; }
+  const any = f.ice + f.lava + f.soft + f.glow;
+  if (any < 0.02) return;
+  const w = Math.ceil(ST.ix * 2), h = Math.ceil(ST.iy * 2);
+  if (!sfxCv) { sfxCv = document.createElement('canvas'); sfxG = sfxCv.getContext('2d'); }
+  if (sfxCv.width !== w || sfxCv.height !== h) { sfxCv.width = w; sfxCv.height = h; }
+  const q = sfxG, t = ST.time, d = Math.max(w, h);
+  q.setTransform(1, 0, 0, 1, 0, 0); q.clearRect(0, 0, w, h); q.globalCompositeOperation = 'source-over';
+  if (f.soft > 0.02) { // matte pastel: a milky bloom that drifts slowly
+    q.fillStyle = 'rgba(255,240,255,' + 0.16 * f.soft + ')'; q.fillRect(0, 0, w, h);
+    for (let i = 0; i < 4; i++) { const x = w * (0.5 + 0.38 * Math.sin(t * 0.3 + i * 1.9)), y = h * (0.5 + 0.34 * Math.cos(t * 0.25 + i * 2.3)), r = d * 0.3, gr = q.createRadialGradient(x, y, 0, x, y, r); gr.addColorStop(0, 'rgba(255,245,255,' + 0.32 * f.soft + ')'); gr.addColorStop(1, 'rgba(255,245,255,0)'); q.fillStyle = gr; q.fillRect(x - r, y - r, r * 2, r * 2); }
+  }
+  q.globalCompositeOperation = 'lighter';
+  if (f.lava > 0.02) { // glowing hot veins pulsing under the surface
+    for (let i = 0; i < 6; i++) { const x = w * (0.5 + 0.42 * Math.sin(t * 0.5 + i * 2.1)), y = h * (0.5 + 0.4 * Math.sin(t * 0.43 + i * 1.3 + 1)), r = d * (0.16 + 0.06 * Math.sin(t * 2 + i)), pu = 0.55 + 0.45 * Math.sin(t * 2.4 + i * 1.7), gr = q.createRadialGradient(x, y, 0, x, y, r); gr.addColorStop(0, 'rgba(255,150,40,' + 0.75 * f.lava * pu + ')'); gr.addColorStop(0.5, 'rgba(255,80,20,' + 0.4 * f.lava * pu + ')'); gr.addColorStop(1, 'rgba(255,60,0,0)'); q.fillStyle = gr; q.fillRect(x - r, y - r, r * 2, r * 2); }
+  }
+  if (f.glow > 0.02) { // luminous green-yellow clouds and twinkling dots inside the liquid
+    for (let i = 0; i < 5; i++) { const x = w * (0.5 + 0.4 * Math.sin(t * 0.35 + i * 2.5)), y = h * (0.5 + 0.38 * Math.cos(t * 0.3 + i * 1.7)), r = d * 0.2, gr = q.createRadialGradient(x, y, 0, x, y, r); gr.addColorStop(0, 'rgba(220,255,120,' + 0.5 * f.glow + ')'); gr.addColorStop(1, 'rgba(190,255,90,0)'); q.fillStyle = gr; q.fillRect(x - r, y - r, r * 2, r * 2); }
+    for (let i = 0; i < 14; i++) { const x = w * ((i * 0.6180339 + 0.1) % 1), y = h * ((i * 0.4142 + 0.3) % 1), tw = Math.max(0, Math.sin(t * 2.2 + i * 3.1)); q.fillStyle = 'rgba(240,255,170,' + 0.9 * tw * f.glow + ')'; q.beginPath(); q.arc(x, y, 1.6, 0, 7); q.fill(); }
+  }
+  if (f.ice > 0.02) { // frosty sheen sweeping across and tiny crystal glints
+    const sx = ((t * 0.18) % 1.6 - 0.3) * w, gr = q.createLinearGradient(sx - w * 0.18, 0, sx + w * 0.18, h * 0.5); gr.addColorStop(0, 'rgba(210,240,255,0)'); gr.addColorStop(0.5, 'rgba(220,245,255,' + 0.5 * f.ice + ')'); gr.addColorStop(1, 'rgba(210,240,255,0)'); q.fillStyle = gr; q.fillRect(0, 0, w, h);
+    for (let i = 0; i < 16; i++) { const x = w * ((i * 0.7548 + 0.2) % 1), y = h * ((i * 0.5698 + 0.1) % 1), tw = Math.pow(Math.max(0, Math.sin(t * 2.6 + i * 2.7)), 6), s = 2 + 3.5 * tw; q.fillStyle = 'rgba(240,252,255,' + tw * f.ice + ')'; q.fillRect(x - s, y - 0.6, s * 2, 1.2); q.fillRect(x - 0.6, y - s, 1.2, s * 2); }
+  }
+  // keep it only where there is liquid
+  q.globalCompositeOperation = 'destination-in'; q.drawImage(gridCv, 0, 0, w, h);
+  sg.save(); stEll(ST.cx, ST.cy, ST.ix, ST.iy); sg.clip(); sg.drawImage(sfxCv, ST.cx - ST.ix, ST.cy - ST.iy); sg.restore();
+  // a glow halo around the plate for the glowing kinds
+  if (f.glow > 0.05 || f.lava > 0.05) {
+    sg.save(); sg.globalCompositeOperation = 'lighter';
+    const a = (0.12 + 0.35 * DARKK) * (0.85 + 0.15 * Math.sin(t * 2.3));
+    const col = f.lava > f.glow ? '255,110,40' : '200,255,100', k = Math.max(f.lava, f.glow), gr = sg.createRadialGradient(ST.cx, ST.cy, ST.ix * 0.4, ST.cx, ST.cy, ST.ix * 1.5);
+    gr.addColorStop(0, 'rgba(' + col + ',' + a * k + ')'); gr.addColorStop(1, 'rgba(' + col + ',0)');
+    sg.fillStyle = gr; sg.fillRect(ST.cx - ST.ix * 2, ST.cy - ST.ix * 2, ST.ix * 4, ST.ix * 4); sg.restore();
+  }
+  // particles over the plate
+  specDrawStudio(); ST.sfxF = f;
+}
+// lights off in the workshop: the special liquid keeps shining (called inside stDark's additive pass)
+function stSpecDark() {
+  const f = ST.sfxF; if (!f || !sfxCv) return;
+  sg.save(); stEll(ST.cx, ST.cy, ST.ix, ST.iy); sg.clip(); sg.globalAlpha = DARKK * (0.35 + 0.65 * Math.max(f.lava, f.glow, f.ice * 0.6, f.soft * 0.3)); sg.drawImage(sfxCv, ST.cx - ST.ix, ST.cy - ST.iy); sg.restore();
+  const k = Math.max(f.lava, f.glow);
+  if (k > 0.05) { const col = f.lava > f.glow ? '255,120,40' : '200,255,100', a = DARKK * 0.3 * k * (0.85 + 0.15 * Math.sin(ST.time * 2.3)), gr = sg.createRadialGradient(ST.cx, ST.cy, ST.ix * 0.3, ST.cx, ST.cy, ST.ix * 1.6); gr.addColorStop(0, 'rgba(' + col + ',' + a + ')'); gr.addColorStop(1, 'rgba(' + col + ',0)'); sg.fillStyle = gr; sg.fillRect(ST.cx - ST.ix * 2, ST.cy - ST.ix * 2, ST.ix * 4, ST.ix * 4); }
+  drawSpecParts(sg, ST.sfx || []);
+}
+function specDrawStudio() { drawSpecParts(sg, ST.sfx || (ST.sfx = [])); }
+function stSpecStep(dt) { // emission, particle motion and the little sounds; share decides how much happens
+  const f = stSpecShare(), list = ST.sfx || (ST.sfx = []), on = ST.V > 40;
+  if (on) {
+    specEmit(list, f, dt, () => {
+      for (let t = 0; t < 8; t++) { const u = Math.random() * 6.283, rr = Math.sqrt(Math.random()) * 0.85, x = Math.cos(u) * rr, y = Math.sin(u) * rr, i = ((x + 1) / 2 * NG) | 0, j = ((y + 1) / 2 * NG) | 0; if (FA[j * NG + i] > 0.3) return { x: ST.cx + x * ST.ix, y: ST.cy + y * ST.iy }; }
+      return null;
+    }, { x: ST.cx, y: ST.cy + ST.iy * 0.3 }, 60);
+    ST.sfxT = ST.sfxT || {};
+    for (const k of ['ice', 'lava', 'soft', 'glow']) {
+      if (!(f[k] > 0.05)) continue;
+      ST.sfxT[k] = (ST.sfxT[k] || 0) - dt;
+      if (ST.sfxT[k] <= 0) { ST.sfxT[k] = (0.7 + Math.random() * 1.3) / (0.35 + f[k]); const pn = stPan(ST.cx + (Math.random() - 0.5) * ST.ix * 1.4); const fn = Snd['spec' + k[0].toUpperCase() + k.slice(1)]; if (fn) fn(pn); }
+    }
+  }
+  specAdvance(list, dt, on);
 }
 /* ---------- Saving progress ---------- */
 // Everything that took effort to collect: cubes on the shelf, both buckets, the mix with its add-ins,
@@ -8844,6 +9030,7 @@ function draw() {
   drawObject();
   drawToolFx();
   drawFrostFx();
+  drawSpecFx();
   drawDrips();
   drawMeltFx();
   drawFlying();
