@@ -6092,6 +6092,7 @@ function stDrawFlame() {
 
 function stDraw() {
   const W = ST.W, H = ST.H;
+  sg.setTransform(ST.dpr, 0, 0, ST.dpr, 0, 0); // the phone can reset a canvas while the app sleeps; the scale must never depend on remembered state
   sg.clearRect(0, 0, W, H);
   // room
   const bg = sg.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, '#2a2036'); bg.addColorStop(1, '#1d1627');
@@ -7020,7 +7021,9 @@ const PLATE_SKINS = [
   { id: 'cosmos', n: 'Космическая тарелка', e: '🌌', p: 120 },
   { id: 'marble', n: 'Мраморная тарелка', e: '🪨', p: 100 },
   { id: 'ocean', n: 'Морская тарелка', e: '🌊', p: 100 },
-  { id: 'candy', n: 'Леденцовая тарелка', e: '🍭', p: 100 }
+  { id: 'candy', n: 'Леденцовая тарелка', e: '🍭', p: 100 },
+  { id: 'lava', n: 'Лавовая тарелка', e: '🌋', p: 120 },
+  { id: 'sunset', n: 'Закатная тарелка', e: '🌅', p: 100 }
 ];
 const EQ_DEF = { bg: 'night', skin: 'plain', plate: 'plain', snd: 'classic', bfx: 'none' };
 const EQ_PLAIN = { bg: ['Фон «Ночь»', '🖼️'], skin: ['Обычное ведро', '🪣'], plate: ['Обычная тарелка', '🍽️'], snd: ['Классический хруст', '🔊'], bfx: ['Без эффекта', '⚪'] };
@@ -7836,7 +7839,7 @@ function plateImage(id, w, h, d) {
   const c = cv.getContext('2d'); c.scale(d, d);
   const R = plateRng(id.length * 977 + id.charCodeAt(0) * 31), rr = (a, b) => a + R() * (b - a);
   const blob = (x, y, r, rgb, a) => { const gr = c.createRadialGradient(x, y, 0, x, y, r); gr.addColorStop(0, 'rgba(' + rgb + ',' + a + ')'); gr.addColorStop(1, 'rgba(' + rgb + ',0)'); c.fillStyle = gr; c.fillRect(x - r, y - r, r * 2, r * 2); };
-  const wander = (x, y, n, step, col, lw) => { c.strokeStyle = col; c.lineWidth = lw; c.lineJoin = 'round'; c.lineCap = 'round'; c.beginPath(); c.moveTo(x, y); let a = rr(0, 6.28), da = 0; for (let i = 0; i < n; i++) { da = da * 0.8 + rr(-0.28, 0.28); a += da; x += Math.cos(a) * step; y += Math.sin(a) * step * 0.6; c.lineTo(x, y); } c.stroke(); };
+  const wander = (x, y, n, step, col, lw, curl) => { c.strokeStyle = col; c.lineWidth = lw; c.lineJoin = 'round'; c.lineCap = 'round'; c.beginPath(); c.moveTo(x, y); let a = rr(0, 6.28), da = 0; for (let i = 0; i < n; i++) { da = da * 0.8 + rr(-(curl || 0.28), curl || 0.28); a += da; x += Math.cos(a) * step; y += Math.sin(a) * step * 0.6; c.lineTo(x, y); } c.stroke(); };
   if (id === 'cosmos') {
     const bg = c.createLinearGradient(0, 0, w, h); bg.addColorStop(0, '#171a4f'); bg.addColorStop(0.55, '#2a1b6b'); bg.addColorStop(1, '#10123a'); c.fillStyle = bg; c.fillRect(0, 0, w, h);
     c.globalCompositeOperation = 'lighter';
@@ -7856,6 +7859,22 @@ function plateImage(id, w, h, d) {
     c.globalCompositeOperation = 'lighter'; for (let i = 0; i < 6; i++) blob(rr(0, w), rr(0, h), rr(0.2, 0.4) * w, i % 2 ? '70,220,200' : '40,120,255', rr(0.15, 0.3)); c.globalCompositeOperation = 'source-over';
     for (let r = 0; r < 9; r++) { c.strokeStyle = 'rgba(220,255,255,' + rr(0.12, 0.3) + ')'; c.lineWidth = rr(0.8, 2); c.beginPath(); const y0 = (r + 0.5) * h / 9, ph = rr(0, 6), am = rr(2, 6), fr = rr(0.05, 0.1); for (let x = 0; x <= w; x += 3) { const y = y0 + Math.sin(x * fr + ph) * am; x ? c.lineTo(x, y) : c.moveTo(x, y); } c.stroke(); }
     for (let i = 0; i < 20; i++) { c.strokeStyle = 'rgba(235,255,255,0.5)'; c.lineWidth = 0.8; c.beginPath(); c.arc(rr(0, w), rr(0, h), rr(1.5, 4), 0, 7); c.stroke(); }
+  } else if (id === 'lava') {
+    const bg = c.createLinearGradient(0, 0, w, h); bg.addColorStop(0, '#2b1210'); bg.addColorStop(1, '#170a0c'); c.fillStyle = bg; c.fillRect(0, 0, w, h);
+    for (let i = 0; i < 7; i++) blob(rr(0, w), rr(0, h), rr(0.15, 0.3) * w, '90,30,20', rr(0.3, 0.5));
+    c.globalCompositeOperation = 'lighter';
+    for (let i = 0; i < 11; i++) { // one crack = one path, drawn as a wide soft glow and a thin hot core
+      let x = rr(0, w), y = rr(0, h), an = rr(0, 6.28), da = 0; const pts = [[x, y]];
+      for (let k = 0; k < 24; k++) { da = da * 0.85 + rr(-0.12, 0.12); an += da; if (R() < 0.08) an += rr(-1, 1); x += Math.cos(an) * w * 0.05; y += Math.sin(an) * w * 0.03; pts.push([x, y]); }
+      for (const [fl, col, lw] of [['blur(5px)', 'rgba(255,90,20,0.6)', rr(5, 8)], ['blur(0.8px)', 'rgba(255,205,100,0.9)', rr(1, 2)]]) { c.filter = fl; c.strokeStyle = col; c.lineWidth = lw; c.lineJoin = 'round'; c.beginPath(); pts.forEach((p, j) => j ? c.lineTo(p[0], p[1]) : c.moveTo(p[0], p[1])); c.stroke(); }
+    }
+    c.filter = 'none'; c.globalCompositeOperation = 'source-over';
+    for (let i = 0; i < 40; i++) { c.fillStyle = 'rgba(255,' + (140 + R() * 90 | 0) + ',50,' + rr(0.3, 0.9) + ')'; c.beginPath(); c.arc(rr(0, w), rr(0, h), rr(0.5, 1.6), 0, 7); c.fill(); }
+  } else if (id === 'sunset') {
+    const bg = c.createLinearGradient(0, 0, 0, h); bg.addColorStop(0, '#5b2a86'); bg.addColorStop(0.45, '#d9468a'); bg.addColorStop(0.8, '#ff9a5a'); bg.addColorStop(1, '#ffd37a'); c.fillStyle = bg; c.fillRect(0, 0, w, h);
+    c.globalCompositeOperation = 'lighter'; blob(w * 0.5, h * 0.82, w * 0.35, '255,230,140', 0.5); c.globalCompositeOperation = 'source-over';
+    for (let i = 0; i < 9; i++) { const y = rr(0.1, 0.9) * h, x = rr(0, w), ww = rr(0.25, 0.5) * w; c.save(); c.filter = 'blur(4px)'; c.fillStyle = 'rgba(' + (i % 2 ? '255,200,210' : '120,60,150') + ',' + rr(0.18, 0.35) + ')'; c.beginPath(); c.ellipse(x, y, ww, rr(3, 7), 0, 0, 7); c.fill(); c.restore(); }
+    for (let i = 0; i < 14; i++) { c.fillStyle = 'rgba(255,255,255,' + rr(0.3, 0.8) + ')'; c.beginPath(); c.arc(rr(0, w), rr(0, h * 0.4), rr(0.5, 1.2), 0, 7); c.fill(); }
   } else if (id === 'candy') {
     const bg = c.createLinearGradient(0, 0, w, h); bg.addColorStop(0, '#ffb3d1'); bg.addColorStop(1, '#ff9a8b'); c.fillStyle = bg; c.fillRect(0, 0, w, h);
     c.save(); c.translate(w * 0.5, h * 0.5); c.scale(1, h / w);
@@ -7871,6 +7890,9 @@ function stPlateSkin() {
   const w = Math.ceil(ST.ix * 2), h = Math.ceil(ST.iy * 2), d = ST.dpr || 1;
   sg.save(); stEll(ST.cx, ST.cy, ST.ix, ST.iy); sg.clip();
   sg.drawImage(plateImage(id, w, h, d), ST.cx - ST.ix, ST.cy - ST.iy, w, h);
+  if (id === 'lava') { // the cracks breathe
+    sg.globalCompositeOperation = 'lighter'; const pu = 0.5 + 0.5 * Math.sin(ST.time * 1.6); sg.fillStyle = 'rgba(255,90,20,' + (0.05 + 0.1 * pu) + ')'; sg.fillRect(ST.cx - ST.ix, ST.cy - ST.iy, w, h); sg.globalCompositeOperation = 'source-over';
+  }
   if (id === 'cosmos') { // twinkle
     for (let i = 0; i < 10; i++) { const u = (i * 0.618 + 0.07) % 1, v = (i * 0.382 + 0.2) % 1, tw = Math.pow(Math.max(0, Math.sin(ST.time * 1.6 + i * 2.1)), 4); if (tw < 0.05) continue; const x = ST.cx - ST.ix + u * w, y = ST.cy - ST.iy + v * h, s = 2 + 4 * tw; sg.fillStyle = 'rgba(255,255,255,' + tw + ')'; sg.fillRect(x - s, y - 0.6, s * 2, 1.2); sg.fillRect(x - 0.6, y - s, 1.2, s * 2); }
   }
@@ -9083,6 +9105,7 @@ function drawDark() {
 }
 
 function draw() {
+  g.setTransform(dpr, 0, 0, dpr, 0, 0); // same reason as in the workshop: a reset canvas would shrink everything into the corner
   drawBackground();
   drawPotBack();
   drawPourStream();
