@@ -193,6 +193,13 @@
   .ach-bar i { display: block; height: 100%; background: var(--accent); }
   .savebtns button:disabled { opacity: 0.4; }
   .savebtns { display: flex; gap: 6px; }
+  .acc-in { width: 100%; box-sizing: border-box; margin: 6px 0 0; font: inherit; font-size: 15px; color: var(--fg); background: #2a2036; border: 1px solid var(--panel-line); border-radius: 10px; padding: 9px 10px; }
+  .qtabs.sub { position: static; padding: 10px 0 6px; }
+  .top-list { display: flex; flex-direction: column; gap: 4px; }
+  .top-r { display: grid; grid-template-columns: 30px 1fr auto; align-items: center; gap: 6px; padding: 7px 10px; border-radius: 10px; background: #3a2d49; font-size: 14px; }
+  .top-r.me { border: 1px solid var(--accent); background: #4a3a5c; }
+  .top-n { text-align: center; color: var(--fg-dim); } .top-nick { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .top-v { font-weight: 600; }
+  .top-ref { margin-top: 8px; width: 100%; font: inherit; font-size: 13px; color: var(--fg); background: #3a2d49; border: 1px solid var(--panel-line); border-radius: 10px; padding: 8px; }
   .savebtns button { flex: 1; font-family: var(--font-display); font-size: 13px; color: var(--fg); background: #3a2d49; border: 1px solid var(--panel-line); border-radius: 10px; padding: 8px 4px; }
   .vlvl { display: flex; gap: 6px; }
   .vlvl button { flex: 1; font-family: var(--font-display); font-size: 13px; color: var(--fg-dim); background: #3a2d49; border: 1px solid var(--panel-line); border-radius: 10px; padding: 7px 4px; }
@@ -486,7 +493,7 @@
       <div class="savebtns"><button type="button" id="saveFileBtn">💾 Сохранить в файл</button><button type="button" id="loadFileBtn">📂 Загрузить</button></div>
       <input type="file" id="loadFile" accept=".json,application/json" hidden>
       <div class="opt-note" id="saveNote" hidden></div>
-      <div class="opt-note">Прогресс сохраняется сам. Файл нужен, чтобы перенести его на другой телефон или если браузер всё забывает</div>
+      <div class="opt-note">Прогресс сохраняется сам. Файл нужен, чтобы перенести его на другой телефон или если браузер всё забывает Если ты вошла в аккаунт, файл хранит и вход: при загрузке ты сразу в аккаунте, поэтому не отправляй его посторонним.</div>
       <div class="opt-note" id="vibeNote" hidden>На этом устройстве вибрация недоступна</div>
       <div id="setMore" hidden>↓ листай ниже, там ещё настройки</div>
     </div>
@@ -4280,7 +4287,7 @@ function newLayer(cov, cost, t) {
       for (const k of keys) { r -= MIX.charms[k]; if (r <= 0) { pick = k; break; } }
       MIX.charms[pick]--; charm = { kind: pick };
     }
-    return { charm, color: av, color2: av, type: 'mix', src: 'mix', pat, sp: MIX.sp, ex: Object.assign({}, MIX.ex), fz: MIX.fz, spCols: cols, pearl: MIX.pearl, ptint: MIX.ptint.slice(), oil: MIX.oil, gloss: Math.max(MIX.gloss, 0.7 * ((MIX.pr && MIX.pr.ice) || 0)), neon: MIX.neon || 0, clear: MIX.clear || 0, pr: Object.assign(specPr0(), MIX.pr || {}), seed: (Math.random() * 1e9) | 0, cov, t, cost };
+    return keepPat({ charm, color: av, color2: av, type: 'mix', src: 'mix', pat, sp: MIX.sp, ex: Object.assign({}, MIX.ex), fz: MIX.fz, spCols: cols, pearl: MIX.pearl, ptint: MIX.ptint.slice(), oil: MIX.oil, gloss: Math.max(MIX.gloss, 0.7 * ((MIX.pr && MIX.pr.ice) || 0)), neon: MIX.neon || 0, clear: MIX.clear || 0, pr: Object.assign(specPr0(), MIX.pr || {}), seed: (Math.random() * 1e9) | 0, cov, t, cost  });
   }
   const c = COLORS[G.colorIdx], type = WAX_TYPES[G.typeIdx].id;
   if (type === 'rainbow') { const hh = (time * 40) % 360; return { color: rgbHex(hsl2rgb(hh, 0.9, 0.72)), color2: rgbHex(hsl2rgb(hh + 90, 0.9, 0.72)), type, src: 'pot', sp: 0, seed: (Math.random() * 1e9) | 0, cov, t, cost }; }
@@ -4557,6 +4564,7 @@ function askRefill() {
 }
 function inPotBody(px, py) { return px > potCx - potRx * 0.92 && px < potCx + potRx * 0.92 && py > rimY + potRy + 14 && py < potBottom; }
 function handleTap(px, py) {
+  if (typeof trophyHit === 'function' && trophyHit(px, py)) { Snd.init(); Snd.tick(0); if (!questEl.hidden && QTAB === 'top') closeQuest(); else openQuest('top'); topLoad(TOPS.k, false); return; }
   if (tray.chunks.length && !tray.melting) { const b = panTrashBtn(); if (Math.hypot(px - b.x, py - b.y) < b.r + 8) { askDumpChunks(); return; } }
   if (inPan(px, py)) { toggleMelt(); return; }
   if (inPotBody(px, py)) { if (G.src === 'mix') askDrain('mix', false); else if (potRefillable()) { Snd.tick(0); askRefill(); } else if (G.src === 'pot' && G.level < 0.995) { Snd.tick(0); showInfo('Долить можно, когда воску неоткуда вернуться: разбей воск на предмете, расплавь или выброси кусочки', 3400); } else { Snd.tick(0); showInfo('Обычный воск не выливается: в мусор можно только микс из мастерской', 2600); } return; }
@@ -6760,11 +6768,12 @@ function hueFam(hex) {
   let h = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; h = (h * 60 + 360) % 360;
   if (h < 18 || h >= 350) return 'red'; if (h < 70) return 'yellow'; if (h < 185) return 'green'; if (h < 250) return 'blue'; if (h < 318) return 'purple'; return 'pink';
 }
+var SPEC_TAG = 0.2; // a special colour counts for an order from a fifth of the liquid
 function layerFx(L) {
   const f = [];
   if (L.sp > 0.15) f.push('glitter');
   if (L.ex) { if (L.ex.foil > 0.1) f.push('foil'); if (L.ex.sugar > 0.1) f.push('sugar'); if (L.ex.confetti > 0.1) f.push('confetti'); if (L.ex.flake > 0.1) f.push('flake'); if (L.ex.foam > 0.1) f.push('foam'); if (L.ex.eyes > 0.1) f.push('eyes'); }
-  if (L.pearl > 0.1) f.push('pearl'); if (L.gloss > 0.1) f.push('gloss'); if (L.neon > 0.1) f.push('neon'); if (L.clear > 0.3 && L.type !== 'glass') { f.push('clear'); f.push('glass'); } if (L.oil > 0.2) f.push('scent'); if (L.charm) f.push('charm');
+  if (L.pearl > 0.1) f.push('pearl'); if (L.gloss > 0.1) f.push('gloss'); if (L.neon > 0.1) f.push('neon'); if (L.clear > 0.3 && L.type !== 'glass') { f.push('clear'); f.push('glass'); } if (L.pr) SPEC.forEach(sp => { if (layerPr(L, sp.id) >= SPEC_TAG) f.push(sp.id); }); if (L.oil > 0.2) f.push('scent'); if (L.charm) f.push('charm');
   if (L.type === 'glass') f.push('glass'); if (L.type === 'grad') f.push('grad'); if (L.type === 'rainbow') f.push('rainbow'); if (L.type === 'cosmos') f.push('cosmos'); if (L.type === 'gold') f.push('gold');
   return f;
 }
@@ -6822,14 +6831,66 @@ const ORDERS = [
   { id: 'baconglass', d: 3, n: 'Бэкон в стекле', s: 'Прозрачный бэкон, два слоя. Он замёрз и позирует.', r: [R.kind('Бэкон'), R.fx('glass', 'Прозрачный воск'), R.layers(2)] },
   { id: 'fullset', d: 3, n: 'Полный набор', s: 'Четыре разных эффекта на одном предмете.', r: [R.fxn(4)] },
   { id: 'househard', d: 3, n: 'Домик-гриб в хлопьях', s: 'Хлопья, шарики и перламутр на домике.', r: [R.kind('Домик-гриб'), R.fx('flake', 'Хлопья воска'), R.fx('sugar', 'Сахарные шарики'), R.fx('pearl', 'Перламутр')] },
-  { id: 'seablue', d: 3, n: 'Морская ракушка', s: 'Синяя, прозрачная и с перламутром.', r: [R.kind('Ракушка'), R.hue('blue', 'Синий воск'), R.fx('glass', 'Прозрачный воск'), R.fx('pearl', 'Перламутр')] }
+  { id: 'seablue', d: 3, n: 'Морская ракушка', s: 'Синяя, прозрачная и с перламутром.', r: [R.kind('Ракушка'), R.hue('blue', 'Синий воск'), R.fx('glass', 'Прозрачный воск'), R.fx('pearl', 'Перламутр')] }  ,
+  // ---- more easy: the newer objects in one colour or with one wish
+  { id: 'donutpink', d: 1, n: 'Розовый пончик', s: 'Глазурь как на витрине. Только несъедобная.', r: [R.kind('Пончик'), R.hue('pink', 'Розовый воск')] },
+  { id: 'icemint', d: 1, n: 'Мятное мороженое', s: 'Тает только в воображении.', r: [R.kind('Мороженое'), R.hue('green', 'Мятный воск')] },
+  { id: 'butterlav', d: 1, n: 'Лавандовая бабочка', s: 'Села и не улетает. Воск.', r: [R.kind('Бабочка'), R.hue('purple', 'Лавандовый воск')] },
+  { id: 'diamblue', d: 1, n: 'Синий алмаз', s: 'Не настоящий, но очень уверенный.', r: [R.kind('Алмаз'), R.hue('blue', 'Синий воск')] },
+  { id: 'cakewhite', d: 1, n: 'Белый тортик', s: 'Свадебный. Чей-то. Не твой.', r: [R.kind('Тортик'), R.hue('white', 'Белый воск')] },
+  { id: 'beeramber', d: 1, n: 'Янтарное пиво', s: 'Без пены и без градусов.', r: [R.kind('Пиво'), R.hue('yellow', 'Янтарный воск')] },
+  { id: 'starsun', d: 1, n: 'Солнечная звёздочка', s: 'Светит, пока не сломаешь.', r: [R.kind('Звёздочка'), R.hue('yellow', 'Жёлтый воск')] },
+  { id: 'heartred', d: 1, n: 'Красное сердечко', s: 'Для того, кто всё понимает.', r: [R.kind('Сердечко'), R.hue('red', 'Красный воск')] },
+  { id: 'padblue', d: 1, n: 'Синий геймпад', s: 'Играть нельзя, нажимать можно.', r: [R.kind('Геймпад'), R.hue('blue', 'Синий воск')] },
+  { id: 'alarmred', d: 1, n: 'Красный будильник', s: 'Пусть звонит в воске, а не в 6 утра.', r: [R.kind('Будильник'), R.hue('red', 'Красный воск')] },
+  { id: 'globeblue', d: 1, n: 'Синий снежный шар', s: 'Зима внутри, зима снаружи.', r: [R.kind('Снежный шар'), R.hue('blue', 'Синий воск')] },
+  { id: 'cat2pink', d: 1, n: 'Розовая Кисюля', s: 'Сидит и делает вид, что так и задумано.', r: [R.kind('Кисюля сидит'), R.hue('pink', 'Розовый воск')] },
+  // ---- more medium: add-ins from the mix, gradient / glitter, fancy wax kinds, special colours
+  { id: 'crowngold', d: 2, n: 'Золотая корона', s: 'Королева заказала. Спорить не будем.', r: [R.kind('Корона'), R.fx('gold', 'Золотой воск')] },
+  { id: 'butterrain', d: 2, n: 'Радужная бабочка', s: 'Все цвета сразу, как настроение.', r: [R.kind('Бабочка'), R.fx('rainbow', 'Радужный воск')] },
+  { id: 'catcosmos', d: 2, n: 'Космическая Кисюля', s: 'Прилетела с другой планеты. Сидит.', r: [R.kind('Кисюля сидит'), R.fx('cosmos', 'Космический воск')] },
+  { id: 'donutsugar', d: 2, n: 'Пончик с шариками', s: 'Посыпка обязательна, иначе это бублик.', r: [R.kind('Пончик'), R.fx('sugar', 'Сахарные шарики')] },
+  { id: 'cakeeyes', d: 2, n: 'Тортик с глазками', s: 'Смотрит на тебя. Не отворачивайся.', r: [R.kind('Тортик'), R.fx('eyes', 'Глазки-бегунки')] },
+  { id: 'starfoam', d: 2, n: 'Пенопластовая звезда', s: 'Шарики из пенопласта, как снег.', r: [R.kind('Звёздочка'), R.fx('foam', 'Пенопластовые шарики')] },
+  { id: 'padneon', d: 2, n: 'Неоновый геймпад', s: 'Чтобы светился в темноте, как настоящий игровой.', r: [R.kind('Геймпад'), R.fx('neon', 'Неоновый воск')] },
+  { id: 'kbdneon', d: 2, n: 'Неоновая клавиатура', s: 'Тихо стучит и светится.', r: [R.kind('Клавиатура'), R.fx('neon', 'Неоновый воск')] },
+  { id: 'iceheart', d: 2, n: 'Ледяное сердце', s: 'Холодное снаружи, воск внутри.', r: [R.kind('Сердечко'), R.fx('ice', 'Ледяной цвет (от 20%)')] },
+  { id: 'cloudcake', d: 2, n: 'Облачный тортик', s: 'Мягкий, как будто из зефира.', r: [R.kind('Тортик'), R.fx('soft', 'Мягкий цвет (от 20%)')] },
+  { id: 'glowstar', d: 2, n: 'Звезда-светлячок', s: 'Чтобы найти её ночью без фонарика.', r: [R.kind('Звёздочка'), R.fx('glow', 'Светлячок (от 20%)')] },
+  { id: 'lavadiamond', d: 2, n: 'Лавовый алмаз', s: 'Горячий камень. Руками не трогать, но трогай.', r: [R.kind('Алмаз'), R.fx('lava', 'Лавовый цвет (от 20%)')] },
+  { id: 'globeclear', d: 2, n: 'Стеклянный шар', s: 'Прозрачный шар в прозрачном воске.', r: [R.kind('Снежный шар'), R.fx('glass', 'Прозрачный воск')] },
+  { id: 'beerfoam', d: 2, n: 'Пиво с пенкой', s: 'Янтарь снизу, белая пенка сверху.', r: [R.kind('Пиво'), R.layers(2), R.hue('yellow', 'Янтарный слой'), R.hue('white', 'Белая пенка')] },
+  { id: 'butterglit', d: 2, n: 'Блестящая бабочка', s: 'Пыльца вместо крыльев. Почти.', r: [R.kind('Бабочка'), R.fx('glitter', 'Блёстки')] },
+  { id: 'crowncharm', d: 2, n: 'Корона с сюрпризом', s: 'Внутри что-то лежит. Королевское.', r: [R.kind('Корона'), R.fx('charm', 'Сюрприз всплыл')] },
+  { id: 'icegrad', d: 2, n: 'Градиентное мороженое', s: 'Два вкуса, один рожок.', r: [R.kind('Мороженое'), R.fx('grad', 'Градиентный воск')] },
+  { id: 'pianotwo', d: 2, n: 'Пианино в два цвета', s: 'Клавиши разные, а воск — слоями.', r: [R.kind('Пианино'), R.layers(2), R.hues(2)] },
+  { id: 'phoneglit', d: 2, n: 'Телефон в блёстках', s: 'Не звонит, зато сверкает.', r: [R.kind('Телефон'), R.fx('glitter', 'Блёстки')] },
+  // ---- more hard: several wishes at once, fancy wax kinds together, special colours together
+  { id: 'galaxycat', d: 3, n: 'Звёздная Кисюля', s: 'Космос, блёстки и перламутр. Она это заслужила.', r: [R.kind('Кисюля сидит'), R.fx('cosmos', 'Космический воск'), R.fx('glitter', 'Блёстки'), R.fx('pearl', 'Перламутр')] },
+  { id: 'royalcrown', d: 3, n: 'Королевская корона', s: 'Золото, перламутр и глянец. Без короны никуда.', r: [R.kind('Корона'), R.fx('gold', 'Золотой воск'), R.fx('pearl', 'Перламутр'), R.fx('gloss', 'Глянец')] },
+  { id: 'rainbutter', d: 3, n: 'Радужная бабочка-фея', s: 'Радуга, блёстки и перламутр. Фея довольна.', r: [R.kind('Бабочка'), R.fx('rainbow', 'Радужный воск'), R.fx('glitter', 'Блёстки'), R.fx('pearl', 'Перламутр')] },
+  { id: 'neonconsole', d: 3, n: 'Неоновая консоль', s: 'Неон, блёстки, два слоя. Для настоящих геймеров.', r: [R.kind('Консоль'), R.fx('neon', 'Неоновый воск'), R.fx('glitter', 'Блёстки'), R.layers(2)] },
+  { id: 'iceandfire', d: 3, n: 'Лёд и пламя', s: 'Два слоя: один ледяной, другой лавовый.', r: [R.layers(2), R.fx('ice', 'Ледяной цвет (от 20%)'), R.fx('lava', 'Лавовый цвет (от 20%)')] },
+  { id: 'magiccake', d: 3, n: 'Волшебный тортик', s: 'Мягкий, светящийся и с шариками. Магия.', r: [R.kind('Тортик'), R.fx('soft', 'Мягкий цвет (от 20%)'), R.fx('glow', 'Светлячок (от 20%)'), R.fx('sugar', 'Сахарные шарики')] },
+  { id: 'lavagloss', d: 3, n: 'Горячий алмаз', s: 'Лава, глянец и перламутр. Ювелир плачет.', r: [R.kind('Алмаз'), R.fx('lava', 'Лавовый цвет (от 20%)'), R.fx('gloss', 'Глянец'), R.fx('pearl', 'Перламутр')] },
+  { id: 'softice', d: 3, n: 'Облачное мороженое', s: 'Мягкое, перламутровое и с шариками.', r: [R.kind('Мороженое'), R.fx('soft', 'Мягкий цвет (от 20%)'), R.fx('pearl', 'Перламутр'), R.fx('sugar', 'Сахарные шарики')] },
+  { id: 'baconeyes', d: 3, n: 'Бэкон с глазками', s: 'Глазки, пенопласт и два слоя. Бэкон смотрит на тебя.', r: [R.kind('Бэкон'), R.fx('eyes', 'Глазки-бегунки'), R.fx('foam', 'Пенопластовые шарики'), R.layers(2)] },
+  { id: 'fourpowers', d: 3, n: 'Четыре силы', s: 'Лёд, лава, мягкость и свет — все четыре особых цвета.', r: [R.fx('ice', 'Ледяной цвет (от 20%)'), R.fx('lava', 'Лавовый цвет (от 20%)'), R.fx('soft', 'Мягкий цвет (от 20%)'), R.fx('glow', 'Светлячок (от 20%)')] },
+  { id: 'superset', d: 3, n: 'Сверхнабор', s: 'Пять разных эффектов на одном предмете.', r: [R.fxn(5)] },
+  { id: 'glassneon', d: 3, n: 'Неоновое стекло', s: 'Прозрачный телефон с неоном и блёстками.', r: [R.kind('Телефон'), R.fx('glass', 'Прозрачный воск'), R.fx('neon', 'Неоновый воск'), R.fx('glitter', 'Блёстки')] },
+  { id: 'cosmosgold', d: 3, n: 'Космос и золото', s: 'Два слоя: космический и золотой. Богатая вселенная.', r: [R.fx('cosmos', 'Космический воск'), R.fx('gold', 'Золотой воск'), R.layers(2)] },
+  { id: 'donutdream', d: 3, n: 'Пончик мечты', s: 'Градиент, шарики и конфетти. Диета подождёт.', r: [R.kind('Пончик'), R.fx('grad', 'Градиентный воск'), R.fx('sugar', 'Сахарные шарики'), R.fx('confetti', 'Конфетти')] },
+  { id: 'iceglowcat', d: 3, n: 'Ледяная Кисюля с сиянием', s: 'Холодная, но светится. Так бывает.', r: [R.kind('Кисюля'), R.fx('ice', 'Ледяной цвет (от 20%)'), R.fx('glow', 'Светлячок (от 20%)')] }
 ];
 const ORD_REWARD = { 1: 2, 2: 4, 3: 7 };
 function orderById(id) { return ORDERS.find(o => o.id === id); }
 // in the shop mode an order must be doable with what is already open (objects and add-ins)
 const FX_SRC = { foil: ['foil'], sugar: ['sugar'], confetti: ['confetti'], flake: ['flake'], foam: ['foam'], eyes: ['eyes'], pearl: ['pearl_blue', 'pearl_white'], gloss: ['gloss'], neon: ['neon'], clear: ['clear'], scent: ['oil'], charm: ['ch_coin', 'ch_star', 'ch_heart', 'ch_pearl', 'ch_gem'] };
+// special colours come from the third shelf page (shop pack), the three fancy wax types are achievement rewards
+const FX_GATE = { ice: () => isOpen('cols:4'), lava: () => isOpen('cols:4'), soft: () => isOpen('cols:4'), glow: () => isOpen('cols:4'), rainbow: () => rewardOn('pours'), cosmos: () => rewardOn('effects'), gold: () => rewardOn('kinds') };
 function reqOpen(r) {
   if (r.obj && !isOpen('obj:' + OID(r.obj))) return false;
+  if (r.fxk && FX_GATE[r.fxk] && !FX_GATE[r.fxk]()) return false;
   const src = r.fxk && FX_SRC[r.fxk]; return !src || src.some(t => isOpen('tool:' + t));
 }
 function orderDoable(o) { return o.r.every(reqOpen); }
@@ -6844,7 +6905,7 @@ function orderPick(vip) {
   return pool[0] || ORDERS.find(orderDoable) || ORDERS[0];
 }
 // VIP orders (the reward of the last orders stage): a harder order with one more wish, three times the reward
-const VIP_EXTRA = [R.fx('eyes', 'Глазки-бегунки'), R.fx('neon', 'Неоновый воск'), R.fx('foam', 'Пенопластовые шарики'), R.fx('pearl', 'Перламутр'), R.fx('glitter', 'Блёстки'), R.fx('sugar', 'Сахарные шарики')];
+const VIP_EXTRA = [R.fx('eyes', 'Глазки-бегунки'), R.fx('neon', 'Неоновый воск'), R.fx('foam', 'Пенопластовые шарики'), R.fx('pearl', 'Перламутр'), R.fx('glitter', 'Блёстки'), R.fx('sugar', 'Сахарные шарики'), R.fx('glow', 'Светлячок (от 20%)'), R.fx('ice', 'Ледяной цвет (от 20%)'), R.fx('glass', 'Прозрачный воск')];
 function orderNew() {
   const vip = fxOn('orders') && Math.random() < 0.3;
   const o = orderPick(vip); QS.order = { id: o.id };
@@ -6905,7 +6966,7 @@ function questTick() {
     else if (s > prev) { let c = 0; for (let q = prev; q < s; q++) c += STAGE_COINS[Math.min(q, STAGE_COINS.length - 1)]; QS.coins += c; QS.ach[a.id] = s; got.push('🏆 ' + a.n + ': этап ' + s + (s === a.st.length ? ' (последний!)' : '') + ' +' + c + ' 🪙'); }
   }
   if (got.length) { showInfo(got.join('  ·  '), 4200); Snd.init(); Snd.chime(); saveNow(); }
-  if (!questEl.hidden) renderQuest();
+  if (!questEl.hidden && QTAB !== 'top') renderQuest(); // the account form must not be redrawn under the fingers
 }
 
 /* ----- the panel ----- */
@@ -6932,7 +6993,7 @@ function renderQuest() {
   if (questEl.hidden) return;
   const keep = questEl.scrollTop; questEl.textContent = '';
   const tabs = h('div', 'qtabs');
-  [['orders', '📋 Заказ'], ['ach', '🏆 Этапы'], ['shop', '🛒 Магазин'], ['shelf', '🗄️ Полка']].forEach(t => {
+  [['orders', '📋 Заказ'], ['ach', '🏆 Этапы'], ['shop', '🛒 Магазин'], ['shelf', '🗄️ Полка'], ['top', '🥇 Лидеры']].forEach(t => {
     const b = h('button', null, t[1]); b.type = 'button'; b.setAttribute('aria-pressed', QTAB === t[0] ? 'true' : 'false');
     b.addEventListener('click', () => { QTAB = t[0]; syncQuestBtns(); Snd.tick(0); renderQuest(); questEl.scrollTop = 0; });
     tabs.appendChild(b);
@@ -6940,6 +7001,7 @@ function renderQuest() {
   questEl.appendChild(tabs);
   if (QTAB === 'shop') { renderShop(questEl); questEl.scrollTop = keep; return; }
   if (QTAB === 'shelf') { renderShelf(questEl); questEl.scrollTop = keep; return; }
+  if (QTAB === 'top') { renderTop(questEl); questEl.scrollTop = keep; return; }
   const st = orderStatus();
   if (QTAB === 'orders') {
   questEl.appendChild(h('div', 'sheet-title', 'Заказ'));
@@ -7204,7 +7266,7 @@ function unpackLayer(o) {
   if (typeof o.pat === 'string') {
     const rgb = b64dec(o.pat), c = mkCanvas(NG, NG), g2 = c.getContext('2d'), im = g2.createImageData(NG, NG);
     for (let i = 0; i < NG * NG; i++) { im.data[i * 4] = rgb[i * 3]; im.data[i * 4 + 1] = rgb[i * 3 + 1]; im.data[i * 4 + 2] = rgb[i * 3 + 2]; im.data[i * 4 + 3] = 255; }
-    g2.putImageData(im, 0, 0); L.pat = c;
+    g2.putImageData(im, 0, 0); L.pat = c; keepPat(L);
   }
   return L;
 }
@@ -7898,6 +7960,73 @@ function stPlateSkin() {
   }
   sg.restore();
 }
+/* ---------- Self-repair after the phone wiped our canvases ----------
+   When the app is minimised for a while Android can throw away the pixels of every off-screen canvas
+   (sprites, wax patterns, the plate skin cache). The game then thinks they are still there: toys vanish,
+   wax has no layers, the plate looks plain although the shop says it is on. Everything is kept as data
+   as well, so when we come back we check for that and rebuild. */
+// the colour pattern of a wax layer also lives as plain bytes (a canvas can be wiped, bytes cannot)
+function keepPat(L) {
+  try {
+    if (L && L.pat) {
+      const d = L.pat.getContext('2d').getImageData(0, 0, NG, NG).data, rgb = new Uint8Array(NG * NG * 3);
+      for (let i = 0; i < NG * NG; i++) { rgb[i * 3] = d[i * 4]; rgb[i * 3 + 1] = d[i * 4 + 1]; rgb[i * 3 + 2] = d[i * 4 + 2]; }
+      Object.defineProperty(L, 'patD', { value: rgb, writable: true, configurable: true, enumerable: false }); // hidden: never saved or copied
+    }
+  } catch (e) { }
+  return L;
+}
+function restorePat(L) {
+  if (!L || L.type !== 'mix') return;
+  try {
+    if (!L.pat) L.pat = mkCanvas(NG, NG);
+    const g2 = L.pat.getContext('2d'), im = g2.createImageData(NG, NG);
+    if (L.patD) for (let i = 0; i < NG * NG; i++) { im.data[i * 4] = L.patD[i * 3]; im.data[i * 4 + 1] = L.patD[i * 3 + 1]; im.data[i * 4 + 2] = L.patD[i * 3 + 2]; im.data[i * 4 + 3] = 255; }
+    else { const c = hexRgb(L.color || '#ffffff'); for (let i = 0; i < NG * NG; i++) { im.data[i * 4] = c[0]; im.data[i * 4 + 1] = c[1]; im.data[i * 4 + 2] = c[2]; im.data[i * 4 + 3] = 255; } }
+    g2.putImageData(im, 0, 0);
+  } catch (e) { }
+}
+// a big canvas painted once: if it comes back empty, the phone wiped the canvases
+var healCanary = null;
+function healCanaryMake() {
+  try { healCanary = document.createElement('canvas'); healCanary.width = healCanary.height = 320; const c = healCanary.getContext('2d'); c.fillStyle = '#f0f'; c.fillRect(0, 0, 320, 320); } catch (e) { healCanary = null; }
+}
+function healCanaryOk() {
+  if (!healCanary) return true;
+  try { return healCanary.getContext('2d').getImageData(160, 160, 1, 1).data[3] > 0; } catch (e) { return true; }
+}
+function canvasBlank(cv) {
+  try { const d = cv.getContext('2d').getImageData(0, 0, cv.width, cv.height).data; for (let i = 3; i < d.length; i += 4) if (d[i] > 8) return false; return true; } catch (e) { return false; }
+}
+var healBusy = false;
+function healCheck(force) {
+  if (healBusy) return false; healBusy = true;
+  let did = false;
+  try {
+    let lost = force === true || !healCanaryOk();
+    if (!lost && force !== 'light' && !ST.on && G.sprite && G.prof && G.prof.length && canvasBlank(G.sprite)) lost = true;
+    if (!lost && force !== 'light' && !ST.on && G.shell && G.layers.length && canvasBlank(G.shell)) lost = true;
+    if (lost) {
+      did = true;
+      plateCache = {};
+      try { mixPatRefresh(); } catch (e) { }
+      G.layers.forEach(restorePat);
+      shimCv = null; glowCv = null; tglCv = null; fxCv = null; sfxCv = null;
+      if (G.glowSpr) G.glowSpr = null;
+      if (typeof SQ !== 'undefined') { SQ.tmp = null; SQ.orig = null; }
+      buildObject(false);
+      healCanaryMake();
+    }
+  } catch (e) { }
+  healBusy = false;
+  return did;
+}
+healCanaryMake();
+function healSoon() { for (const ms of [30, 200, 600, 1300]) setTimeout(() => { try { healCheck(false); } catch (e) { } }, ms); }
+document.addEventListener('visibilitychange', () => { if (!document.hidden) healSoon(); });
+window.addEventListener('pageshow', healSoon); window.addEventListener('focus', healSoon);
+// also while playing: one pixel is enough to notice a wipe that happened without the app being minimised
+setInterval(() => { if (!document.hidden) { try { healCheck('light'); } catch (e) { } } }, 2500);
 /* ---------- Saving progress ---------- */
 // Everything that took effort to collect: cubes on the shelf, both buckets, the mix with its add-ins,
 // counters and finds. The object on the string is not saved: its wax goes back to the buckets.
@@ -7968,7 +8097,7 @@ const saveNote = document.getElementById('saveNote');
 function saySave(t) { saveNote.textContent = t; saveNote.hidden = false; }
 document.getElementById('saveFileBtn').addEventListener('click', () => {
   const d = new Date(), pad = (n) => String(n).padStart(2, '0');
-  saveFileOut(new Blob([JSON.stringify(saveSnapshot())], { type: 'application/json' }), 'wax-asmr-save-' + d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate()) + '.json');
+  saveFileOut(new Blob([JSON.stringify(Object.assign(saveSnapshot(), typeof accForFile === 'function' ? accForFile() : {}))], { type: 'application/json' }), 'wax-asmr-save-' + d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate()) + '.json');
   saySave('Файл сохранения готов');
 });
 const loadInput = document.getElementById('loadFile');
@@ -7980,6 +8109,7 @@ loadInput.addEventListener('change', async () => {
     const d = JSON.parse(await f.text());
     G.layers = []; G.pieces = null; applySnapshot(d); buildObject(true); ST.cubes.length = 0; ST.parts.length = 0; stEmptyPlate(); ST.V = 0;
     saveNow(); saySave('Прогресс загружен');
+    if (typeof accFromFile === 'function') accFromFile(d).then(t => { if (t) saySave(t); });
   } catch (e) { saySave('Не получилось прочитать этот файл'); }
 });
 
@@ -7987,11 +8117,11 @@ loadInput.addEventListener('change', async () => {
 // tap a bucket, confirm, and it drains. Works for the mix bucket in the workshop and the bucket in use on the main screen.
 const DRAIN = { on: false, src: 'pot', st: false };
 const askToast = document.getElementById('askToast'), askMsg = document.getElementById('askMsg');
-let askYes = null;
-function askConfirm(text, yes) { askMsg.textContent = text; askYes = yes; askToast.hidden = false; }
-function askClose() { askToast.hidden = true; askYes = null; }
+let askYes = null, askNoFn = null;
+function askConfirm(text, yes, no) { askMsg.textContent = text; askYes = yes; askNoFn = no || null; askToast.hidden = false; }
+function askClose() { askToast.hidden = true; askYes = null; askNoFn = null; }
 document.getElementById('askYes').addEventListener('click', () => { const f = askYes; askClose(); if (f) f(); });
-document.getElementById('askNo').addEventListener('click', askClose);
+document.getElementById('askNo').addEventListener('click', () => { const f = askNoFn; askClose(); if (f) f(); });
 function askDrain(src, fromStudio) {
   if (DRAIN.on || ST.pouring || src !== 'mix') return; // only the workshop mix can be poured out
   const v = lvl(src);
@@ -8050,6 +8180,245 @@ function drawDrainMain() {
   const lb = document.getElementById('lightBtn');
   lb.addEventListener('click', () => { Snd.init(); prefs.dark = !prefs.dark; applyPrefs(); savePrefs(); Snd.tick(0); });
 })();
+/* ---------- Online: nick + password account, cloud save, leaderboard (Firebase over plain REST) ---------- */
+// The game still works fully offline. Online only adds: an account, the progress kept in the cloud, and the top lists.
+const FBX = { key: 'AIzaSyBe_8BCRJRU52eDaP__mIUbSs5JaiM3Fvs', project: 'wax-asmr' };
+const FB_DOC = 'https://firestore.googleapis.com/v1/projects/' + FBX.project + '/databases/(default)/documents';
+const ACC_KEY = 'waxAsmrAcc1';
+var ACC = { uid: null, nick: null, idToken: null, refresh: null, exp: 0, lastTs: 0, pushed: 0 };
+try { const r = localStorage.getItem(ACC_KEY); if (r) Object.assign(ACC, JSON.parse(r)); } catch (e) { }
+function accStore() { try { localStorage.setItem(ACC_KEY, JSON.stringify(ACC)); } catch (e) { } }
+
+// the nick becomes a made-up e-mail (Firebase wants one), so every nick is unique without real addresses
+function nickOk(n) { return /^[\p{L}\p{N}_\-]{3,14}$/u.test(n); }
+function nickEmail(n) { let s = ''; for (const ch of n.toLowerCase()) s += ch.codePointAt(0).toString(16).padStart(4, '0'); return 'u' + s + '@wax-asmr.app'; }
+
+async function fbFetch(url, opt, tries) {
+  const ac = new AbortController(), to = setTimeout(() => ac.abort(), 12000);
+  try {
+    const r = await fetch(url, Object.assign({ signal: ac.signal }, opt));
+    let j = null; try { j = await r.json(); } catch (e) { }
+    if (!r.ok) { const m = j && j.error && (j.error.message || j.error.status) || ('HTTP ' + r.status); const er = new Error(m); er.http = r.status; er.code = j && j.error && j.error.status; throw er; }
+    return j;
+  } catch (e) { if (e.http == null) { const er = new Error('NETWORK'); er.net = true; throw er; } throw e; } finally { clearTimeout(to); }
+}
+function fbErrText(e) {
+  const m = String(e && e.message || e);
+  if (e && e.net) return 'Нет связи с облаком. Проверь интернет';
+  if (/EMAIL_EXISTS/.test(m)) return 'Такой ник уже занят';
+  if (/INVALID_LOGIN_CREDENTIALS|EMAIL_NOT_FOUND|INVALID_PASSWORD|INVALID_EMAIL/.test(m)) return 'Неверный ник или пароль';
+  if (/WEAK_PASSWORD/.test(m)) return 'Пароль слишком простой (от 6 символов)';
+  if (/CREDENTIAL_TOO_OLD|TOKEN_EXPIRED|INVALID_ID_TOKEN/.test(m)) return 'Нужно ввести текущий пароль';
+  if (/TOO_MANY_ATTEMPTS/.test(m)) return 'Слишком много попыток, подожди немного';
+  if (/OPERATION_NOT_ALLOWED|CONFIGURATION_NOT_FOUND/.test(m)) return 'В Firebase не включён вход по почте (' + m + ')';
+  if (/PERMISSION_DENIED|Missing or insufficient/.test(m)) return 'Правила базы не пускают (' + m + ')';
+  return 'Ошибка: ' + m;
+}
+async function accAuth(kind, nick, pass) {
+  const j = await fbFetch('https://identitytoolkit.googleapis.com/v1/accounts:' + (kind === 'new' ? 'signUp' : 'signInWithPassword') + '?key=' + FBX.key, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: nickEmail(nick), password: pass, returnSecureToken: true }) });
+  ACC.uid = j.localId; ACC.nick = nick; ACC.idToken = j.idToken; ACC.refresh = j.refreshToken; ACC.exp = Date.now() + (+j.expiresIn || 3600) * 1000; accStore();
+}
+async function accToken() {
+  if (!ACC.uid) return null;
+  if (ACC.idToken && ACC.exp - Date.now() > 60000) return ACC.idToken;
+  const j = await fbFetch('https://securetoken.googleapis.com/v1/token?key=' + FBX.key, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: 'grant_type=refresh_token&refresh_token=' + encodeURIComponent(ACC.refresh) });
+  ACC.idToken = j.id_token; ACC.refresh = j.refresh_token || ACC.refresh; ACC.exp = Date.now() + (+j.expires_in || 3600) * 1000; accStore();
+  return ACC.idToken;
+}
+function accOut() { ACC.uid = ACC.nick = ACC.idToken = ACC.refresh = null; ACC.exp = ACC.lastTs = ACC.pushed = 0; accStore(); }
+
+/* ----- Firestore value helpers ----- */
+const fvS = (s) => ({ stringValue: String(s) }), fvI = (n) => ({ integerValue: String(Math.max(0, Math.round(n || 0))) });
+const fgS = (f, k) => f && f[k] && f[k].stringValue != null ? f[k].stringValue : '';
+const fgI = (f, k) => f && f[k] && f[k].integerValue != null ? +f[k].integerValue : 0;
+async function fsPatch(path, fields) {
+  const tok = await accToken();
+  const mask = Object.keys(fields).map(k => 'updateMask.fieldPaths=' + encodeURIComponent(k)).join('&');
+  return fbFetch(FB_DOC + '/' + path + '?' + mask, { method: 'PATCH', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + tok }, body: JSON.stringify({ fields }) });
+}
+async function fsGet(path) {
+  const tok = await accToken();
+  try { return await fbFetch(FB_DOC + '/' + path, { headers: { Authorization: 'Bearer ' + tok } }); } catch (e) { if (e.http === 404) return null; throw e; }
+}
+
+/* ----- the save, squeezed small (gzip + base64) when the browser can do it ----- */
+async function packSave(obj) {
+  const txt = JSON.stringify(obj);
+  try {
+    if (typeof CompressionStream === 'function') {
+      const cs = new Blob([txt]).stream().pipeThrough(new CompressionStream('gzip'));
+      return { enc: 'gz', z: b64enc(new Uint8Array(await new Response(cs).arrayBuffer())) };
+    }
+  } catch (e) { }
+  return { enc: 'raw', z: txt };
+}
+async function unpackSave(enc, z) {
+  if (enc === 'gz') { const ds = new Blob([b64dec(z)]).stream().pipeThrough(new DecompressionStream('gzip')); return JSON.parse(await new Response(ds).text()); }
+  return JSON.parse(z);
+}
+function applyCloudSnapshot(d) {
+  G.layers = []; G.pieces = null; applySnapshot(d); buildObject(true); ST.cubes.length = 0; ST.parts.length = 0; stEmptyPlate(); ST.V = 0; saveNow();
+}
+
+/* ----- push / pull ----- */
+var ONL = { busy: false, last: 0, sig: '', msg: '', err: '' };
+function accSig() { const s = saveSnapshot(); s.t = 0; const j = JSON.stringify(s); let h = 0; for (let i = 0; i < j.length; i++) h = (h * 31 + j.charCodeAt(i)) | 0; return j.length + ':' + h; }
+async function accPush(force) {
+  if (!ACC.uid || ONL.busy || document.hidden && !force) return false;
+  const sig = accSig(); if (!force && sig === ONL.sig) return false;
+  ONL.busy = true;
+  try {
+    const snap = saveSnapshot(), ts = Date.now(), pk = await packSave(snap);
+    if (pk.z.length > 900000) throw new Error('save too big');
+    await fsPatch('players/' + ACC.uid, { nick: fvS(ACC.nick), broken: fvI(G.broken), coins: fvI(QS.coins), orders: fvI(QS.stats.orders), ts: fvI(ts) });
+    await fsPatch('saves/' + ACC.uid, { ts: fvI(ts), enc: fvS(pk.enc), z: fvS(pk.z) });
+    ACC.lastTs = ts; ACC.pushed = ts; ONL.sig = sig; ONL.err = ''; accStore(); ONL.last = ts;
+    return true;
+  } catch (e) { ONL.err = fbErrText(e); return false; } finally { ONL.busy = false; }
+}
+async function accCloudInfo() {
+  const d = await fsGet('saves/' + ACC.uid); if (!d) return null;
+  const f = d.fields || {}; return { ts: fgI(f, 'ts'), enc: fgS(f, 'enc'), z: fgS(f, 'z') };
+}
+async function accPullApply(c) { const d = await unpackSave(c.enc, c.z); applyCloudSnapshot(d); ACC.lastTs = c.ts; accStore(); ONL.sig = accSig(); return d; }
+function freshLocal() { return !QS.stats.orders && !QS.stats.pieces && !QS.stats.layers && G.broken === 0 && Object.keys(QS.owned || {}).length === 0; }
+// right after signing in: new account takes this device's progress, an old one offers its cloud progress
+async function accAfterLogin(isNew) {
+  if (isNew) { await accPush(true); return 'Аккаунт создан, прогресс сохранён в облако'; }
+  const c = await accCloudInfo();
+  if (!c) { await accPush(true); return 'Вошла. Прогресс этого устройства записан в облако'; }
+  if (freshLocal()) { await accPullApply(c); return 'Вошла. Прогресс загружен из облака'; }
+  askConfirm('В облаке уже есть прогресс этого аккаунта. Загрузить его сюда? «Нет» — оставить прогресс этого устройства и записать его в облако.', async () => {
+    try { await accPullApply(c); showInfo('Прогресс загружен из облака', 2600); } catch (e) { showInfo('Не получилось загрузить: ' + fbErrText(e), 3500); }
+    renderQuest();
+  }, () => { accPush(true).then(() => renderQuest()); }); // "no": keep this device's progress and write it to the cloud
+  return 'Вошла';
+}
+// on start / return to the app: did another device save newer progress?
+async function accCheckNewer() {
+  if (!ACC.uid || document.hidden) return;
+  try {
+    const c = await accCloudInfo(); if (!c || c.ts <= ACC.lastTs + 2000) return;
+    askConfirm('В облаке есть более новый прогресс (с другого устройства). Загрузить его?', async () => { try { await accPullApply(c); showInfo('Прогресс загружен из облака', 2600); } catch (e) { showInfo(fbErrText(e), 3500); } });
+  } catch (e) { }
+}
+setInterval(() => { if (ACC.uid && !document.hidden && Date.now() - ONL.last > 30000) accPush(false); }, 15000);
+document.addEventListener('visibilitychange', () => { if (document.hidden) { if (ACC.uid) accPush(true); } else setTimeout(accCheckNewer, 800); });
+setTimeout(accCheckNewer, 2500);
+
+
+/* ----- the account travels inside the save file; opening that file logs in right away ----- */
+// the file holds a login key (not the password): anyone who has the file can enter the account, so keep it private
+function accForFile() { return ACC.uid && ACC.refresh ? { acc: { uid: ACC.uid, nick: ACC.nick, refresh: ACC.refresh } } : {}; }
+async function accFromFile(d) {
+  const a = d && d.acc; if (!a || !a.uid || !a.refresh || !a.nick) return '';
+  const prev = { uid: ACC.uid, nick: ACC.nick, idToken: ACC.idToken, refresh: ACC.refresh, exp: ACC.exp, lastTs: ACC.lastTs, pushed: ACC.pushed };
+  ACC.uid = a.uid; ACC.nick = a.nick; ACC.refresh = a.refresh; ACC.idToken = null; ACC.exp = 0; ACC.lastTs = 0; ACC.pushed = 0;
+  try {
+    await accToken(); accStore(); TOPS.data = {};
+    // the file was opened on purpose, so its progress goes to the cloud, unless the cloud is clearly newer
+    const c = await accCloudInfo();
+    if (c && c.ts > (d.t || 0) + 2000) {
+      askConfirm('Ты вошла в аккаунт ' + a.nick + ', но в облаке прогресс новее, чем в файле. Оставить прогресс из файла? «Нет» — загрузить из облака.',
+        () => { accPush(true).then(() => renderQuest()); },
+        async () => { try { await accPullApply(c); showInfo('Прогресс загружен из облака', 2600); } catch (e) { showInfo(fbErrText(e), 3500); } renderQuest(); });
+      return 'Прогресс загружен, вошла в аккаунт ' + a.nick;
+    }
+    await accPush(true);
+    return 'Прогресс загружен, вошла в аккаунт ' + a.nick;
+  } catch (e) {
+    Object.assign(ACC, prev); accStore();
+    const old = /TOKEN_EXPIRED|INVALID_REFRESH|USER_NOT_FOUND|USER_DISABLED/.test(String(e && e.message));
+    return 'Прогресс загружен, но вход из файла не вышел (' + (old ? 'файл старый: пароль с тех пор менялся' : fbErrText(e)) + '). Войди ником и паролем';
+  }
+}
+async function accChangePass(oldPass, newPass) {
+  if (oldPass) await accAuth('in', ACC.nick, oldPass); // a fresh sign-in, Firebase wants one for a password change
+  const tok = await accToken();
+  const j = await fbFetch('https://identitytoolkit.googleapis.com/v1/accounts:update?key=' + FBX.key, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ idToken: tok, password: newPass, returnSecureToken: true }) });
+  ACC.idToken = j.idToken; ACC.refresh = j.refreshToken; ACC.exp = Date.now() + (+j.expiresIn || 3600) * 1000; accStore();
+}
+
+/* ----- leaderboard ----- */
+const TOPK = [['broken', '💥 Сломано'], ['coins', '🪙 Монеты'], ['orders', '📋 Заказы']];
+var TOPS = { k: 'broken', data: {}, loading: false, err: '' };
+async function topLoad(k, force) {
+  const c = TOPS.data[k]; if (!force && c && Date.now() - c.t < 30000) return;
+  TOPS.loading = true; TOPS.err = ''; renderTopSoon();
+  try {
+    const hdr = { 'Content-Type': 'application/json' }; const tok = ACC.uid ? await accToken().catch(() => null) : null; if (tok) hdr.Authorization = 'Bearer ' + tok;
+    const j = await fbFetch(FB_DOC + ':runQuery', { method: 'POST', headers: hdr, body: JSON.stringify({ structuredQuery: { from: [{ collectionId: 'players' }], orderBy: [{ field: { fieldPath: k }, direction: 'DESCENDING' }], limit: 20 } }) });
+    TOPS.data[k] = { t: Date.now(), rows: (j || []).filter(r => r.document).map(r => { const f = r.document.fields || {}; return { uid: r.document.name.split('/').pop(), nick: fgS(f, 'nick') || '???', v: fgI(f, k) }; }) };
+  } catch (e) { TOPS.err = fbErrText(e); }
+  TOPS.loading = false; renderTopSoon();
+}
+var topRT = 0;
+function renderTopSoon() { clearTimeout(topRT); topRT = setTimeout(() => { if (!questEl.hidden && QTAB === 'top') renderQuest(); }, 30); }
+var TOPF = { nick: '', pass: '', busy: false, msg: '' }; // what is typed in the form survives redraws
+function renderTop(el) {
+  el.appendChild(h('div', 'sheet-title', 'Лидеры'));
+  const card = h('div', 'ord');
+  if (!ACC.uid) {
+    card.appendChild(h('div', 'ord-n', 'Войти или создать аккаунт'));
+    card.appendChild(h('div', 'opt-note', 'Ник и пароль нужны, чтобы попасть в таблицу и хранить прогресс в облаке: с любого телефона зашла, и всё на месте.'));
+    const ni = h('input', 'acc-in'); ni.type = 'text'; ni.placeholder = 'ник (3–14 символов)'; ni.maxLength = 14; ni.autocomplete = 'username'; ni.value = TOPF.nick; ni.addEventListener('input', () => { TOPF.nick = ni.value; });
+    const pi = h('input', 'acc-in'); pi.type = 'password'; pi.placeholder = 'пароль (от 6 символов)'; pi.maxLength = 40; pi.autocomplete = 'current-password'; pi.value = TOPF.pass; pi.addEventListener('input', () => { TOPF.pass = pi.value; });
+    card.appendChild(ni); card.appendChild(pi);
+    const row = h('div', 'savebtns');
+    const go = (kind) => async () => {
+      if (TOPF.busy) return; const nick = TOPF.nick.trim(), pass = TOPF.pass;
+      if (!nickOk(nick)) { TOPF.msg = 'Ник: 3–14 символов, буквы, цифры, _ или -'; renderQuest(); return; }
+      if (pass.length < 6) { TOPF.msg = 'Пароль от 6 символов'; renderQuest(); return; }
+      TOPF.busy = true; TOPF.msg = 'Секунду…'; renderQuest();
+      try { await accAuth(kind, nick, pass); TOPF.pass = ''; TOPF.msg = await accAfterLogin(kind === 'new'); TOPS.data = {}; } catch (e) { TOPF.msg = fbErrText(e); }
+      TOPF.busy = false; renderQuest(); topLoad(TOPS.k, true);
+    };
+    const b1 = h('button', null, 'Войти'); b1.type = 'button'; b1.addEventListener('click', go('in'));
+    const b2 = h('button', null, 'Создать аккаунт'); b2.type = 'button'; b2.addEventListener('click', go('new'));
+    row.appendChild(b1); row.appendChild(b2); card.appendChild(row);
+    if (TOPF.msg) card.appendChild(h('div', 'opt-note', TOPF.msg));
+    card.appendChild(h('div', 'opt-note', 'Пароль не восстанавливается, так что запомни его. Не используй пароль от важных аккаунтов: это игра :)'));
+  } else {
+    card.appendChild(h('div', 'ord-n', '👤 ' + ACC.nick));
+    card.appendChild(h('div', 'opt-note', 'Сломано ' + G.broken + ' · монет ' + QS.coins + ' · заказов ' + QS.stats.orders));
+    card.appendChild(h('div', 'opt-note', ONL.err ? '⚠️ ' + ONL.err : ACC.pushed ? '☁️ Сохранено в облаке в ' + new Date(ACC.pushed).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) : '☁️ Ещё не сохранено'));
+    const row = h('div', 'savebtns');
+    const sv = h('button', null, '☁️ Сохранить'); sv.type = 'button'; sv.addEventListener('click', async () => { sv.disabled = true; const ok = await accPush(true); TOPS.data = {}; showInfo(ok ? 'Сохранено в облако' : (ONL.err || 'Не вышло'), 2400); renderQuest(); topLoad(TOPS.k, true); });
+    const pw = h('button', null, '🔑 Пароль'); pw.type = 'button'; pw.addEventListener('click', () => { TOPF.pw = !TOPF.pw; TOPF.pmsg = ''; renderQuest(); });
+    const lo = h('button', null, 'Выйти'); lo.type = 'button'; lo.addEventListener('click', () => { askConfirm('Выйти из аккаунта? Прогресс на этом устройстве останется.', () => { accOut(); TOPF.msg = ''; renderQuest(); }); });
+    row.appendChild(sv); row.appendChild(pw); row.appendChild(lo); card.appendChild(row);
+    if (TOPF.pw) {
+      const oi = h('input', 'acc-in'); oi.type = 'password'; oi.placeholder = 'текущий пароль (не помнишь — оставь пустым)'; oi.autocomplete = 'current-password'; oi.value = TOPF.opass || ''; oi.addEventListener('input', () => { TOPF.opass = oi.value; });
+      const ni2 = h('input', 'acc-in'); ni2.type = 'password'; ni2.placeholder = 'новый пароль (от 6 символов)'; ni2.maxLength = 40; ni2.autocomplete = 'new-password'; ni2.value = TOPF.npass || ''; ni2.addEventListener('input', () => { TOPF.npass = ni2.value; });
+      const ch = h('button', 'top-ref', 'Сменить пароль'); ch.type = 'button';
+      ch.addEventListener('click', async () => {
+        if ((TOPF.npass || '').length < 6) { TOPF.pmsg = 'Новый пароль от 6 символов'; renderQuest(); return; }
+        TOPF.pmsg = 'Секунду…'; renderQuest();
+        try { await accChangePass(TOPF.opass || '', TOPF.npass); TOPF.pmsg = 'Пароль сменён. Старые файлы сохранения больше не входят сами (прогресс из них загрузится), так что сохрани новый файл'; TOPF.opass = TOPF.npass = ''; TOPF.pw = false; showInfo('Пароль сменён', 2400); } catch (e) { TOPF.pmsg = fbErrText(e); }
+        renderQuest();
+      });
+      card.appendChild(oi); card.appendChild(ni2); card.appendChild(ch);
+    }
+    if (TOPF.pmsg) card.appendChild(h('div', 'opt-note', TOPF.pmsg));
+    card.appendChild(h('div', 'opt-note', '💾 Файл сохранения из настроек теперь хранит и вход в аккаунт: открой его на другом телефоне и ты сразу в аккаунте. Не отправляй этот файл посторонним.'));
+  }
+  el.appendChild(card);
+  const kt = h('div', 'qtabs sub');
+  TOPK.forEach(t => { const b = h('button', null, t[1]); b.type = 'button'; b.setAttribute('aria-pressed', TOPS.k === t[0] ? 'true' : 'false'); b.addEventListener('click', () => { TOPS.k = t[0]; Snd.tick(0); renderQuest(); topLoad(t[0], false); }); kt.appendChild(b); });
+  el.appendChild(kt);
+  const d = TOPS.data[TOPS.k], list = h('div', 'top-list');
+  if (TOPS.err) list.appendChild(h('div', 'opt-note', '⚠️ ' + TOPS.err));
+  else if (!d) list.appendChild(h('div', 'opt-note', TOPS.loading ? 'Загружаю…' : 'Нажми «Обновить»'));
+  else if (!d.rows.length) list.appendChild(h('div', 'opt-note', 'Пока никого нет. Будь первой!'));
+  else d.rows.forEach((r, i) => {
+    const row = h('div', 'top-r' + (ACC.uid && r.uid === ACC.uid ? ' me' : ''));
+    row.appendChild(h('span', 'top-n', i < 3 ? ['🥇', '🥈', '🥉'][i] : String(i + 1)));
+    row.appendChild(h('span', 'top-nick', r.nick)); row.appendChild(h('span', 'top-v', String(r.v)));
+    list.appendChild(row);
+  });
+  el.appendChild(list);
+  const rf = h('button', 'top-ref', TOPS.loading ? '…' : '↻ Обновить'); rf.type = 'button'; rf.addEventListener('click', () => { Snd.tick(0); topLoad(TOPS.k, true); }); el.appendChild(rf);
+}
 /* ---------- Ragdoll ---------- */
 // joint: spring stiffness, damping, how far it may swing outward / inward, and which side it sits on
 const RAG_JOINTS = {
@@ -8847,6 +9216,20 @@ function drawPan() {
   }
 }
 
+// a little cup on the bucket opens the leaderboard
+function trophyPos() { const top = rimY + potRy + 22, bot = potBottom - 26; return { x: potCx, y: (top + bot) / 2 + 2, r: 17 }; }
+function drawTrophy(SKN) {
+  const t = trophyPos(), s = t.r / 15; g.save(); g.translate(t.x, t.y); g.scale(s, s);
+  const on = typeof ACC !== 'undefined' && ACC.uid;
+  g.globalAlpha = on ? 1 : 0.85;
+  g.fillStyle = on ? '#ffd45e' : '#e8d7a0'; g.strokeStyle = on ? '#b8862a' : '#9a8a60'; g.lineWidth = 1.5; g.lineJoin = 'round';
+  g.beginPath(); g.moveTo(-8, -11); g.lineTo(8, -11); g.lineTo(7, -2); g.quadraticCurveTo(6, 5, 0, 6); g.quadraticCurveTo(-6, 5, -7, -2); g.closePath(); g.fill(); g.stroke();
+  g.beginPath(); g.moveTo(-8, -9); g.quadraticCurveTo(-15, -9, -12, -3); g.quadraticCurveTo(-10, 0, -7, 0); g.moveTo(8, -9); g.quadraticCurveTo(15, -9, 12, -3); g.quadraticCurveTo(10, 0, 7, 0); g.stroke();
+  g.fillRect(-1.5, 6, 3, 4); g.fillRect(-6, 10, 12, 3.5); g.strokeRect(-6, 10, 12, 3.5);
+  g.fillStyle = 'rgba(255,255,255,0.55)'; g.fillRect(-5, -9, 2, 7);
+  g.restore();
+}
+function trophyHit(px, py) { const t = trophyPos(); return Math.hypot(px - t.x, py - t.y) < t.r + 10; }
 function drawPotFront() {
   const SKN = skinVis();
   const rx = potRx, bx = potRx * 0.92, bot = potBottom;
@@ -8909,6 +9292,7 @@ function drawPotFront() {
   g.fillStyle = SKN ? SKN.txt : 'rgba(255,255,255,0.92)'; g.font = '600 13px Fredoka, system-ui, sans-serif';
   g.fillText((G.src === 'mix' ? 'Микс ' : 'Воск ') + Math.round(G.level * 100) + '%' + (G.src === 'mix' ? ' ' + trashIco() : potRefillable() ? '  ·  долить' : ''), potCx, rimY + potRy + 27);
   g.fillStyle = SKN ? SKN.txt : 'rgba(255,255,255,0.5)'; g.globalAlpha = SKN ? 0.7 : 1; g.font = '500 11px Fredoka, system-ui, sans-serif';
+  drawTrophy(SKN);
   g.fillText('сломано: ' + G.broken + (G.foundTotal ? '  ·  находки: ' + G.foundTotal : ''), potCx, bot - 18);
   g.globalAlpha = 1; g.textBaseline = 'alphabetic';
   g.restore();
