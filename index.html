@@ -4533,7 +4533,7 @@ function askDumpChunks() {
     tray.chunks.length = 0; tray.bump = 1; Snd.init();
     if (holeOn()) Snd.hole(pan(panCx)); else { Snd.blub(pan(panCx)); Snd.squish(0.5); }
     showInfo('Кусочки выброшены', 1800); saveNow();
-  });
+  }, null, ['Выбросить', 'Не надо']);
 }
 function toggleMelt() {
   const pn = pan(panCx);
@@ -4563,7 +4563,7 @@ function potRefillable() {
   return true;
 }
 function askRefill() {
-  askConfirm('Долить воск до 100%? Бесплатно.', () => { Snd.init(); setLvl('pot', 1); Snd.pour(false); Snd.chime(0); Snd.squish(0.5); saveNow(); });
+  askConfirm('Долить воск до 100%? Бесплатно.', () => { Snd.init(); setLvl('pot', 1); Snd.pour(false); Snd.chime(0); Snd.squish(0.5); saveNow(); }, null, ['Долить', 'Не надо']);
 }
 function inPotBody(px, py) { return px > potCx - potRx * 0.92 && px < potCx + potRx * 0.92 && py > rimY + potRy + 14 && py < potBottom; }
 function handleTap(px, py) {
@@ -6841,7 +6841,7 @@ const ORDERS = [
   { id: 'butterlav', d: 1, n: 'Лавандовая бабочка', s: 'Села и не улетает. Воск.', r: [R.kind('Бабочка'), R.hue('purple', 'Лавандовый воск')] },
   { id: 'diamblue', d: 1, n: 'Синий алмаз', s: 'Не настоящий, но очень уверенный.', r: [R.kind('Алмаз'), R.hue('blue', 'Синий воск')] },
   { id: 'cakewhite', d: 1, n: 'Белый тортик', s: 'Свадебный. Чей-то. Не твой.', r: [R.kind('Тортик'), R.hue('white', 'Белый воск')] },
-  { id: 'beeramber', d: 1, n: 'Янтарное пиво', s: 'Без пены и без градусов.', r: [R.kind('Пиво'), R.hue('yellow', 'Янтарный воск')] },
+  { id: 'beeramber', d: 1, n: 'Янтарное пиво', s: 'Без пены и без градусов.', r: [R.kind('Пиво'), R.hue('yellow', 'Жёлтый воск (Мёд)')] },
   { id: 'starsun', d: 1, n: 'Солнечная звёздочка', s: 'Светит, пока не сломаешь.', r: [R.kind('Звёздочка'), R.hue('yellow', 'Жёлтый воск')] },
   { id: 'heartred', d: 1, n: 'Красное сердечко', s: 'Для того, кто всё понимает.', r: [R.kind('Сердечко'), R.hue('red', 'Красный воск')] },
   { id: 'padblue', d: 1, n: 'Синий геймпад', s: 'Играть нельзя, нажимать можно.', r: [R.kind('Геймпад'), R.hue('blue', 'Синий воск')] },
@@ -6862,7 +6862,7 @@ const ORDERS = [
   { id: 'glowstar', d: 2, n: 'Звезда-светлячок', s: 'Чтобы найти её ночью без фонарика.', r: [R.kind('Звёздочка'), R.fx('glow', 'Светлячок (от 20%)')] },
   { id: 'lavadiamond', d: 2, n: 'Лавовый алмаз', s: 'Горячий камень. Руками не трогать, но трогай.', r: [R.kind('Алмаз'), R.fx('lava', 'Лавовый цвет (от 20%)')] },
   { id: 'globeclear', d: 2, n: 'Стеклянный шар', s: 'Прозрачный шар в прозрачном воске.', r: [R.kind('Снежный шар'), R.fx('glass', 'Прозрачный воск')] },
-  { id: 'beerfoam', d: 2, n: 'Пиво с пенкой', s: 'Янтарь снизу, белая пенка сверху.', r: [R.kind('Пиво'), R.layers(2), R.hue('yellow', 'Янтарный слой'), R.hue('white', 'Белая пенка')] },
+  { id: 'beerfoam', d: 2, n: 'Пиво с пенкой', s: 'Янтарь снизу, белая пенка сверху.', r: [R.kind('Пиво'), R.layers(2), R.hue('yellow', 'Жёлтый слой (Мёд)'), R.hue('white', 'Белая пенка')] },
   { id: 'butterglit', d: 2, n: 'Блестящая бабочка', s: 'Пыльца вместо крыльев. Почти.', r: [R.kind('Бабочка'), R.fx('glitter', 'Блёстки')] },
   { id: 'crowncharm', d: 2, n: 'Корона с сюрпризом', s: 'Внутри что-то лежит. Королевское.', r: [R.kind('Корона'), R.fx('charm', 'Сюрприз всплыл')] },
   { id: 'icegrad', d: 2, n: 'Градиентное мороженое', s: 'Два вкуса, один рожок.', r: [R.kind('Мороженое'), R.fx('grad', 'Градиентный воск')] },
@@ -7306,7 +7306,7 @@ function shelfSave() {
 }
 function shelfTrashCurrent() {
   if (!G.layers.length) return;
-  askConfirm('Выбросить предмет в воске? Воск не вернётся', () => { shelfClearCurrent(); Snd.init(); Snd.squish(0); saveNow(); renderQuest(); });
+  askConfirm('Выбросить предмет в воске? Воск не вернётся', () => { shelfClearCurrent(); Snd.init(); Snd.squish(0); saveNow(); renderQuest(); }, null, ['Выбросить', 'Не надо']);
 }
 function shelfTake(i) {
   const it = QS.shelf[i]; if (!it) return;
@@ -7323,7 +7323,7 @@ function shelfTake(i) {
   showInfo('Взяла с полки', 1800);
 }
 function shelfDrop(i) {
-  askConfirm('Выбросить это творение с полки?', () => { QS.shelf.splice(i, 1); Snd.init(); Snd.squish(0); saveNow(); renderQuest(); });
+  askConfirm('Выбросить это творение с полки?', () => { QS.shelf.splice(i, 1); Snd.init(); Snd.squish(0); saveNow(); renderQuest(); }, null, ['Выбросить', 'Не надо']);
 }
 
 function renderShelf(root) {
@@ -8086,6 +8086,7 @@ function saveNow() {
   try { localStorage.setItem(SAVE_KEY, JSON.stringify(saveSnapshot())); SAVEUI.ok = true; return true; } catch (e) { return false; }
 }
 (function loadSaved() {
+  try { SAVEUI.fresh = JSON.parse(JSON.stringify(saveSnapshot())); SAVEUI.fresh.Q.coins = 30; } catch (e) { SAVEUI.fresh = null; } // an untouched game, for "erase progress"
   let raw = null;
   try { raw = localStorage.getItem(SAVE_KEY); } catch (e) { return; }
   if (!raw) { QS.coins = 30; return; } // a fresh game starts with a little pocket money
@@ -8129,7 +8130,8 @@ loadInput.addEventListener('change', async () => {
 const DRAIN = { on: false, src: 'pot', st: false };
 const askToast = document.getElementById('askToast'), askMsg = document.getElementById('askMsg');
 let askYes = null, askNoFn = null;
-function askConfirm(text, yes, no) { askMsg.textContent = text; askYes = yes; askNoFn = no || null; askToast.hidden = false; }
+// labels = [yes button, no button]; every caller names its own so the question and the buttons fit together
+function askConfirm(text, yes, no, labels) { askMsg.textContent = text; askYes = yes; askNoFn = no || null; const l = labels || ['Да', 'Нет']; document.getElementById('askYes').textContent = l[0]; document.getElementById('askNo').textContent = l[1]; askToast.hidden = false; }
 function askClose() { askToast.hidden = true; askYes = null; askNoFn = null; }
 document.getElementById('askYes').addEventListener('click', () => { const f = askYes; askClose(); if (f) f(); });
 document.getElementById('askNo').addEventListener('click', () => { const f = askNoFn; askClose(); if (f) f(); });
@@ -8140,7 +8142,7 @@ function askDrain(src, fromStudio) {
   askConfirm('Вылить ' + (src === 'mix' ? 'микс' : 'воск') + ' (' + Math.round(v * 100) + '%) в мусорку?', () => {
     Snd.init(); DRAIN.on = true; DRAIN.src = src; DRAIN.st = !!fromStudio; DRAIN.t = 0; Snd.pour(true);
     DRAIN.col = src === 'mix' ? MIX.avg.slice() : hexRgb(COLORS[G.colorIdx].c);
-  });
+  }, null, ['Вылить', 'Не надо']);
 }
 function drainStep(dt) {
   if (!DRAIN.on) return;
@@ -8219,6 +8221,7 @@ function fbErrText(e) {
   if (/EMAIL_EXISTS/.test(m)) return 'Такой ник уже занят';
   if (/INVALID_LOGIN_CREDENTIALS|EMAIL_NOT_FOUND|INVALID_PASSWORD|INVALID_EMAIL/.test(m)) return 'Неверный ник или пароль';
   if (/WEAK_PASSWORD/.test(m)) return 'Пароль слишком простой (от 6 символов)';
+  if (/INVALID_REFRESH_TOKEN/.test(m)) return 'Вход устарел, войди заново';
   if (/CREDENTIAL_TOO_OLD|TOKEN_EXPIRED|INVALID_ID_TOKEN/.test(m)) return 'Нужно ввести текущий пароль';
   if (/TOO_MANY_ATTEMPTS/.test(m)) return 'Слишком много попыток, подожди немного';
   if (/OPERATION_NOT_ALLOWED|CONFIGURATION_NOT_FOUND/.test(m)) return 'В Firebase не включён вход по почте (' + m + ')';
@@ -8227,16 +8230,25 @@ function fbErrText(e) {
 }
 async function accAuth(kind, nick, pass) {
   const j = await fbFetch('https://identitytoolkit.googleapis.com/v1/accounts:' + (kind === 'new' ? 'signUp' : 'signInWithPassword') + '?key=' + FBX.key, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: nickEmail(nick), password: pass, returnSecureToken: true }) });
-  ACC.uid = j.localId; ACC.nick = nick; ACC.idToken = j.idToken; ACC.refresh = j.refreshToken; ACC.exp = Date.now() + (+j.expiresIn || 3600) * 1000; accStore();
+  ONL.hold = false; ACC.uid = j.localId; ACC.nick = nick; ACC.idToken = j.idToken; ACC.refresh = j.refreshToken; ACC.exp = Date.now() + (+j.expiresIn || 3600) * 1000; accStore();
 }
 async function accToken() {
   if (!ACC.uid) return null;
   if (ACC.idToken && ACC.exp - Date.now() > 60000) return ACC.idToken;
-  const j = await fbFetch('https://securetoken.googleapis.com/v1/token?key=' + FBX.key, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: 'grant_type=refresh_token&refresh_token=' + encodeURIComponent(ACC.refresh) });
+  let j;
+  try { j = await fbFetch('https://securetoken.googleapis.com/v1/token?key=' + FBX.key, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: 'grant_type=refresh_token&refresh_token=' + encodeURIComponent(ACC.refresh) }); }
+  catch (e) { if (/INVALID_REFRESH_TOKEN|TOKEN_EXPIRED|USER_NOT_FOUND|USER_DISABLED|INVALID_GRANT_TYPE|MISSING_REFRESH_TOKEN/.test(String(e && e.message))) accExpire(); throw e; }
   ACC.idToken = j.id_token; ACC.refresh = j.refresh_token || ACC.refresh; ACC.exp = Date.now() + (+j.expires_in || 3600) * 1000; accStore();
   return ACC.idToken;
 }
-function accOut() { ACC.uid = ACC.nick = ACC.idToken = ACC.refresh = null; ACC.exp = ACC.lastTs = ACC.pushed = 0; accStore(); }
+// the saved login stopped working (the nick or the password was changed on another device, or the account was deleted): sign out once, clearly
+function accExpire() {
+  const nick = ACC.nick; accOut(); ONL.err = ''; TOPF.nick = nick || TOPF.nick; TOPF.pass = '';
+  TOPF.msg = 'Вход устарел: ник или пароль меняли на другом устройстве. Войди заново (ник мог поменяться). Прогресс на этом устройстве остался.';
+  try { renderQuestIfTop(); showInfo('Вход в аккаунт устарел, войди заново', 4000); } catch (e) { }
+}
+function renderQuestIfTop() { if (!questEl.hidden && QTAB === 'top') renderQuest(); }
+function accOut() { ONL.hold = false; ACC.uid = ACC.nick = ACC.idToken = ACC.refresh = null; ACC.exp = ACC.lastTs = ACC.pushed = 0; accStore(); }
 
 /* ----- Firestore value helpers ----- */
 const fvS = (s) => ({ stringValue: String(s) }), fvI = (n) => ({ integerValue: String(Math.max(0, Math.round(n || 0))) });
@@ -8272,10 +8284,10 @@ function applyCloudSnapshot(d) {
 }
 
 /* ----- push / pull ----- */
-var ONL = { busy: false, last: 0, sig: '', msg: '', err: '' };
+var ONL = { busy: false, last: 0, sig: '', msg: '', err: '', hold: !!ACC.uid }; // hold: do not overwrite the cloud before we know whether it is newer
 function accSig() { const s = saveSnapshot(); s.t = 0; const j = JSON.stringify(s); let h = 0; for (let i = 0; i < j.length; i++) h = (h * 31 + j.charCodeAt(i)) | 0; return j.length + ':' + h; }
 async function accPush(force) {
-  if (!ACC.uid || ONL.busy || SAVEUI.wiped || document.hidden && !force) return false;
+  if (!ACC.uid || ONL.busy || (ONL.hold && force !== 'user') || document.hidden && !force) return false;
   const sig = accSig(); if (!force && sig === ONL.sig) return false;
   ONL.busy = true;
   try {
@@ -8291,32 +8303,39 @@ async function accCloudInfo() {
   const d = await fsGet('saves/' + ACC.uid); if (!d) return null;
   const f = d.fields || {}; return { ts: fgI(f, 'ts'), enc: fgS(f, 'enc'), z: fgS(f, 'z') };
 }
-async function accPullApply(c) { const d = await unpackSave(c.enc, c.z); applyCloudSnapshot(d); ACC.lastTs = c.ts; accStore(); ONL.sig = accSig(); return d; }
+async function accPullApply(c) {
+  const d = await unpackSave(c.enc, c.z); applyCloudSnapshot(d); ACC.lastTs = c.ts; accStore(); ONL.sig = accSig(); TOPS.data = {};
+  ONL.hold = false; await accPush('user'); // the table gets the restored numbers too
+  return d;
+}
 function freshLocal() { return !QS.stats.orders && !QS.stats.pieces && !QS.stats.layers && G.broken === 0 && Object.keys(QS.owned || {}).length === 0; }
 // right after signing in: new account takes this device's progress, an old one offers its cloud progress
 async function accAfterLogin(isNew) {
-  if (isNew) { await accPush(true); return 'Аккаунт создан, прогресс сохранён в облако'; }
+  if (isNew) { await accPush('user'); return 'Аккаунт создан, прогресс сохранён в облако'; }
   const c = await accCloudInfo();
-  if (!c) { await accPush(true); return 'Вошла. Прогресс этого устройства записан в облако'; }
+  if (!c) { await accPush('user'); return 'Вошла. Прогресс этого устройства записан в облако'; }
   if (freshLocal()) { await accPullApply(c); return 'Вошла. Прогресс загружен из облака'; }
-  askConfirm('В облаке уже есть прогресс этого аккаунта. Загрузить его сюда? «Нет» — оставить прогресс этого устройства и записать его в облако.', async () => {
+  askConfirm('В облаке уже есть прогресс этого аккаунта. Загрузить его сюда? Иначе останется прогресс этого устройства, и он перезапишет облако.', async () => {
     try { await accPullApply(c); showInfo('Прогресс загружен из облака', 2600); } catch (e) { showInfo('Не получилось загрузить: ' + fbErrText(e), 3500); }
     renderQuest();
-  }, () => { accPush(true).then(() => renderQuest()); }); // "no": keep this device's progress and write it to the cloud
+  }, () => { accPush('user').then(() => renderQuest()); }, ['Из облака', 'Оставить моё']);
   return 'Вошла';
 }
 // on start / return to the app: did another device save newer progress?
 async function accCheckNewer() {
-  if (!ACC.uid || document.hidden || SAVEUI.wiped || !askToast.hidden) return;
+  if (!ACC.uid || document.hidden || !askToast.hidden) return;
   try {
-    const c = await accCloudInfo(); if (!c || c.ts <= ACC.lastTs + 2000) return;
-    askConfirm(freshLocal() ? 'Здесь игра пока пустая, а в облаке есть твой прогресс. Загрузить его? «Нет» — начать с чистого листа, и облачный прогресс перезапишется.' : 'В облаке есть сохранённый прогресс, он новее, чем на этом устройстве. Загрузить его? «Нет» — оставить этот и записать его в облако.',
-      async () => { try { await accPullApply(c); showInfo('Прогресс загружен из облака', 2600); } catch (e) { showInfo(fbErrText(e), 3500); } },
-      () => { ACC.lastTs = c.ts; accStore(); accPush(true); });
-  } catch (e) { }
+    const c = await accCloudInfo();
+    if (!c || c.ts <= ACC.lastTs + 2000) { ONL.hold = false; return; }
+    const fresh = freshLocal();
+    askConfirm(fresh ? 'Здесь игра пока пустая, а в облаке есть твой прогресс. Загрузить его? Иначе игра начнётся с нуля, и облачный прогресс перезапишется.' : 'В облаке есть сохранённый прогресс, он новее, чем на этом устройстве. Загрузить его? Иначе останется прогресс этого устройства, и он перезапишет облако.',
+      async () => { try { await accPullApply(c); showInfo('Прогресс загружен из облака', 2600); } catch (e) { ONL.hold = false; showInfo(fbErrText(e), 3500); } },
+      () => { ACC.lastTs = c.ts; accStore(); ONL.hold = false; accPush('user'); },
+      fresh ? ['Загрузить', 'С нуля'] : ['Из облака', 'Оставить моё']);
+  } catch (e) { /* no connection: stay on hold, try again later */ }
 }
-setInterval(() => { if (ACC.uid && !document.hidden && Date.now() - ONL.last > 30000) accPush(false); }, 15000);
-document.addEventListener('visibilitychange', () => { if (document.hidden) { if (ACC.uid) accPush(true); } else setTimeout(accCheckNewer, 800); });
+setInterval(() => { if (!ACC.uid || document.hidden) return; if (ONL.hold) { accCheckNewer(); return; } if (Date.now() - ONL.last > 30000) accPush(false); }, 15000);
+document.addEventListener('visibilitychange', () => { if (document.hidden) { if (ACC.uid) accPush(true); } else { ONL.hold = ONL.hold || false; setTimeout(accCheckNewer, 800); } });
 setTimeout(accCheckNewer, 2500);
 
 
@@ -8328,16 +8347,16 @@ async function accFromFile(d) {
   const prev = { uid: ACC.uid, nick: ACC.nick, idToken: ACC.idToken, refresh: ACC.refresh, exp: ACC.exp, lastTs: ACC.lastTs, pushed: ACC.pushed };
   ACC.uid = a.uid; ACC.nick = a.nick; ACC.refresh = a.refresh; ACC.idToken = null; ACC.exp = 0; ACC.lastTs = 0; ACC.pushed = 0;
   try {
-    await accToken(); accStore(); TOPS.data = {};
+    await accToken(); ONL.hold = false; accStore(); TOPS.data = {};
     // the file was opened on purpose, so its progress goes to the cloud, unless the cloud is clearly newer
     const c = await accCloudInfo();
     if (c && c.ts > (d.t || 0) + 2000) {
-      askConfirm('Ты вошла в аккаунт ' + a.nick + ', но в облаке прогресс новее, чем в файле. Оставить прогресс из файла? «Нет» — загрузить из облака.',
-        () => { accPush(true).then(() => renderQuest()); },
-        async () => { try { await accPullApply(c); showInfo('Прогресс загружен из облака', 2600); } catch (e) { showInfo(fbErrText(e), 3500); } renderQuest(); });
+      askConfirm('Ты вошла в аккаунт ' + a.nick + ', но в облаке прогресс новее, чем в файле. Какой оставить?',
+        () => { accPush('user').then(() => renderQuest()); },
+        async () => { try { await accPullApply(c); showInfo('Прогресс загружен из облака', 2600); } catch (e) { showInfo(fbErrText(e), 3500); } renderQuest(); }, ['Из файла', 'Из облака']);
       return 'Прогресс загружен, вошла в аккаунт ' + a.nick;
     }
-    await accPush(true);
+    await accPush('user');
     return 'Прогресс загружен, вошла в аккаунт ' + a.nick;
   } catch (e) {
     Object.assign(ACC, prev); accStore();
@@ -8351,7 +8370,7 @@ async function accChangeNick(oldPass, nick) {
   const tok = await accToken();
   const j = await fbFetch('https://identitytoolkit.googleapis.com/v1/accounts:update?key=' + FBX.key, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ idToken: tok, email: nickEmail(nick), returnSecureToken: true }) });
   ACC.nick = nick; ACC.idToken = j.idToken; ACC.refresh = j.refreshToken; ACC.exp = Date.now() + (+j.expiresIn || 3600) * 1000; accStore();
-  TOPS.data = {}; await accPush(true); // the table shows the new nick right away
+  TOPS.data = {}; await accPush('user'); // the table shows the new nick right away
 }
 async function accDelete(oldPass) {
   if (oldPass) await accAuth('in', ACC.nick, oldPass);
@@ -8411,9 +8430,9 @@ function renderTop(el) {
     card.appendChild(h('div', 'opt-note', 'Сломано ' + G.broken + ' · монет ' + QS.coins + ' · заказов ' + QS.stats.orders));
     card.appendChild(h('div', 'opt-note', ONL.err ? '⚠️ ' + ONL.err : ACC.pushed ? '☁️ Сохранено в облаке в ' + new Date(ACC.pushed).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) : '☁️ Ещё не сохранено'));
     const row = h('div', 'savebtns');
-    const sv = h('button', null, '☁️ Сохранить'); sv.type = 'button'; sv.addEventListener('click', async () => { sv.disabled = true; const ok = await accPush(true); TOPS.data = {}; showInfo(ok ? 'Сохранено в облако' : (ONL.err || 'Не вышло'), 2400); renderQuest(); topLoad(TOPS.k, true); });
+    const sv = h('button', null, '☁️ Сохранить'); sv.type = 'button'; sv.addEventListener('click', async () => { sv.disabled = true; const ok = await accPush('user'); TOPS.data = {}; showInfo(ok ? 'Сохранено в облако' : (ONL.err || 'Не вышло'), 2400); renderQuest(); topLoad(TOPS.k, true); });
     const pw = h('button', null, '⚙ Аккаунт'); pw.type = 'button'; pw.addEventListener('click', () => { TOPF.pw = !TOPF.pw; TOPF.pmsg = ''; renderQuest(); });
-    const lo = h('button', null, 'Выйти'); lo.type = 'button'; lo.addEventListener('click', () => { askConfirm('Выйти из аккаунта? Прогресс на этом устройстве останется.', () => { accOut(); TOPF.msg = ''; renderQuest(); }); });
+    const lo = h('button', null, 'Выйти'); lo.type = 'button'; lo.addEventListener('click', () => { askConfirm('Выйти из аккаунта? Прогресс на этом устройстве останется.', () => { accOut(); TOPF.msg = ''; renderQuest(); }, null, ['Выйти', 'Остаться']); });
     row.appendChild(sv); row.appendChild(pw); row.appendChild(lo); card.appendChild(row);
     if (TOPF.pw) {
       const mk = (ph, key, type, ac, max) => { const i2 = h('input', 'acc-in'); i2.type = type; i2.placeholder = ph; if (max) i2.maxLength = max; i2.autocomplete = ac; i2.value = TOPF[key] || ''; i2.addEventListener('input', () => { TOPF[key] = i2.value; }); return i2; };
@@ -8425,7 +8444,7 @@ function renderTop(el) {
       card.appendChild(btn('Сменить ник', () => { const nn = (TOPF.nnick || '').trim(); run(async () => { await accChangeNick(TOPF.opass || '', nn); TOPF.nnick = ''; TOPF.opass = ''; TOPF.pw = false; showInfo('Ник сменён: ' + nn, 2400); }, 'Ник сменён. Старые файлы сохранения больше не входят сами, сохрани новый файл'); }));
       card.appendChild(mk('новый пароль (от 6 символов)', 'npass', 'password', 'new-password', 40));
       card.appendChild(btn('Сменить пароль', () => { if ((TOPF.npass || '').length < 6) { TOPF.pmsg = 'Новый пароль от 6 символов'; renderQuest(); return; } run(async () => { await accChangePass(TOPF.opass || '', TOPF.npass); TOPF.opass = TOPF.npass = ''; TOPF.pw = false; showInfo('Пароль сменён', 2400); }, 'Пароль сменён. Старые файлы сохранения больше не входят сами, сохрани новый файл'); }));
-      card.appendChild(btn('🗑 Удалить аккаунт', () => { askConfirm('Удалить аккаунт ' + ACC.nick + ' и всё из облака (прогресс, место в таблице)? Прогресс на этом устройстве останется. Это не отменить.', () => { run(async () => { await accDelete(TOPF.opass || ''); TOPF.opass = ''; TOPF.pw = false; }, 'Аккаунт удалён. Можно создать новый'); }); }, 'top-ref danger'));
+      card.appendChild(btn('🗑 Удалить аккаунт', () => { askConfirm('Удалить аккаунт ' + ACC.nick + ' и всё из облака (прогресс, место в таблице)? Прогресс на этом устройстве останется. Это не отменить.', () => { run(async () => { await accDelete(TOPF.opass || ''); TOPF.opass = ''; TOPF.pw = false; }, 'Аккаунт удалён. Можно создать новый'); }, null, ['Удалить', 'Не надо']); }, 'top-ref danger'));
     }
     if (TOPF.pmsg) card.appendChild(h('div', 'opt-note', TOPF.pmsg));
     card.appendChild(h('div', 'opt-note', '💾 Файл сохранения из настроек теперь хранит и вход в аккаунт: открой его на другом телефоне и ты сразу в аккаунте. Не отправляй этот файл посторонним.'));
@@ -8449,13 +8468,17 @@ function renderTop(el) {
 }
 
 /* ----- erase the progress on this device (the account and the cloud stay) ----- */
+// done in place, without reloading the page: a reload made the phone re-measure the screen and the layout jumped
 document.getElementById('wipeBtn').addEventListener('click', () => {
-  askConfirm(ACC.uid ? 'Стереть весь прогресс на этом устройстве? Аккаунт и облако не тронутся, при следующем запуске игра предложит загрузить прогресс из облака.' : 'Стереть весь прогресс на этом устройстве? Облака нет, так что вернуть его можно будет только из файла сохранения.', () => {
-    SAVEUI.wiped = true; // from now on nothing is written back, not to the device and not to the cloud
+  askConfirm(ACC.uid ? 'Стереть весь прогресс на этом устройстве? Аккаунт и облако не тронутся, и игра предложит загрузить прогресс из облака.' : 'Стереть весь прогресс на этом устройстве? Облака нет, так что вернуть прогресс можно будет только из файла сохранения.', () => {
+    if (!SAVEUI.fresh) { showInfo('Не получилось стереть', 2400); return; }
     try { localStorage.removeItem(SAVE_KEY); } catch (e) { }
-    ACC.lastTs = 0; accStore();
-    setTimeout(() => location.reload(), 150);
-  });
+    ONL.hold = !!ACC.uid; ONL.sig = ''; ACC.lastTs = 0; accStore();
+    try { closeQuest(); } catch (e) { }
+    applyCloudSnapshot(JSON.parse(JSON.stringify(SAVEUI.fresh)));
+    showInfo('Прогресс на этом устройстве стёрт', 2400);
+    if (ACC.uid) setTimeout(accCheckNewer, 600);
+  }, null, ['Стереть', 'Не надо']);
 });
 
 /* ----- at start: offer an account (stops asking after three "later") ----- */
@@ -8464,7 +8487,7 @@ setTimeout(() => {
   let n = 0; try { n = +localStorage.getItem('waxAsmrAccAsk') || 0; } catch (e) { }
   if (n >= 3) return;
   askConfirm('Создать аккаунт или войти? Прогресс сохранится в облаке, и ты попадёшь в таблицу лидеров.', () => { Snd.init(); openQuest('top'); topLoad(TOPS.k, false); },
-    () => { try { localStorage.setItem('waxAsmrAccAsk', String(n + 1)); } catch (e) { } });
+    () => { try { localStorage.setItem('waxAsmrAccAsk', String(n + 1)); } catch (e) { } }, ['Давай', 'Позже']);
 }, 3500);
 /* ---------- Ragdoll ---------- */
 // joint: spring stiffness, damping, how far it may swing outward / inward, and which side it sits on
