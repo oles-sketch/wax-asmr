@@ -491,6 +491,7 @@
       <div class="secret" id="secretRow" hidden><input type="password" id="secretIn" inputmode="numeric" placeholder="пароль" autocomplete="off" maxlength="20"><button type="button" id="secretOk">OK</button></div>
       <div class="vlvl" id="vibeLvl"><button type="button" data-k="1">Слабая</button><button type="button" data-k="2">Средняя</button><button type="button" data-k="4">Сильная</button></div>
       <div class="savebtns"><button type="button" id="saveFileBtn">💾 Сохранить в файл</button><button type="button" id="loadFileBtn">📂 Загрузить</button></div>
+      <div class="savebtns" style="margin-top:6px"><button type="button" id="wipeBtn">🗑 Стереть прогресс на этом устройстве</button></div>
       <input type="file" id="loadFile" accept=".json,application/json" hidden>
       <div class="opt-note" id="saveNote" hidden></div>
       <div class="opt-note">Прогресс сохраняется сам. Файл нужен, чтобы перенести его на другой телефон или если браузер всё забывает Если ты вошла в аккаунт, файл хранит и вход: при загрузке ты сразу в аккаунте, поэтому не отправляй его посторонним.</div>
@@ -8072,6 +8073,7 @@ function applySnapshot(d) {
 }
 const SAVEUI = { ok: false };
 function saveNow() {
+  if (SAVEUI.wiped) return false; // progress was just erased: do not write it back while the page reloads
   try { localStorage.setItem(SAVE_KEY, JSON.stringify(saveSnapshot())); SAVEUI.ok = true; return true; } catch (e) { return false; }
 }
 (function loadSaved() {
@@ -8264,7 +8266,7 @@ function applyCloudSnapshot(d) {
 var ONL = { busy: false, last: 0, sig: '', msg: '', err: '' };
 function accSig() { const s = saveSnapshot(); s.t = 0; const j = JSON.stringify(s); let h = 0; for (let i = 0; i < j.length; i++) h = (h * 31 + j.charCodeAt(i)) | 0; return j.length + ':' + h; }
 async function accPush(force) {
-  if (!ACC.uid || ONL.busy || document.hidden && !force) return false;
+  if (!ACC.uid || ONL.busy || SAVEUI.wiped || document.hidden && !force) return false;
   const sig = accSig(); if (!force && sig === ONL.sig) return false;
   ONL.busy = true;
   try {
@@ -8296,10 +8298,12 @@ async function accAfterLogin(isNew) {
 }
 // on start / return to the app: did another device save newer progress?
 async function accCheckNewer() {
-  if (!ACC.uid || document.hidden) return;
+  if (!ACC.uid || document.hidden || SAVEUI.wiped || !askToast.hidden) return;
   try {
     const c = await accCloudInfo(); if (!c || c.ts <= ACC.lastTs + 2000) return;
-    askConfirm('В облаке есть более новый прогресс (с другого устройства). Загрузить его?', async () => { try { await accPullApply(c); showInfo('Прогресс загружен из облака', 2600); } catch (e) { showInfo(fbErrText(e), 3500); } });
+    askConfirm(freshLocal() ? 'Здесь игра пока пустая, а в облаке есть твой прогресс. Загрузить его? «Нет» — начать с чистого листа, и облачный прогресс перезапишется.' : 'В облаке есть сохранённый прогресс, он новее, чем на этом устройстве. Загрузить его? «Нет» — оставить этот и записать его в облако.',
+      async () => { try { await accPullApply(c); showInfo('Прогресс загружен из облака', 2600); } catch (e) { showInfo(fbErrText(e), 3500); } },
+      () => { ACC.lastTs = c.ts; accStore(); accPush(true); });
   } catch (e) { }
 }
 setInterval(() => { if (ACC.uid && !document.hidden && Date.now() - ONL.last > 30000) accPush(false); }, 15000);
@@ -8419,6 +8423,25 @@ function renderTop(el) {
   el.appendChild(list);
   const rf = h('button', 'top-ref', TOPS.loading ? '…' : '↻ Обновить'); rf.type = 'button'; rf.addEventListener('click', () => { Snd.tick(0); topLoad(TOPS.k, true); }); el.appendChild(rf);
 }
+
+/* ----- erase the progress on this device (the account and the cloud stay) ----- */
+document.getElementById('wipeBtn').addEventListener('click', () => {
+  askConfirm(ACC.uid ? 'Стереть весь прогресс на этом устройстве? Аккаунт и облако не тронутся, при следующем запуске игра предложит загрузить прогресс из облака.' : 'Стереть весь прогресс на этом устройстве? Облака нет, так что вернуть его можно будет только из файла сохранения.', () => {
+    SAVEUI.wiped = true; // from now on nothing is written back, not to the device and not to the cloud
+    try { localStorage.removeItem(SAVE_KEY); } catch (e) { }
+    ACC.lastTs = 0; accStore();
+    setTimeout(() => location.reload(), 150);
+  });
+});
+
+/* ----- at start: offer an account (stops asking after three "later") ----- */
+setTimeout(() => {
+  if (ACC.uid || document.hidden || !askToast.hidden || !questEl.hidden || REC.on) return;
+  let n = 0; try { n = +localStorage.getItem('waxAsmrAccAsk') || 0; } catch (e) { }
+  if (n >= 3) return;
+  askConfirm('Создать аккаунт или войти? Прогресс сохранится в облаке, и ты попадёшь в таблицу лидеров.', () => { Snd.init(); openQuest('top'); topLoad(TOPS.k, false); },
+    () => { try { localStorage.setItem('waxAsmrAccAsk', String(n + 1)); } catch (e) { } });
+}, 3500);
 /* ---------- Ragdoll ---------- */
 // joint: spring stiffness, damping, how far it may swing outward / inward, and which side it sits on
 const RAG_JOINTS = {
