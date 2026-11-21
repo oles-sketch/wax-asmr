@@ -8198,8 +8198,9 @@ function drawDrainMain() {
 const FBX = { key: 'AIzaSyBe_8BCRJRU52eDaP__mIUbSs5JaiM3Fvs', project: 'wax-asmr' };
 const FB_DOC = 'https://firestore.googleapis.com/v1/projects/' + FBX.project + '/databases/(default)/documents';
 const ACC_KEY = 'waxAsmrAcc1';
-var ACC = { uid: null, nick: null, idToken: null, refresh: null, exp: 0, lastTs: 0, pushed: 0 };
+var ACC = { uid: null, nick: null, login: null, idToken: null, refresh: null, exp: 0, lastTs: 0, pushed: 0 };
 try { const r = localStorage.getItem(ACC_KEY); if (r) Object.assign(ACC, JSON.parse(r)); } catch (e) { }
+if (ACC.uid && !ACC.login) ACC.login = ACC.nick; // the login name (what the e-mail is made of) never changes; ACC.nick is only the name shown in the table
 function accStore() { try { localStorage.setItem(ACC_KEY, JSON.stringify(ACC)); } catch (e) { } }
 
 // the nick becomes a made-up e-mail (Firebase wants one), so every nick is unique without real addresses
@@ -8224,13 +8225,13 @@ function fbErrText(e) {
   if (/INVALID_REFRESH_TOKEN/.test(m)) return 'Вход устарел, войди заново';
   if (/CREDENTIAL_TOO_OLD|TOKEN_EXPIRED|INVALID_ID_TOKEN/.test(m)) return 'Нужно ввести текущий пароль';
   if (/TOO_MANY_ATTEMPTS/.test(m)) return 'Слишком много попыток, подожди немного';
-  if (/OPERATION_NOT_ALLOWED|CONFIGURATION_NOT_FOUND/.test(m)) return 'В Firebase не включён вход по почте (' + m + ')';
+  if (/PASSWORD_LOGIN_DISABLED|CONFIGURATION_NOT_FOUND/.test(m)) return 'В Firebase не включён вход по почте (' + m + ')';
   if (/PERMISSION_DENIED|Missing or insufficient/.test(m)) return 'Правила базы не пускают (' + m + ')';
   return 'Ошибка: ' + m;
 }
 async function accAuth(kind, nick, pass) {
   const j = await fbFetch('https://identitytoolkit.googleapis.com/v1/accounts:' + (kind === 'new' ? 'signUp' : 'signInWithPassword') + '?key=' + FBX.key, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: nickEmail(nick), password: pass, returnSecureToken: true }) });
-  ONL.hold = false; ACC.uid = j.localId; ACC.nick = nick; ACC.idToken = j.idToken; ACC.refresh = j.refreshToken; ACC.exp = Date.now() + (+j.expiresIn || 3600) * 1000; accStore();
+  ONL.hold = false; ACC.uid = j.localId; ACC.nick = nick; ACC.login = nick; ACC.idToken = j.idToken; ACC.refresh = j.refreshToken; ACC.exp = Date.now() + (+j.expiresIn || 3600) * 1000; accStore();
 }
 async function accToken() {
   if (!ACC.uid) return null;
@@ -8248,7 +8249,7 @@ function accExpire() {
   try { renderQuestIfTop(); showInfo('Вход в аккаунт устарел, войди заново', 4000); } catch (e) { }
 }
 function renderQuestIfTop() { if (!questEl.hidden && QTAB === 'top') renderQuest(); }
-function accOut() { ONL.hold = false; ACC.uid = ACC.nick = ACC.idToken = ACC.refresh = null; ACC.exp = ACC.lastTs = ACC.pushed = 0; accStore(); }
+function accOut() { ONL.hold = false; ACC.login = null; ACC.uid = ACC.nick = ACC.idToken = ACC.refresh = null; ACC.exp = ACC.lastTs = ACC.pushed = 0; accStore(); }
 
 /* ----- Firestore value helpers ----- */
 const fvS = (s) => ({ stringValue: String(s) }), fvI = (n) => ({ integerValue: String(Math.max(0, Math.round(n || 0))) });
@@ -8311,6 +8312,7 @@ async function accPullApply(c) {
 function freshLocal() { return !QS.stats.orders && !QS.stats.pieces && !QS.stats.layers && G.broken === 0 && Object.keys(QS.owned || {}).length === 0; }
 // right after signing in: new account takes this device's progress, an old one offers its cloud progress
 async function accAfterLogin(isNew) {
+  if (!isNew) { try { const pd = await fsGet('players/' + ACC.uid); const sn = pd && fgS(pd.fields, 'nick'); if (sn) { ACC.nick = sn; accStore(); } } catch (e) { } } // the name shown in the table may differ from the login name
   if (isNew) { await accPush('user'); return 'Аккаунт создан, прогресс сохранён в облако'; }
   const c = await accCloudInfo();
   if (!c) { await accPush('user'); return 'Вошла. Прогресс этого устройства записан в облако'; }
@@ -8341,11 +8343,11 @@ setTimeout(accCheckNewer, 2500);
 
 /* ----- the account travels inside the save file; opening that file logs in right away ----- */
 // the file holds a login key (not the password): anyone who has the file can enter the account, so keep it private
-function accForFile() { return ACC.uid && ACC.refresh ? { acc: { uid: ACC.uid, nick: ACC.nick, refresh: ACC.refresh } } : {}; }
+function accForFile() { return ACC.uid && ACC.refresh ? { acc: { uid: ACC.uid, nick: ACC.nick, login: ACC.login || ACC.nick, refresh: ACC.refresh } } : {}; }
 async function accFromFile(d) {
   const a = d && d.acc; if (!a || !a.uid || !a.refresh || !a.nick) return '';
   const prev = { uid: ACC.uid, nick: ACC.nick, idToken: ACC.idToken, refresh: ACC.refresh, exp: ACC.exp, lastTs: ACC.lastTs, pushed: ACC.pushed };
-  ACC.uid = a.uid; ACC.nick = a.nick; ACC.refresh = a.refresh; ACC.idToken = null; ACC.exp = 0; ACC.lastTs = 0; ACC.pushed = 0;
+  ACC.uid = a.uid; ACC.nick = a.nick; ACC.login = a.login || a.nick; ACC.refresh = a.refresh; ACC.idToken = null; ACC.exp = 0; ACC.lastTs = 0; ACC.pushed = 0;
   try {
     await accToken(); ONL.hold = false; accStore(); TOPS.data = {};
     // the file was opened on purpose, so its progress goes to the cloud, unless the cloud is clearly newer
@@ -8364,23 +8366,29 @@ async function accFromFile(d) {
     return 'Прогресс загружен, но вход из файла не вышел (' + (old ? 'файл старый: пароль с тех пор менялся' : fbErrText(e)) + '). Войди ником и паролем';
   }
 }
+// Firebase does not let a nick-based address be changed without a mailbox, so the nick in the table is a separate display name;
+// the login name stays the one chosen at sign-up
+async function nickTaken(n) {
+  const tok = await accToken();
+  const j = await fbFetch(FB_DOC + ':runQuery', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + tok }, body: JSON.stringify({ structuredQuery: { from: [{ collectionId: 'players' }], where: { fieldFilter: { field: { fieldPath: 'nick' }, op: 'EQUAL', value: { stringValue: n } } }, limit: 3 } }) });
+  return (j || []).some(r => r.document && r.document.name.split('/').pop() !== ACC.uid);
+}
 async function accChangeNick(oldPass, nick) {
   if (!nickOk(nick)) throw new Error('Ник: 3–14 символов, буквы, цифры, _ или -');
-  if (oldPass) await accAuth('in', ACC.nick, oldPass);
-  const tok = await accToken();
-  const j = await fbFetch('https://identitytoolkit.googleapis.com/v1/accounts:update?key=' + FBX.key, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ idToken: tok, email: nickEmail(nick), returnSecureToken: true }) });
-  ACC.nick = nick; ACC.idToken = j.idToken; ACC.refresh = j.refreshToken; ACC.exp = Date.now() + (+j.expiresIn || 3600) * 1000; accStore();
-  TOPS.data = {}; await accPush('user'); // the table shows the new nick right away
+  if (await nickTaken(nick)) throw new Error('Такой ник уже занят');
+  const was = ACC.nick; ACC.nick = nick; accStore(); TOPS.data = {};
+  const ok = await accPush('user');
+  if (!ok) { ACC.nick = was; accStore(); throw new Error(ONL.err || 'Не вышло сохранить ник'); }
 }
 async function accDelete(oldPass) {
-  if (oldPass) await accAuth('in', ACC.nick, oldPass);
+  if (oldPass) await accAuth('in', ACC.login || ACC.nick, oldPass);
   const tok = await accToken(), uid = ACC.uid;
   for (const p of ['players/', 'saves/']) { try { await fbFetch(FB_DOC + '/' + p + uid, { method: 'DELETE', headers: { Authorization: 'Bearer ' + tok } }); } catch (e) { if (e.http !== 404) throw e; } }
   await fbFetch('https://identitytoolkit.googleapis.com/v1/accounts:delete?key=' + FBX.key, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ idToken: tok }) });
   accOut(); TOPS.data = {};
 }
 async function accChangePass(oldPass, newPass) {
-  if (oldPass) await accAuth('in', ACC.nick, oldPass); // a fresh sign-in, Firebase wants one for a password change
+  if (oldPass) await accAuth('in', ACC.login || ACC.nick, oldPass); // a fresh sign-in, Firebase wants one for a password change
   const tok = await accToken();
   const j = await fbFetch('https://identitytoolkit.googleapis.com/v1/accounts:update?key=' + FBX.key, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ idToken: tok, password: newPass, returnSecureToken: true }) });
   ACC.idToken = j.idToken; ACC.refresh = j.refreshToken; ACC.exp = Date.now() + (+j.expiresIn || 3600) * 1000; accStore();
@@ -8427,6 +8435,7 @@ function renderTop(el) {
     card.appendChild(h('div', 'opt-note', 'Пароль не восстанавливается, так что запомни его. Не используй пароль от важных аккаунтов: это игра :)'));
   } else {
     card.appendChild(h('div', 'ord-n', '👤 ' + ACC.nick));
+    if (ACC.login && ACC.login !== ACC.nick) card.appendChild(h('div', 'opt-note', 'Логин для входа: ' + ACC.login));
     card.appendChild(h('div', 'opt-note', 'Сломано ' + G.broken + ' · монет ' + QS.coins + ' · заказов ' + QS.stats.orders));
     card.appendChild(h('div', 'opt-note', ONL.err ? '⚠️ ' + ONL.err : ACC.pushed ? '☁️ Сохранено в облаке в ' + new Date(ACC.pushed).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) : '☁️ Ещё не сохранено'));
     const row = h('div', 'savebtns');
@@ -8438,10 +8447,10 @@ function renderTop(el) {
       const mk = (ph, key, type, ac, max) => { const i2 = h('input', 'acc-in'); i2.type = type; i2.placeholder = ph; if (max) i2.maxLength = max; i2.autocomplete = ac; i2.value = TOPF[key] || ''; i2.addEventListener('input', () => { TOPF[key] = i2.value; }); return i2; };
       const run = async (fn, ok) => { TOPF.pmsg = 'Секунду…'; renderQuest(); try { await fn(); TOPF.pmsg = ok; } catch (e) { TOPF.pmsg = e && e.message && !/^[A-Z_ :0-9]+$/.test(e.message) && !e.http && !e.net ? e.message : fbErrText(e); } renderQuest(); };
       const btn = (t, f, cls) => { const b3 = h('button', cls || 'top-ref', t); b3.type = 'button'; b3.addEventListener('click', f); return b3; };
-      card.appendChild(h('div', 'opt-note', 'Текущий пароль нужен для смены ника, пароля и удаления. Не помнишь его — оставь пустым, игра попробует по сохранённому входу.'));
+      card.appendChild(h('div', 'opt-note', 'Текущий пароль нужен для смены пароля и удаления. Не помнишь его — оставь пустым, игра попробует по сохранённому входу.'));
       card.appendChild(mk('текущий пароль', 'opass', 'password', 'current-password', 40));
-      card.appendChild(mk('новый ник (3–14 символов)', 'nnick', 'text', 'off', 14));
-      card.appendChild(btn('Сменить ник', () => { const nn = (TOPF.nnick || '').trim(); run(async () => { await accChangeNick(TOPF.opass || '', nn); TOPF.nnick = ''; TOPF.opass = ''; TOPF.pw = false; showInfo('Ник сменён: ' + nn, 2400); }, 'Ник сменён. Старые файлы сохранения больше не входят сами, сохрани новый файл'); }));
+      card.appendChild(mk('новый ник в таблице (3–14 символов)', 'nnick', 'text', 'off', 14));
+      card.appendChild(btn('Сменить ник в таблице', () => { const nn = (TOPF.nnick || '').trim(); run(async () => { await accChangeNick(TOPF.opass || '', nn); TOPF.nnick = ''; TOPF.opass = ''; TOPF.pw = false; showInfo('Ник сменён: ' + nn, 2400); }, 'Ник в таблице сменён. Вход остаётся по старому нику-логину: ' + (ACC.login || '')); }));
       card.appendChild(mk('новый пароль (от 6 символов)', 'npass', 'password', 'new-password', 40));
       card.appendChild(btn('Сменить пароль', () => { if ((TOPF.npass || '').length < 6) { TOPF.pmsg = 'Новый пароль от 6 символов'; renderQuest(); return; } run(async () => { await accChangePass(TOPF.opass || '', TOPF.npass); TOPF.opass = TOPF.npass = ''; TOPF.pw = false; showInfo('Пароль сменён', 2400); }, 'Пароль сменён. Старые файлы сохранения больше не входят сами, сохрани новый файл'); }));
       card.appendChild(btn('🗑 Удалить аккаунт', () => { askConfirm('Удалить аккаунт ' + ACC.nick + ' и всё из облака (прогресс, место в таблице)? Прогресс на этом устройстве останется. Это не отменить.', () => { run(async () => { await accDelete(TOPF.opass || ''); TOPF.opass = ''; TOPF.pw = false; }, 'Аккаунт удалён. Можно создать новый'); }, null, ['Удалить', 'Не надо']); }, 'top-ref danger'));
