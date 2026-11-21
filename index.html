@@ -1406,9 +1406,9 @@ const OBJECTS = [
   { e: '🌷', n: 'Тюльпан' },
   { e: '🍄', n: 'Гриб' },
   { e: '🍒', n: 'Вишни' },
-  { img: 'croissant', n: 'Круассан' },
-  { img: 'cupcake', n: 'Капкейк', sq: true },
-  { img: 'perfume', n: 'Флакон' },
+  { img: 'croissant', n: 'Круассан', zoom: 1.5, sq: true },
+  { img: 'cupcake', n: 'Капкейк', zoom: 1.3, sq: true },
+  { img: 'perfume', n: 'Флакон', zoom: 1.45 },
   { img: 'shell', n: 'Ракушка' },
   { img: 'house', n: 'Домик-гриб' },
   { img: 'macaron', n: 'Макарон', sq: true },
@@ -1417,7 +1417,7 @@ const OBJECTS = [
   { img: 'crownobj', n: 'Корона', zoom: 1.5 },
   { img: 'diamondobj', n: 'Алмаз', zoom: 1.4 },
   { img: 'donutobj', n: 'Пончик', zoom: 1.25, sq: true },
-  { img: 'icecreamobj', n: 'Мороженое', zoom: 1.5 },
+  { img: 'icecreamobj', n: 'Мороженое', zoom: 1.5, sq: true },
   { e: '⭐', n: 'Звёздочка' },
   { e: '💖', n: 'Сердечко' },
   { img: 'butterflyobj', n: 'Бабочка', zoom: 1.3 },
@@ -4202,7 +4202,7 @@ function showLevel() {
 
 function buildObject(resetLayers) {
   S = Math.round(baseS * (OBJECTS[G.kind].zoom || 1)); // wide, low objects (the cat) are drawn bigger so they do not look tiny
-  if (typeof SQ !== 'undefined') SQ.orig = null;
+  if (typeof SQ !== 'undefined') { SQ.orig = null; SQ.toyP = null; }
   const sp = makeSprite(OBJECTS[G.kind], S);
   if (sp) { G.sprite = sp.canvas; G.bot = sp.bot; }
   else { G.sprite = mkCanvas(S, S); G.bot = S * 0.8; } // a photo that is still loading
@@ -4847,7 +4847,7 @@ cv.addEventListener('pointerdown', (e) => {
   };
   down.groove = !down.scrape && canGroove(x, y);
   // a squishy object is pressed in by a finger wherever no hard wax is in the way; the rest of the screen still drags the string
-  if (isSquishy() && G.tool === 'finger' && !down.scrape && !inPan(x, y) && G.oy + G.bot <= waxY - 4 && sqHit(x, y)) { down.squish = true; sqStart(x, y); }
+  if (isSquishy() && G.tool === 'finger' && !inPan(x, y) && G.oy + G.bot <= waxY - 4 && sqHit(x, y)) { down.scrape = false; down.groove = false; down.squish = true; sqStart(x, y); } // bare toy: pressed, even right beside the wax
   if (isToy() && G.tool === 'finger' && !down.scrape && !inPan(x, y) && G.oy + G.bot <= waxY - 4) { const z = toyHit(x, y); if (z) { down.toy = z; toyStart(x, y, z); } }
   G.hold = null;
   if ((G.tool === 'twist' || G.tool === 'freeze' || G.tool === 'heat' || G.tool === 'laser') && G.layers.length && G.cool >= 0.98 && G.oy + G.bot <= waxY - 4 && !inPan(x, y)) {
@@ -7452,16 +7452,35 @@ function sqActive() { return isSquishy() && (SQ.down || Math.abs(SQ.k) > 0.004 |
 function sqPlasticOn() { return !!(SQ.plastic && G.layers.length && SQ.plastic.C === S + MARGIN * 2); }
 function sqResetPlastic() { SQ.plastic = null; }
 // the wax is gone: the toy goes back to its undented picture
-function sqRestore() { if (SQ.orig) { G.sprite = SQ.orig.sprite; G.sil = SQ.orig.sil; SQ.orig = null; SQ.silD = null; } SQ.plastic = null; SQ.k = 0; SQ.v = 0; SQ.down = false; }
+function sqRestore() { SQ.toyP = null; if (SQ.orig) { G.sprite = SQ.orig.sprite; G.sil = SQ.orig.sil; SQ.orig = null; SQ.silD = null; } SQ.plastic = null; SQ.k = 0; SQ.v = 0; SQ.down = false; }
 
 // where on the object a screen point lands
 function sqLocal(x, y) { const c = worldToCanvas(x, y), C = S + MARGIN * 2; return { x: c.x - C / 2, y: c.y - MARGIN }; }
 function sqHit(x, y) {
   if (!G.sil) return false;
   const l = sqLocal(x, y), sx = Math.round(l.x + S / 2), sy = Math.round(l.y);
-  if (sx >= 0 && sy >= 0 && sx < G.sil.width && sy < G.sil.height && G.sil.getContext('2d').getImageData(sx, sy, 1, 1).data[3] > 40) return true;
+  const onToy = sx >= 0 && sy >= 0 && sx < G.sil.width && sy < G.sil.height && G.sil.getContext('2d').getImageData(sx, sy, 1, 1).data[3] > 40;
+  if (!G.layers.length) return onToy;
   const c = worldToCanvas(x, y);
-  return G.layers.length && shellAlphaAt(c.x, c.y) > 60;
+  // set (broken-up) wax is not pressed: only the bare spots where it has been chipped off
+  if (G.pieces) return onToy && !sqWaxAt(c.x, c.y);
+  return onToy || shellAlphaAt(c.x, c.y) > 60;
+}
+// is there still a live piece of set wax at this shell-canvas point
+function sqWaxAt(cx, cy) {
+  const P = G.pieces; if (!P || !G.shell) return false;
+  const C = G.shell.width, x = Math.round(cx), y = Math.round(cy);
+  if (x < 0 || y < 0 || x >= C || y >= C) return false;
+  const id = P.idx[y * C + x];
+  return !!id && P.list[id - 1].alive;
+}
+// how much of the toy is bare at a point of its picture (1 = no wax, 0 = under set wax): under chipped-up wax only the bare part moves
+function sqBare(x, y) {
+  if (!G.layers.length || !G.pieces || !G.shell) return 1;
+  const C = G.shell.width, cx = x + C / 2, cy = y + MARGIN, r = 7;
+  let n = 0;
+  for (const [dx, dy] of [[0, 0], [r, 0], [-r, 0], [0, r], [0, -r]]) if (!sqWaxAt(cx + dx, cy + dy)) n++;
+  return n / 5;
 }
 
 function sqStart(x, y) {
@@ -7486,7 +7505,7 @@ function sqEnd(x) {
 // damped spring: sinks in while pressed, then wobbles back like jelly
 function sqStep(dt) {
   if (!isSquishy()) { SQ.k = 0; SQ.v = 0; SQ.down = false; return; }
-  if (!G.layers.length) SQ.plastic = null;
+  if (!G.layers.length) { SQ.plastic = null; SQ.toyP = null; }
   const steps = Math.max(1, Math.ceil(dt / 0.008)), h = dt / steps;
   for (let i = 0; i < steps; i++) {
     const target = SQ.down ? 1 : 0;
@@ -7521,6 +7540,16 @@ function sqWaxVec(x, y, n) {
     if (Math.hypot(e[0], e[1]) > Math.hypot(px, py)) return e;
   }
   return [px, py];
+}
+// the dent the set wax has pressed into the toy at a point of the toy's picture
+function sqToyAt(x, y) {
+  const T = SQ.toyP; if (!T) return [0, 0];
+  const N = SQ_N, C = T.C, P = T.a;
+  const gx = Math.min(N - 1e-6, Math.max(0, (x + C / 2) / C * N)), gy = Math.min(N - 1e-6, Math.max(0, (y + MARGIN) / C * N));
+  const i = gx | 0, j = gy | 0, fx = gx - i, fy = gy - j, o = (jj, ii) => (jj * (N + 1) + ii) * 2;
+  const r = [0, 0];
+  for (let k = 0; k < 2; k++) r[k] = (P[o(j, i) + k] * (1 - fx) + P[o(j, i + 1) + k] * fx) * (1 - fy) + (P[o(j + 1, i) + k] * (1 - fx) + P[o(j + 1, i + 1) + k] * fx) * fy;
+  return r;
 }
 function sqPlasticAt(x, y) {
   const N = SQ_N, C = SQ.plastic.C, P = SQ.plastic.a;
@@ -7558,7 +7587,8 @@ function sqSoak(dt) {
 }
 
 // draws img (covering x0,y0,w,h of the local space) through a displaced grid; still triangles are drawn in one go
-function sqMesh(ctx, img, x0, y0, w, h, disp) {
+function sqMesh(ctx, img, x0, y0, w, h, disp, grow0) {
+  const gr = grow0 == null ? 0.8 : grow0;
   const N = SQ_N, iw = img.width, ih = img.height, V = [];
   for (let j = 0; j <= N; j++) for (let i = 0; i <= N; i++) {
     const x = x0 + w * i / N, y = y0 + h * j / N, d = disp(x, y, i, j);
@@ -7576,7 +7606,7 @@ function sqMesh(ctx, img, x0, y0, w, h, disp) {
   ctx.save(); ctx.clip(still); ctx.drawImage(img, x0, y0, w, h); ctx.restore();
   for (const [a, b, c] of T) {
     const mx = (a.x + b.x + c.x) / 3, my = (a.y + b.y + c.y) / 3;
-    const grow = (p) => { const dx = p.x - mx, dy = p.y - my, l = Math.hypot(dx, dy) || 1; return [p.x + dx / l * 0.8, p.y + dy / l * 0.8]; };
+    const grow = (p) => { const dx = p.x - mx, dy = p.y - my, l = Math.hypot(dx, dy) || 1; return [p.x + dx / l * gr, p.y + dy / l * gr]; };
     const A = grow(a), B = grow(b), Cc = grow(c);
     const du1 = b.u - a.u, dv1 = b.v - a.v, du2 = c.u - a.u, dv2 = c.v - a.v, det = du1 * dv2 - du2 * dv1;
     if (Math.abs(det) < 1e-6) continue;
@@ -7594,12 +7624,19 @@ function sqMesh(ctx, img, x0, y0, w, h, disp) {
 }
 
 // the sprite: only the elastic dent
+// triangles overlap by a hair to hide seams in solid wax; on see-through wax that overlap piles up into a visible grid, so it shrinks there
+function sqGrow() { return G.layers.some(l => layerAlpha(l) < 0.97) ? 0.12 : 0.8; }
 function sqDrawSprite() {
-  const sp = G.sprite;
+  const sp = G.sprite, T = SQ.toyP && G.layers.length && SQ.toyP.C === S + MARGIN * 2 ? SQ.toyP : null;
   // under a coat of soft wax the squishy moves with the wax: a dent kept by the wax is a dent in the toy too, so the toy never slips out from under it
-  if (G.layers.length && (sqPlasticOn() || (sqActive() && sqWaxSoft()))) { sqMesh(g, sp, -S / 2, 0, S, sp.height, (x, y) => sqWaxVec(x, y, null)); return; }
+  if (G.layers.length && (sqPlasticOn() || (sqActive() && sqWaxSoft()))) {
+    sqMesh(g, sp, -S / 2, 0, S, sp.height, (x, y) => { const v = sqWaxVec(x, y, null); if (!T) return v; const t = sqToyAt(x, y); return [v[0] + t[0], v[1] + t[1]]; });
+    return;
+  }
+  // set wax: the toy keeps the dent the wax took, and a finger on a bare spot presses it further
+  if (T) { sqMesh(g, sp, -S / 2, 0, S, sp.height, (x, y) => { const t = sqToyAt(x, y); if (!sqActive()) return t; const e = sqElastic(x, y), k = sqBare(x, y); return [t[0] + e[0] * k, t[1] + e[1] * k]; }); return; }
   if (!sqActive()) { if (G.spriteHi) g.drawImage(G.spriteHi, -S / 2, 0, S, S); else g.drawImage(sp, -S / 2, 0); return; }
-  sqMesh(g, sp, -S / 2, 0, S, sp.height, (x, y) => sqElastic(x, y));
+  sqMesh(g, sp, -S / 2, 0, S, sp.height, (x, y) => { const e = sqElastic(x, y), k = sqBare(x, y); return k === 1 ? e : [e[0] * k, e[1] * k]; });
 }
 // a dent in the wax: shadow on the far wall, light on the near one
 function sqDent(ctx, x, y, r, a) {
@@ -7629,12 +7666,12 @@ function sqDrawWax(img, C, shade) {
   const act = sqActive() && sqWaxSoft(), pl = sqPlasticOn() ? SQ.plastic.a : null;
   if (!act && !pl) { g.drawImage(img, -C / 2, -MARGIN); return; }
   const disp = (x, y, i, j) => sqWaxVec(x, y, (j * (SQ_N + 1) + i) * 2);
-  if (!shade) { sqMesh(g, img, -C / 2, -MARGIN, C, C, disp); return; }
+  if (!shade) { sqMesh(g, img, -C / 2, -MARGIN, C, C, disp, sqGrow()); return; }
   if (!SQ.tmp || SQ.tmp.width !== C) SQ.tmp = mkCanvas(C, C);
   const tg = SQ.tmp.getContext('2d');
   tg.setTransform(1, 0, 0, 1, 0, 0); tg.clearRect(0, 0, C, C);
   tg.save(); tg.translate(C / 2, MARGIN);
-  sqMesh(tg, img, -C / 2, -MARGIN, C, C, disp);
+  sqMesh(tg, img, -C / 2, -MARGIN, C, C, disp, sqGrow());
   sqShade(tg, act && SQ.k > 0);
   tg.restore();
   g.drawImage(SQ.tmp, -C / 2, -MARGIN);
@@ -7646,29 +7683,24 @@ function sqBake() {
   // eyes, glitter, scent points and air bubbles are painted/placed in the shell: they move with it for good
   const mv = (o) => { const p = sqPt(o.x, o.y, C); o.x = clamp(Math.round(p.x), 1, C - 2); o.y = clamp(Math.round(p.y), 1, C - 2); };
   [G.eyes, G.glitter, G.scentPts, G.air].forEach(arr => (arr || []).forEach(mv));
-  for (const cv2 of [G.shell, G.gloss]) {
-    if (!cv2) continue;
+  // the sheen masks (pearl, rainbow, cosmos, gold) set in the same dent, or the moving colours would no longer sit on the wax
+  for (const cv2 of [G.shell, G.gloss, G.shell.pm, G.shell.rm, G.shell.cm, G.shell.gm]) {
+    if (!cv2 || !cv2.getContext || cv2.width !== C) continue;
     const tmp = mkCanvas(cv2.width, cv2.height), tg = tmp.getContext('2d');
     tg.drawImage(cv2, 0, 0);
     const cg = cv2.getContext('2d');
     cg.clearRect(0, 0, cv2.width, cv2.height);
     cg.save(); cg.translate(C / 2, MARGIN);
-    sqMesh(cg, tmp, -C / 2, -MARGIN, C, C, (x, y, i, j) => { const n = (j * (SQ_N + 1) + i) * 2; return [pl[n], pl[n + 1]]; });
+    sqMesh(cg, tmp, -C / 2, -MARGIN, C, C, (x, y, i, j) => { const n = (j * (SQ_N + 1) + i) * 2; return [pl[n], pl[n + 1]]; }, sqGrow());
     if (cv2 === G.shell) sqShade(cg, false);
     cg.restore();
   }
-  // the toy inside sets in the same dent
-  // (the plain picture is kept aside: when the wax is broken off the squishy comes back whole and can be squeezed again)
-  if (!SQ.orig) SQ.orig = { sprite: G.sprite, sil: G.sil };
-  for (const k of ['sprite', 'sil']) {
-    const src = SQ.orig[k]; if (!src || !src.getContext) continue;
-    const nc = mkCanvas(src.width, src.height), cg = nc.getContext('2d');
-    cg.save(); cg.translate(src.width / 2, 0);
-    const hw = src.width / 2, hh = src.height; // the picture has no spare room: a bulge is pressed back inside instead of being cropped off
-    sqMesh(cg, src, -hw, 0, src.width, src.height, (x, y) => { const d = sqPlasticAt(x, y); return [clamp(x + d[0], -hw + 0.5, hw - 0.5) - x, clamp(y + d[1], 0.5, hh - 0.5) - y]; });
-    cg.restore();
-    G[k] = nc;
-  }
+  // the toy inside sets in the same dent: only the dent is kept (as numbers) and the toy is bent live every frame,
+  // so its bulges can stick out past the picture's edge instead of being cut off, and it matches the wax exactly
+  // (the plain picture stays untouched: when the wax is gone the squishy comes back whole and can be squeezed again)
+  const old = SQ.toyP && SQ.toyP.C === C ? SQ.toyP.a : null, A = new Float32Array(pl.length);
+  for (let n = 0; n < pl.length; n++) A[n] = pl[n] + (old ? old[n] : 0);
+  SQ.toyP = { C, a: A };
   SQ.silD = null;
   SQ.plastic = null;
 }
@@ -9058,6 +9090,7 @@ let shimCv = null, shimG = null;
 function drawShimmer(C) {
   const sh = G.shell;
   if (!sh || (!sh.pm && !sh.rm && !sh.cm && !sh.gm && !(sh.gk > 0.05)) || G.cool < 0.6) return;
+  if (typeof sqPlasticOn === 'function' && (sqPlasticOn() || (sqActive() && sqWaxSoft()))) return; // the wax is being dented: the sheen masks would not follow it
   if (!shimCv || shimCv.width !== C) { shimCv = mkCanvas(C, C); shimG = shimCv.getContext('2d'); }
   const a = clamp((G.cool - 0.6) / 0.3, 0, 1), pz = G.pieces && G.pieces.comp;
   // the effect is drawn first and then cut out by the mask, so only the sheen lands on the object (never the mask's own colours)
