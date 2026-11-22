@@ -142,6 +142,7 @@
   #sndAdv .vrow .vplay { grid-row: 1 / 3; grid-column: 3; width: 34px; height: 34px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.25); background: transparent; color: inherit; font-size: 13px; }
   #sndAdv .vreset { width: 100%; margin-top: 6px; height: 34px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.25); background: transparent; color: inherit; font: inherit; font-size: 13px; }
   .opt-note { font-size: 12px; color: var(--fg-dim); }
+  .ver-tag { font-size: 11px; color: var(--fg-dim); opacity: .45; text-align: right; margin-top: 2px; }
   #optFree[hidden], #freeNote[hidden] { display: none !important; }
   .secret { display: flex; gap: 6px; }
   .secret[hidden] { display: none; }
@@ -237,6 +238,23 @@
     display: flex; align-items: center; justify-content: center; gap: 6px;
     background: rgba(31, 24, 41, 0.7); border: 1px solid var(--panel-line); color: var(--fg); font-family: var(--font-display); font-size: 12px;
   }
+  /* the orders scroll on the field: a button on the left edge, the scroll unrolls to the right */
+  .scrollbtn { position: absolute; left: 10px; top: 48px; z-index: 4; height: 34px; min-width: 34px; padding: 0 6px; border-radius: 999px; display: flex; align-items: center; justify-content: center; font-size: 18px; line-height: 1;
+    background: rgba(31, 24, 41, 0.7); border: 1px solid var(--panel-line); color: var(--fg); }
+  .scrollbtn[aria-expanded="true"] { border-color: var(--accent); }
+  .scrollbtn.gold { border-color: #e8c76a; }
+  .sdot { position: absolute; right: -2px; top: -2px; width: 11px; height: 11px; border-radius: 50%; background: #6fe08f; border: 2px solid #2b2236; }
+  .scrollpanel { position: absolute; left: 0; top: 90px; z-index: 5; width: min(80%, 300px); max-height: calc(100% - 108px); overflow-y: auto; touch-action: pan-y;
+    background: rgba(43, 34, 54, 0.97); border: 1px solid var(--panel-line); border-left: 0; border-radius: 0 16px 16px 0; padding: 12px 12px 12px 14px;
+    display: flex; flex-direction: column; gap: 8px; transform-origin: left center; transform: scaleX(0); opacity: 0; pointer-events: none;
+    transition: transform .28s cubic-bezier(.2, .9, .3, 1.08), opacity .18s; }
+  .scrollpanel.gold { border-color: #f0c850; box-shadow: 0 0 0 2px rgba(240,200,80,0.25), inset 0 0 18px rgba(240,200,80,0.12); background: linear-gradient(160deg, #433553, #3a2d49 60%, #4a3a3a); }
+  .scrollpanel.vip { animation: vipglow 2.4s ease-in-out infinite; }
+  .scrollpanel.open { transform: scaleX(1); opacity: 1; pointer-events: auto; }
+  .scrollpanel .ord-n { font-size: 14px; }
+  .scrollpanel .ord-r { font-size: 12.5px; }
+  .scrollpanel .opt-note { font-size: 11.5px; }
+  .scrollpanel .savebtns button { font-size: 12px; padding: 7px 8px; }
   /* full-screen mode: only the field and a small button to go back stay on screen */
   .fsbtn {
     position: absolute; right: 10px; top: 10px; z-index: 4; height: 30px; min-width: 30px; padding: 0 8px; border-radius: 999px;
@@ -505,12 +523,15 @@
       <div class="opt-note" id="saveNote" hidden></div>
       <div class="opt-note">Прогресс сохраняется сам. Файл нужен, чтобы перенести его на другой телефон или если браузер всё забывает. Если ты вошла в аккаунт, файл хранит и вход: при загрузке ты сразу в аккаунте, поэтому не отправляй его посторонним.</div>
       <div class="opt-note" id="vibeNote" hidden>На этом устройстве вибрация недоступна</div>
+      <div class="ver-tag" id="verTag">v146</div>
       <div id="setMore" hidden>↓ листай ниже, там ещё настройки</div>
     </div>
   </header>
 
   <div class="stage" id="stage">
     <button type="button" id="recBtn" class="recbtn" aria-label="Записать видео" title="Записать видео"><i class="recdot"></i><span id="recTime"></span></button>
+    <button type="button" id="scrollBtn" class="scrollbtn" aria-label="Заказ" aria-expanded="false" title="Заказ">📜<i class="sdot" id="scrollDot" hidden></i></button>
+    <div class="scrollpanel" id="scrollPanel" aria-hidden="true"></div>
     <button type="button" id="fsBtn" class="fsbtn" aria-label="Во весь экран" title="Во весь экран">⛶</button>
     <canvas id="cv" aria-label="Игровое поле: предмет на верёвке над горшком с воском"></canvas>
     <canvas id="sv" aria-label="Мастерская: полка с кубиками воска, тарелка для плавки и ведро для смеси"></canvas>
@@ -6964,7 +6985,7 @@ function questTick() {
   // order ready?
   const st = orderStatus(), dot = document.getElementById('ordDot');
   const ready = !!(st && st.done);
-  dot.hidden = !ready;
+  dot.hidden = !ready; if (typeof scrollDot !== 'undefined') { scrollDot.hidden = !ready; scrollBtn.classList.toggle('gold', fxOn('orders')); }
   if (ready && !QS.ready) { QS.ready = true; orderToastEl.hidden = !questEl.hidden; document.getElementById('orderMsg').textContent = 'Заказ «' + st.o.n + '» готов!'; Snd.chime && Snd.chime(); }
   if (!ready) { QS.ready = false; orderToastEl.hidden = true; }
   if (!questEl.hidden) orderToastEl.hidden = true;
@@ -6977,7 +6998,45 @@ function questTick() {
   }
   if (got.length) { showInfo(got.join('  ·  '), 4200); Snd.init(); Snd.chime(); saveNow(); }
   if (!questEl.hidden && QTAB !== 'top') renderQuest(); // the account form must not be redrawn under the fingers
+  if (scrollOpen && (!sheetEl.hidden || !settingsEl.hidden || !questEl.hidden)) scrollSet(false);
+  if (scrollOpen) scrollRender();
 }
+
+
+/* ----- the orders scroll on the main screen: same order as in the panel, a smaller card ----- */
+const scrollBtn = document.getElementById('scrollBtn'), scrollEl = document.getElementById('scrollPanel'), scrollDot = document.getElementById('scrollDot');
+var scrollOpen = false;
+function scrollSet(on) {
+  scrollOpen = on; scrollEl.classList.toggle('open', on); scrollEl.setAttribute('aria-hidden', on ? 'false' : 'true'); scrollBtn.setAttribute('aria-expanded', on ? 'true' : 'false');
+  if (on) { if (!QS.order) orderNew(); scrollRender(); }
+}
+function scrollRender() {
+  if (!scrollOpen) return;
+  const keep = scrollEl.scrollTop; scrollEl.textContent = '';
+  const st = orderStatus();
+  scrollEl.classList.toggle('gold', fxOn('orders')); scrollEl.classList.toggle('vip', !!(QS.order && QS.order.vip));
+  scrollEl.appendChild(h('div', 'sheet-title', '📜 Заказ'));
+  if (st) {
+    const vip = !!(QS.order && QS.order.vip);
+    if (vip) scrollEl.appendChild(h('div', 'vip-badge', '⭐ VIP-заказ · награда ×3'));
+    scrollEl.appendChild(h('div', 'ord-n', st.o.n));
+    scrollEl.appendChild(h('div', 'opt-note', st.o.s));
+    const ul = h('div', 'ord-list');
+    st.rows.forEach(r => ul.appendChild(h('div', 'ord-r' + (r.ok ? ' ok' : ''), (r.ok ? '✅ ' : '⬜ ') + r.t)));
+    ul.appendChild(h('div', 'ord-r' + (st.info && st.info.hard && st.info.intact ? ' ok' : ''), (st.info && st.info.hard && st.info.intact ? '✅ ' : '⬜ ') + 'Застывший и целый (не ломай!)'));
+    scrollEl.appendChild(ul);
+    const vk = vip ? 3 : 1;
+    scrollEl.appendChild(h('div', 'opt-note', 'Награда: ' + ORD_REWARD[st.o.d] * vk + ' кубиков и ' + st.o.d * 10 * vk + ' 🪙 · ' + '★'.repeat(st.o.d)));
+    const row = h('div', 'savebtns');
+    const give = h('button', null, 'Сдать'); give.type = 'button'; give.disabled = !st.done;
+    give.addEventListener('click', () => { orderHandIn(); setTimeout(scrollRender, 0); });
+    const swap = h('button', null, 'Другой'); swap.type = 'button';
+    swap.addEventListener('click', () => { orderNew(); saveNow(); questTick(); Snd.tick(0); scrollRender(); });
+    row.appendChild(give); row.appendChild(swap); scrollEl.appendChild(row);
+  }
+  scrollEl.scrollTop = keep;
+}
+scrollBtn.addEventListener('click', () => { Snd.init(); Snd.tick(0); if (!scrollOpen) { closeSheet(); closeSettings(); if (!questEl.hidden) closeQuest(); } scrollSet(!scrollOpen); });
 
 /* ----- the panel ----- */
 const questEl = document.getElementById('quest'), ordBtn = document.getElementById('ordBtn');
@@ -6995,7 +7054,7 @@ try { const t = localStorage.getItem('waxAsmrTab'); if (['orders', 'ach', 'shop'
 const QICO = { orders: '📋', ach: '🏆', shop: '🛒', shelf: '🗄️', top: '🥇' }, QNAME = { orders: 'Заказ', ach: 'Этапы', shop: 'Магазин', shelf: 'Полка', top: 'Лидеры' };
 syncQuestBtns();
 function openQuest(tab) {
-  closeSheet(); closeSettings();
+  closeSheet(); closeSettings(); if (typeof scrollSet === 'function' && scrollOpen) scrollSet(false);
   if (tab) QTAB = tab;
   if (!QS.order) orderNew();
   questEl.hidden = false; backdropEl.hidden = false; syncQuestBtns(); renderQuest();
@@ -7536,7 +7595,7 @@ function sqWaxVec(x, y, n) {
   if (pl && n != null) { px = pl[n]; py = pl[n + 1]; }
   else if (pl) { const v = sqPlasticAt(x, y); px = v[0]; py = v[1]; }
   if (sqActive() && sqWaxSoft()) {
-    const e = sqElastic(x, y);
+    const e = sqFit(sqElastic(x, y), sqToyAt(x, y));
     if (Math.hypot(e[0], e[1]) > Math.hypot(px, py)) return e;
   }
   return [px, py];
@@ -7550,6 +7609,13 @@ function sqToyAt(x, y) {
   const r = [0, 0];
   for (let k = 0; k < 2; k++) r[k] = (P[o(j, i) + k] * (1 - fx) + P[o(j, i + 1) + k] * fx) * (1 - fy) + (P[o(j + 1, i) + k] * (1 - fx) + P[o(j + 1, i + 1) + k] * fx) * fy;
   return r;
+}
+// the dent a squishy can hold stays within what one press makes: pressing again and again used to pile up (the toy grew bigger
+// and could even turn inside out). t = what is already pressed in, v = the new dent; returns the part of v that still fits
+function sqFit(v, t) {
+  const M = S * 0.21, sx = t[0] + v[0], sy = t[1] + v[1], m = Math.hypot(sx, sy);
+  if (m <= M) return v;
+  const f = M / m; return [sx * f - t[0], sy * f - t[1]];
 }
 function sqPlasticAt(x, y) {
   const N = SQ_N, C = SQ.plastic.C, P = SQ.plastic.a;
@@ -7581,13 +7647,25 @@ function sqSoak(dt) {
   const P = SQ.plastic.a, rate = Math.min(1, 6 * dt);
   for (let j = 0; j <= N; j++) for (let i = 0; i <= N; i++) {
     const x = -C / 2 + C * i / N, y = -MARGIN + C * j / N, e = sqElastic(x, y), n = (j * (N + 1) + i) * 2;
-    const ex = e[0] * 0.85, ey = e[1] * 0.85;
+    const f = sqFit([e[0] * 0.85, e[1] * 0.85], SQ.toyP && SQ.toyP.C === C ? [SQ.toyP.a[n], SQ.toyP.a[n + 1]] : [0, 0]), ex = f[0], ey = f[1];
     if (Math.hypot(ex, ey) > Math.hypot(P[n], P[n + 1])) { P[n] += (ex - P[n]) * rate; P[n + 1] += (ey - P[n + 1]) * rate; }
   }
 }
 
 // draws img (covering x0,y0,w,h of the local space) through a displaced grid; still triangles are drawn in one go
 function sqMesh(ctx, img, x0, y0, w, h, disp, grow0) {
+  // under see-through drawing (soft wax is drawn at partial opacity) every triangle would be blended on its own and the overlaps would show as a grid:
+  // draw at full strength on a scratch canvas, then put the whole thing on at the requested opacity
+  if (ctx.globalAlpha < 0.999) {
+    const pad = Math.ceil(Math.max(w, h) * 0.2) + 6, tw = Math.ceil(w) + pad * 2, th = Math.ceil(h) + pad * 2;
+    if (!SQ.mt || SQ.mt.width < tw || SQ.mt.height < th) SQ.mt = mkCanvas(Math.max(tw, SQ.mt ? SQ.mt.width : 0), Math.max(th, SQ.mt ? SQ.mt.height : 0));
+    const tc = SQ.mt.getContext('2d');
+    tc.setTransform(1, 0, 0, 1, 0, 0); tc.globalAlpha = 1; tc.clearRect(0, 0, SQ.mt.width, SQ.mt.height);
+    tc.translate(pad - x0, pad - y0);
+    sqMesh(tc, img, x0, y0, w, h, disp, grow0);
+    ctx.drawImage(SQ.mt, 0, 0, tw, th, x0 - pad, y0 - pad, tw, th);
+    return;
+  }
   const gr = grow0 == null ? 0.8 : grow0;
   const N = SQ_N, iw = img.width, ih = img.height, V = [];
   for (let j = 0; j <= N; j++) for (let i = 0; i <= N; i++) {
@@ -7625,7 +7703,7 @@ function sqMesh(ctx, img, x0, y0, w, h, disp, grow0) {
 
 // the sprite: only the elastic dent
 // triangles overlap by a hair to hide seams in solid wax; on see-through wax that overlap piles up into a visible grid, so it shrinks there
-function sqGrow() { return G.layers.some(l => layerAlpha(l) < 0.97) ? 0.12 : 0.8; }
+function sqGrow() { return G.layers.some(l => layerAlpha(l) < 0.97) ? 0.65 : 0.8; }
 function sqDrawSprite() {
   const sp = G.sprite, T = SQ.toyP && G.layers.length && SQ.toyP.C === S + MARGIN * 2 ? SQ.toyP : null;
   // under a coat of soft wax the squishy moves with the wax: a dent kept by the wax is a dent in the toy too, so the toy never slips out from under it
@@ -7677,21 +7755,47 @@ function sqDrawWax(img, C, shade) {
   g.drawImage(SQ.tmp, -C / 2, -MARGIN);
 }
 // when the wax sets, the dents become part of the shell
+
+// bends a picture by the dent without any triangle seams (used once, when the wax sets, so seams can't pile up from dip to dip):
+// every new pixel looks up where it came from. F = the dent at the grid points, in the picture's own pixels
+function sqWarpCanvas(cv2, F) {
+  const C = cv2.width, N = SQ_N, src = cv2.getContext('2d').getImageData(0, 0, C, C), sd = src.data;
+  const out = new ImageData(C, C), od = out.data, k = N / C;
+  const dAt = (u, v, o) => {
+    const gx = Math.min(N - 1e-6, Math.max(0, u * k)), gy = Math.min(N - 1e-6, Math.max(0, v * k));
+    const i = gx | 0, j = gy | 0, fx = gx - i, fy = gy - j, a = (j * (N + 1) + i) * 2, b = a + 2, c = a + (N + 1) * 2, d = c + 2;
+    o[0] = (F[a] * (1 - fx) + F[b] * fx) * (1 - fy) + (F[c] * (1 - fx) + F[d] * fx) * fy;
+    o[1] = (F[a + 1] * (1 - fx) + F[b + 1] * fx) * (1 - fy) + (F[c + 1] * (1 - fx) + F[d + 1] * fx) * fy;
+  };
+  const o = [0, 0];
+  for (let y = 0; y < C; y++) for (let x = 0; x < C; x++) {
+    let u = x, v = y;
+    for (let it = 0; it < 4; it++) { dAt(u, v, o); u = x - o[0]; v = y - o[1]; }
+    if (u < 0 || v < 0 || u > C - 1 || v > C - 1) continue;
+    const x0 = u | 0, y0 = v | 0, x1 = Math.min(C - 1, x0 + 1), y1 = Math.min(C - 1, y0 + 1), fx = u - x0, fy = v - y0;
+    const p = [(y0 * C + x0) * 4, (y0 * C + x1) * 4, (y1 * C + x0) * 4, (y1 * C + x1) * 4], w = [(1 - fx) * (1 - fy), fx * (1 - fy), (1 - fx) * fy, fx * fy];
+    let A = 0, R = 0, G_ = 0, B = 0;
+    for (let q = 0; q < 4; q++) { const a = sd[p[q] + 3] * w[q]; A += a; R += sd[p[q]] * a; G_ += sd[p[q] + 1] * a; B += sd[p[q] + 2] * a; }
+    const n = (y * C + x) * 4;
+    if (A > 0) { od[n] = R / A; od[n + 1] = G_ / A; od[n + 2] = B / A; od[n + 3] = A; }
+  }
+  cv2.getContext('2d').putImageData(out, 0, 0);
+}
 function sqBake() {
   if (!sqPlasticOn() || !G.shell) { SQ.plastic = null; return; }
   const C = G.shell.width, pl = SQ.plastic.a;
   // eyes, glitter, scent points and air bubbles are painted/placed in the shell: they move with it for good
   const mv = (o) => { const p = sqPt(o.x, o.y, C); o.x = clamp(Math.round(p.x), 1, C - 2); o.y = clamp(Math.round(p.y), 1, C - 2); };
   [G.eyes, G.glitter, G.scentPts, G.air].forEach(arr => (arr || []).forEach(mv));
+  const oldA = SQ.toyP && SQ.toyP.C === C ? SQ.toyP.a : null;
+  const fit = (n) => sqFit([pl[n], pl[n + 1]], oldA ? [oldA[n], oldA[n + 1]] : [0, 0]);
+  const FA = new Float32Array(pl.length); for (let n = 0; n < pl.length; n += 2) { const f = fit(n); FA[n] = f[0]; FA[n + 1] = f[1]; }
   // the sheen masks (pearl, rainbow, cosmos, gold) set in the same dent, or the moving colours would no longer sit on the wax
   for (const cv2 of [G.shell, G.gloss, G.shell.pm, G.shell.rm, G.shell.cm, G.shell.gm]) {
     if (!cv2 || !cv2.getContext || cv2.width !== C) continue;
-    const tmp = mkCanvas(cv2.width, cv2.height), tg = tmp.getContext('2d');
-    tg.drawImage(cv2, 0, 0);
+    sqWarpCanvas(cv2, FA);
     const cg = cv2.getContext('2d');
-    cg.clearRect(0, 0, cv2.width, cv2.height);
     cg.save(); cg.translate(C / 2, MARGIN);
-    sqMesh(cg, tmp, -C / 2, -MARGIN, C, C, (x, y, i, j) => { const n = (j * (SQ_N + 1) + i) * 2; return [pl[n], pl[n + 1]]; }, sqGrow());
     if (cv2 === G.shell) sqShade(cg, false);
     cg.restore();
   }
@@ -7699,7 +7803,10 @@ function sqBake() {
   // so its bulges can stick out past the picture's edge instead of being cut off, and it matches the wax exactly
   // (the plain picture stays untouched: when the wax is gone the squishy comes back whole and can be squeezed again)
   const old = SQ.toyP && SQ.toyP.C === C ? SQ.toyP.a : null, A = new Float32Array(pl.length);
-  for (let n = 0; n < pl.length; n++) A[n] = pl[n] + (old ? old[n] : 0);
+  for (let n = 0; n < pl.length; n += 2) {
+    const f = sqFit([pl[n], pl[n + 1]], old ? [old[n], old[n + 1]] : [0, 0]);
+    A[n] = f[0] + (old ? old[n] : 0); A[n + 1] = f[1] + (old ? old[n + 1] : 0);
+  }
   SQ.toyP = { C, a: A };
   SQ.silD = null;
   SQ.plastic = null;
@@ -8258,8 +8365,8 @@ async function fbFetch(url, opt, tries) {
 function fbErrText(e) {
   const m = String(e && e.message || e);
   if (e && e.net) return 'Нет связи с облаком. Проверь интернет';
-  if (/EMAIL_EXISTS/.test(m)) return 'Такой ник уже занят';
-  if (/INVALID_LOGIN_CREDENTIALS|EMAIL_NOT_FOUND|INVALID_PASSWORD|INVALID_EMAIL/.test(m)) return 'Неверный ник или пароль';
+  if (/EMAIL_EXISTS/.test(m)) return 'Такой логин уже занят';
+  if (/INVALID_LOGIN_CREDENTIALS|EMAIL_NOT_FOUND|INVALID_PASSWORD|INVALID_EMAIL/.test(m)) return 'Неверный логин или пароль';
   if (/WEAK_PASSWORD/.test(m)) return 'Пароль слишком простой (от 6 символов)';
   if (/INVALID_REFRESH_TOKEN/.test(m)) return 'Вход устарел, войди заново';
   if (/CREDENTIAL_TOO_OLD|TOKEN_EXPIRED|INVALID_ID_TOKEN/.test(m)) { TOPF.needOld = true; return 'Нужно ввести текущий пароль'; }
@@ -8284,7 +8391,7 @@ async function accToken() {
 // the saved login stopped working (the nick or the password was changed on another device, or the account was deleted): sign out once, clearly
 function accExpire() {
   const nick = ACC.nick; accOut(); ONL.err = ''; TOPF.nick = nick || TOPF.nick; TOPF.pass = '';
-  TOPF.msg = 'Вход устарел: ник или пароль меняли на другом устройстве. Войди заново (ник мог поменяться). Прогресс на этом устройстве остался.';
+  TOPF.msg = 'Вход устарел: пароль меняли на другом устройстве. Войди заново по логину. Прогресс на этом устройстве остался.';
   try { renderQuestIfTop(); showInfo('Вход в аккаунт устарел, войди заново', 4000); } catch (e) { }
 }
 function renderQuestIfTop() { if (!questEl.hidden && QTAB === 'top') renderQuest(); }
@@ -8408,7 +8515,7 @@ async function accFromFile(d) {
   } catch (e) {
     Object.assign(ACC, prev); accStore();
     const old = /TOKEN_EXPIRED|INVALID_REFRESH|USER_NOT_FOUND|USER_DISABLED/.test(String(e && e.message));
-    return 'Прогресс загружен, но вход из файла не вышел (' + (old ? 'файл старый: пароль с тех пор менялся' : fbErrText(e)) + '). Войди ником и паролем';
+    return 'Прогресс загружен, но вход из файла не вышел (' + (old ? 'файл старый: пароль с тех пор менялся' : fbErrText(e)) + '). Войди логином и паролем';
   }
 }
 // Firebase does not let a nick-based address be changed without a mailbox, so the nick in the table is a separate display name;
@@ -8468,14 +8575,14 @@ function renderTop(el) {
   const card = h('div', 'ord');
   if (!ACC.uid) {
     card.appendChild(h('div', 'ord-n', 'Войти или создать аккаунт'));
-    card.appendChild(h('div', 'opt-note', 'Ник и пароль нужны, чтобы попасть в таблицу и хранить прогресс в облаке: с любого телефона зашла, и всё на месте.'));
-    const ni = h('input', 'acc-in'); ni.type = 'text'; ni.placeholder = 'ник (3–14 символов)'; ni.maxLength = 14; ni.autocomplete = 'username'; ni.value = TOPF.nick; ni.addEventListener('input', () => { TOPF.nick = ni.value; });
+    card.appendChild(h('div', 'opt-note', 'Логин и пароль нужны, чтобы попасть в таблицу и хранить прогресс в облаке: с любого телефона зашла, и всё на месте. Ник в таблице потом можно поменять, а логин для входа остаётся.'));
+    const ni = h('input', 'acc-in'); ni.type = 'text'; ni.placeholder = 'логин (3–14 символов)'; ni.maxLength = 14; ni.autocomplete = 'username'; ni.value = TOPF.nick; ni.addEventListener('input', () => { TOPF.nick = ni.value; });
     const pi = pwField('пароль (от 6 символов)', 'pass', 'current-password', 40);
     card.appendChild(ni); card.appendChild(pi);
     const row = h('div', 'savebtns');
     const go = (kind) => async () => {
       if (TOPF.busy) return; const nick = TOPF.nick.trim(), pass = TOPF.pass;
-      if (!nickOk(nick)) { TOPF.msg = 'Ник: 3–14 символов, буквы, цифры, _ или -'; renderQuest(); return; }
+      if (!nickOk(nick)) { TOPF.msg = 'Логин: 3–14 символов, буквы, цифры, _ или -'; renderQuest(); return; }
       if (pass.length < 6) { TOPF.msg = 'Пароль от 6 символов'; renderQuest(); return; }
       TOPF.busy = true; TOPF.msg = 'Секунду…'; renderQuest();
       try { await accAuth(kind, nick, pass); TOPF.pass = ''; TOPF.msg = await accAfterLogin(kind === 'new'); TOPS.data = {}; } catch (e) { TOPF.msg = fbErrText(e); }
