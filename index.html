@@ -267,6 +267,8 @@
   body.fs .stage { max-height: none; border-radius: 0; border: 0; }
   body.fs .fsbtn { top: max(10px, env(safe-area-inset-top, 0px)); right: max(10px, env(safe-area-inset-right, 0px)); }
   body.fs .recbtn { top: max(10px, env(safe-area-inset-top, 0px)); left: max(10px, env(safe-area-inset-left, 0px)); }
+  body.fs .scrollbtn, body.fs .scrollpanel { display: none; }
+  .app[data-view="studio"] .scrollbtn, .app[data-view="studio"] .scrollpanel { display: none; }
   .recdot { width: 12px; height: 12px; border-radius: 50%; background: #ff5a6e; display: block; }
   .recbtn[aria-pressed="true"] { border-color: #ff5a6e; }
   .recbtn[aria-pressed="true"] .recdot { border-radius: 3px; width: 11px; height: 11px; animation: recpulse 1s infinite; }
@@ -523,7 +525,7 @@
       <div class="opt-note" id="saveNote" hidden></div>
       <div class="opt-note">Прогресс сохраняется сам. Файл нужен, чтобы перенести его на другой телефон или если браузер всё забывает. Если ты вошла в аккаунт, файл хранит и вход: при загрузке ты сразу в аккаунте, поэтому не отправляй его посторонним.</div>
       <div class="opt-note" id="vibeNote" hidden>На этом устройстве вибрация недоступна</div>
-      <div class="ver-tag" id="verTag">v146</div>
+      <div class="ver-tag" id="verTag">v150</div>
       <div id="setMore" hidden>↓ листай ниже, там ещё настройки</div>
     </div>
   </header>
@@ -1044,6 +1046,20 @@ const Snd = (() => {
       const nt = [784, 659, 784, 1047, 880, 784, 659, 523, 587, 659, 784, 659, 587, 523, 587, 392];
       nt.forEach((f, i) => { tone({ type: 'triangle', f0: f, f1: f, dur: 0.5, gain: 0.07, pan, delay: i * 0.23, attack: 0.002 }); tone({ f0: f * 2, f1: f * 2, dur: 0.25, gain: 0.02, pan, delay: i * 0.23, attack: 0.002 }); });
     },
+    // soup and the pickle jar: a spoon swirling in broth, ceramic and glass knocks, brine sloshing
+    soupStir(pan, lv) {
+      burst({ buf: brown, type: 'bandpass', freq: 420 + 520 * lv, q: 1.1, dur: 0.11, gain: 0.05 + 0.07 * lv, pan, sweepTo: 260 + 300 * lv });
+      if (Math.random() < 0.35 + 0.3 * lv) { const f = rnd(260, 520); tone({ f0: f, f1: f * 1.9, dur: 0.05, gain: 0.025, pan: pan + rnd(-0.2, 0.2), delay: rnd(0, 0.06) }); }
+    },
+    spoonClink(pan, lv) { const v = 1 + rnd(-0.04, 0.04), g = 0.03 + 0.05 * (lv || 0.5); tone({ f0: 2150 * v, f1: 2080 * v, dur: 0.16, gain: g, pan, attack: 0.001 }); tone({ f0: 3300 * v, f1: 3250 * v, dur: 0.09, gain: g * 0.5, pan, attack: 0.001 }); burst({ type: 'bandpass', freq: 3600, q: 1.5, dur: 0.01, gain: 0.07, pan }); },
+    soupPlip(pan) { const f = rnd(420, 700); tone({ f0: f, f1: f * 0.55, dur: 0.07, gain: 0.07, pan }); burst({ buf: brown, type: 'lowpass', freq: 800, q: 0.8, dur: 0.06, gain: 0.07, pan }); },
+    jarSlosh(pan, lv) {
+      burst({ buf: brown, type: 'bandpass', freq: 380 + 420 * lv, q: 0.9, dur: 0.16, gain: 0.06 + 0.09 * lv, pan, sweepTo: 220 });
+      if (lv > 0.35 && Math.random() < 0.6) { const f = rnd(180, 260); tone({ f0: f, f1: f * 0.5, dur: 0.09, gain: 0.04 * lv, pan, delay: rnd(0, 0.05) }); }
+    },
+    jarKnock(pan, lv) { const f = rnd(360, 520); tone({ type: 'triangle', f0: f, f1: f * 0.7, dur: 0.07, gain: 0.04 + 0.05 * (lv || 0.5), pan, attack: 0.002 }); burst({ buf: brown, type: 'lowpass', freq: 900, q: 0.8, dur: 0.05, gain: 0.05, pan }); },
+    jarGlass(pan) { tone({ f0: 1680, f1: 1640, dur: 0.22, gain: 0.05, pan, attack: 0.001 }); tone({ f0: 2650, f1: 2600, dur: 0.14, gain: 0.025, pan, attack: 0.001 }); burst({ buf: brown, type: 'lowpass', freq: 700, q: 0.7, dur: 0.05, gain: 0.05, pan }); },
+    jarLid(pan) { tone({ f0: 900, f1: 380, dur: 0.05, gain: 0.1, pan }); burst({ type: 'bandpass', freq: 2400, q: 1.4, dur: 0.03, gain: 0.12, pan }); tone({ f0: 1250, f1: 1180, dur: 0.18, gain: 0.04, pan, delay: 0.03, attack: 0.001 }); burst({ type: 'highpass', freq: 5000, q: 0.5, dur: 0.12, gain: 0.04, pan, delay: 0.05 }); },
     // tv remote: a soft rubber key, a hollow little thump, a faint release
     remoteKey(pan, idx) {
       const v = 1 + ((idx || 0) % 5) * 0.035 + rnd(-0.02, 0.02);
@@ -1324,7 +1340,7 @@ const Hap = {
 };
 const HAP_MAP = {
   plopIn: 22, slurpOut: 14, drip: 6, squish: 10, plop: 8, sqDown: 14, sqUp: 12, harden: [6, 70, 6, 70, 6], crack: 14, crunch: 28, crunch2: 34, boom: 60, fuse: 4, landing: 16, pop: 12,
-  btnDown: 10, calcKey: 8, popIn: 12, popOut: 6, kbKey: 5, kbSw: 8, mouseDown: 7, mouseUp: 3, remoteKey: 6, remoteUp: 3, pianoKey: 5, globeTink: 5, globeShake: 2, globeMusic: 4, swKey: 5, swOn: 12, swOff: 10, swJump: 6, swMeow: 8, lampClick: 8, tapLever: 8, alarmBell: 10, alarmBtn: 8, mouseWheel: 3, phoneOn: 12, phoneOff: 12, phoneTap: 4, phoneSend: 8, phoneDing: [8, 50, 8], popFlip: [8, 25, 8, 25, 8, 25, 8, 25, 8], btnUp: 4, stickBack: 8, lid: 14, flush: [14, 30, 14, 30, 14, 40, 10, 60, 8, 60, 6], clink: 8, ignite: 20, thud: 55, snap: 10, foam: 9, creak: 7, ice: [10, 40, 10], scent: [8, 40, 8], chime: [18, 50, 18]
+  btnDown: 10, calcKey: 8, popIn: 12, popOut: 6, kbKey: 5, kbSw: 8, mouseDown: 7, mouseUp: 3, remoteKey: 6, remoteUp: 3, pianoKey: 5, globeTink: 5, globeShake: 2, globeMusic: 4, soupStir: 2, spoonClink: 6, soupPlip: 3, jarSlosh: 3, jarKnock: 5, jarGlass: 5, jarLid: 10, swKey: 5, swOn: 12, swOff: 10, swJump: 6, swMeow: 8, lampClick: 8, tapLever: 8, alarmBell: 10, alarmBtn: 8, mouseWheel: 3, phoneOn: 12, phoneOff: 12, phoneTap: 4, phoneSend: 8, phoneDing: [8, 50, 8], popFlip: [8, 25, 8, 25, 8, 25, 8, 25, 8], btnUp: 4, stickBack: 8, lid: 14, flush: [14, 30, 14, 30, 14, 40, 10, 60, 8, 60, 6], clink: 8, ignite: 20, thud: 55, snap: 10, foam: 9, creak: 7, ice: [10, 40, 10], scent: [8, 40, 8], chime: [18, 50, 18]
 };
 Object.keys(HAP_MAP).forEach(n => {
   const f = Snd[n]; if (!f) return;
@@ -1363,7 +1379,7 @@ const SND_GROUPS = [
   { id: 'ding', n: 'Золотой молоток (динь)', fn: ['ding'], test: () => Snd.ding(0) },
   { id: 'bomb', n: 'Бомба (фитиль и взрыв)', fn: ['fuse', 'boom'], test: () => { Snd.fuse(0); setTimeout(() => Snd.fuse(0), 150); setTimeout(() => Snd.boom(0), 450); } },
   { id: 'zap', n: 'Лазер', fn: ['zap'], test: () => { Snd.zap(0); setTimeout(() => Snd.zap(0), 110); } },
-  { id: 'toy', n: 'Интерактив: кнопки, клавиши, мышка, пульт, пианино, консоль, снежный шар, будильник, кран, лампа, поп-ит, телефон', fn: ['mouseDown', 'mouseUp', 'mouseWheel', 'remoteKey', 'remoteUp', 'pianoKey', 'globeTink', 'globeShake', 'globeMusic', 'swKey', 'swOn', 'swOff', 'swJump', 'swLand', 'swStep', 'swMeow', 'swHeart', 'lampClick', 'tapWater', 'tapLever', 'alarmRing', 'alarmBell', 'alarmBtn', 'kbKey', 'kbUp', 'kbSw', 'btnDown', 'btnUp', 'stickMove', 'stickBack', 'calcKey', 'popIn', 'popOut', 'popFlip', 'phoneOn', 'phoneOff', 'phoneTap', 'phoneType', 'phoneSend', 'phoneDing'], test: () => { Snd.btnDown(0); setTimeout(() => Snd.btnUp(0), 90); setTimeout(() => Snd.popIn(0, 2), 160); setTimeout(() => Snd.popOut(0), 280); setTimeout(() => { Snd.stickMove(0); Snd.stickMove(0); }, 250); setTimeout(() => Snd.stickBack(0), 500); } },
+  { id: 'toy', n: 'Интерактив: кнопки, клавиши, мышка, пульт, пианино, консоль, снежный шар, суп, банка огурцов, будильник, кран, лампа, поп-ит, телефон', fn: ['soupStir', 'spoonClink', 'soupPlip', 'jarSlosh', 'jarKnock', 'jarGlass', 'jarLid', 'mouseDown', 'mouseUp', 'mouseWheel', 'remoteKey', 'remoteUp', 'pianoKey', 'globeTink', 'globeShake', 'globeMusic', 'swKey', 'swOn', 'swOff', 'swJump', 'swLand', 'swStep', 'swMeow', 'swHeart', 'lampClick', 'tapWater', 'tapLever', 'alarmRing', 'alarmBell', 'alarmBtn', 'kbKey', 'kbUp', 'kbSw', 'btnDown', 'btnUp', 'stickMove', 'stickBack', 'calcKey', 'popIn', 'popOut', 'popFlip', 'phoneOn', 'phoneOff', 'phoneTap', 'phoneType', 'phoneSend', 'phoneDing'], test: () => { Snd.btnDown(0); setTimeout(() => Snd.btnUp(0), 90); setTimeout(() => Snd.popIn(0, 2), 160); setTimeout(() => Snd.popOut(0), 280); setTimeout(() => { Snd.stickMove(0); Snd.stickMove(0); }, 250); setTimeout(() => Snd.stickBack(0), 500); } },
   { id: 'flush', n: 'Унитаз: смыв и крышка', fn: ['flush', 'lid', 'scrub'], test: () => { Snd.lid(0, 1); setTimeout(() => Snd.flush(0), 350); } },
   { id: 'snap', n: 'Мягкий кусочек отломился', fn: ['snap'], test: () => Snd.snap(0) },
   { id: 'creak', n: 'Скрип скрутки', fn: ['creak'], test: () => Snd.creak(0) },
@@ -1433,7 +1449,7 @@ const OBJECTS = [
   { img: 'shell', n: 'Ракушка' },
   { img: 'house', n: 'Домик-гриб' },
   { img: 'macaron', n: 'Макарон', sq: true },
-  { img: 'bacon', rag: true, n: 'Бэкон' },
+  { img: 'bacon', rag: true, n: 'Бэкон', zoom: 1.4 },
   { img: 'kisyulya', n: 'Кисюля', zoom: 1.7 },
   { img: 'crownobj', n: 'Корона', zoom: 1.5 },
   { img: 'diamondobj', n: 'Алмаз', zoom: 1.4 },
@@ -1458,7 +1474,9 @@ const OBJECTS = [
   { e: '🚰', toy: 'tap', n: 'Кран', zoom: 1.5 },
   { e: '🛋️', toy: 'lamp', n: 'Лампа', zoom: 1.5 },
   { e: '🕹️', toy: 'sw', n: 'Консоль', zoom: 2.1 },
-  { e: '❄️', toy: 'globe', n: 'Снежный шар', zoom: 1.5 }
+  { e: '❄️', toy: 'globe', n: 'Снежный шар', zoom: 1.5 },
+  { e: '🍲', toy: 'soup', n: 'Суп', zoom: 1.5 },
+  { e: '🥒', toy: 'pickles', n: 'Банка огурцов', zoom: 1.5 }
 ];
 // order of the object chips: the four free ones, then the beer (also free), then the rest
 const BEER_IDX = OBJECTS.findIndex(o => o.img === 'beerobj');
@@ -2285,6 +2303,7 @@ function toyHit(x, y) {
 function brushEntry(x, y) { return TOY.lt > 0.5 && ((x - 150) / 74) * ((x - 150) / 74) + ((y - 168) / 30) * ((y - 168) / 30) < 1; }
 function toyStart(x, y, z) {
   TOY.act = z; const p = toyPart(z.id);
+  if (typeof foodStart === 'function' && foodStart(z, x, y)) { TOY.dirty = true; return; }
   if (z.type === 'flush') { if (toyPart('flush').t <= 0 || toyPart('flush').t > 3.2) { toyPart('flush').t = 0.001; toyPart('brush').foam = 0; Snd.flush(pan(x)); } toyPart('btn').k = 0; TOY.hold.flushBtn = time + 0.12; Snd.btnDown(pan(x)); TOY.dirty = true; TOY.act = null; return; }
   if (z.type === 'brush') { const b = toyPart('brush'); if (b.mode === undefined) { b.x = BRUSH_HOME.x; b.y = BRUSH_HOME.y; } b.inb = b.mode === 'bowl'; b.mode = 'held'; b.tx = b.x; b.ty = b.y; Snd.btnDown(pan(x)); toyMove(x, y); TOY.dirty = true; return; }
   if (z.type === 'lid') { TOY.lt = TOY.lt ? 0 : 1; { const b = TOY.parts.brush; if (b && TOY.lt < 0.5 && b.mode === 'bowl') { b.inb = false; b.mode = 'home'; b.tx = BRUSH_HOME.x; b.ty = BRUSH_HOME.y; } } Snd.lid(pan(x), TOY.lt); TOY.dirty = true; TOY.act = null; return; }
@@ -2311,6 +2330,7 @@ function toyStart(x, y, z) {
 }
 function toyMove(x, y) {
   const z = TOY.act; if (!z) return;
+  if (typeof foodMove === 'function' && foodMove(z, x, y)) { TOY.dirty = true; return; }
   const L = toyLayout(S), l = sqLocal(x, y), dx = (l.x + S / 2 - L.ox) / L.k, dy = l.y / L.k - (toyDef().dy || 0);
   if (z.type === 'brush') {
     const b = toyPart('brush'), nx0 = dx - 50 + z.off.x, ny0 = dy + z.off.y;
@@ -2355,6 +2375,7 @@ function toyMove(x, y) {
 function toyEnd(x) {
   const z = TOY.act; TOY.act = null; if (!z) return;
   const p = toyPart(z.id);
+  if (typeof foodEnd === 'function' && foodEnd(z)) { TOY.dirty = true; return; }
   if (z.type === 'brush') { if (!p.inb && brushEntry(p.tx, p.ty)) { p.inb = true; p.tx = Math.max(82, Math.min(218, p.tx)); p.ty = Math.max(128, Math.min(235, p.ty)); Snd.plop(pan(x != null ? x : G.ox), false); } // let go over the opening: it drops in
     p.mode = p.inb ? 'bowl' : 'home'; if (p.mode === 'home') { p.inb = false; p.tx = BRUSH_HOME.x; p.ty = BRUSH_HOME.y; } Snd.btnUp(pan(x != null ? x : G.ox)); TOY.dirty = true; return; }
   if (z.type === 'bubbles') { TOY.dirty = true; return; }
@@ -2393,7 +2414,7 @@ function toyStep(dt) {
     if (b.foam > 0) b.foam = Math.max(0, b.foam - dt * 0.07);
     if (Math.abs(b.tx - b.x) + Math.abs(b.ty - b.y) + Math.abs(b.vx) * 0.05 + Math.abs(b.vy) * 0.05 > 0.05 || b.foam > 0 || Math.abs(b.tilt) > 0.01) moving = true; }
   for (const id in TOY.parts) {
-    if (id === 'lid' || id === 'flush' || id === 'btn' || id === 'brush' || id === 'bubbles' || id === 'pscr' || id.indexOf('pb') === 0 || id.indexOf('kk') === 0 || id.indexOf('rm_') === 0 || id.indexOf('pk_') === 0 || id === 'tlev' || id.indexOf('sw_') === 0 || id.indexOf('gl_') === 0) continue;
+    if (id === 'lid' || id === 'flush' || id === 'btn' || id === 'brush' || id === 'bubbles' || id === 'pscr' || id.indexOf('pb') === 0 || id.indexOf('kk') === 0 || id.indexOf('rm_') === 0 || id.indexOf('pk_') === 0 || id === 'tlev' || id.indexOf('sw_') === 0 || id.indexOf('gl_') === 0 || id.indexOf('sp_') === 0 || id.indexOf('pj_') === 0) continue;
     const p = TOY.parts[id], isStick = id.indexOf('stick') === 0, isPad = id === 'dpad';
     const downNow = TOY.act && TOY.act.id === id, held = downNow || (TOY.hold[id] || 0) > time;
     for (let i = 0; i < steps; i++) {
@@ -2413,6 +2434,8 @@ function toyStep(dt) {
   if (OBJECTS[G.kind].toy === 'phone' && phoneTick(dt)) moving = true;
   if (OBJECTS[G.kind].toy === 'mouse' && MS.g > 0) { MS.g = Math.max(0, MS.g - dt * 1.4); moving = true; }
   if (OBJECTS[G.kind].toy === 'globe') { if (gbStep(dt, steps, h)) moving = true; }
+  if (OBJECTS[G.kind].toy === 'soup') { soupStep(dt); moving = true; }
+  if (OBJECTS[G.kind].toy === 'pickles') { jarStep(dt, steps, h); moving = true; }
   if (OBJECTS[G.kind].toy === 'sw') {
     for (const id in TOY.parts) {
       if (id.indexOf('sw_') !== 0) continue; const p = TOY.parts[id]; p.k = p.k || 0; p.x = p.x || 0; p.y = p.y || 0;
@@ -2519,7 +2542,7 @@ function toyFreeze() {
   G.sil = buildSilhouette(G.sprite); G.dripPts = dripPoints(G.sprite, G.bot);
 }
 // a fresh toy starts in its rest pose
-function toyReset() { TOY.parts = {}; TOY.hold = {}; TOY.act = null; TOY.lt = 0; TOY.dirty = true; phoneReset(); if (typeof KB !== 'undefined') KB.sw = KB.mode; if (typeof RM !== 'undefined') RM.ir = 0; if (typeof AL !== 'undefined') { AL.ring = 0; AL.t = 0; AL.sh = 0; AL.rot = 0; AL.ha = 0; AL.lamp = AL.lv = 0; AL.bl = AL.br = 0; } if (typeof TAP !== 'undefined') { TAP.h = TAP.tgt = TAP.f = TAP.sf = 0; TAP.run = 0; Snd.tapWater(0); } if (typeof gbReset === 'function') gbReset(); if (typeof SW !== 'undefined') { SW.on = 0; SW.fade = 0; SW.boot = 0; SW.wx = 0; SW.sv = 0; SW.air = 0; SW.vy = 0; SW.run = 0; SW.lie = 0; SW.lieT = 0; SW.meow = 0; SW.hearts = []; SW.sx = SW.sy = 0; SW.jumpReq = false; } }
+function toyReset() { TOY.parts = {}; TOY.hold = {}; TOY.act = null; TOY.lt = 0; TOY.dirty = true; phoneReset(); if (typeof KB !== 'undefined') KB.sw = KB.mode; if (typeof RM !== 'undefined') RM.ir = 0; if (typeof AL !== 'undefined') { AL.ring = 0; AL.t = 0; AL.sh = 0; AL.rot = 0; AL.ha = 0; AL.lamp = AL.lv = 0; AL.bl = AL.br = 0; } if (typeof TAP !== 'undefined') { TAP.h = TAP.tgt = TAP.f = TAP.sf = 0; TAP.run = 0; Snd.tapWater(0); } if (typeof gbReset === 'function') gbReset(); if (typeof spReset === 'function') spReset(); if (typeof jrReset === 'function') jrReset(); if (typeof SW !== 'undefined') { SW.on = 0; SW.fade = 0; SW.boot = 0; SW.wx = 0; SW.sv = 0; SW.air = 0; SW.vy = 0; SW.run = 0; SW.lie = 0; SW.lieT = 0; SW.meow = 0; SW.hearts = []; SW.sx = SW.sy = 0; SW.jumpReq = false; } }
 
 /* ---------- The toilet: a flush button with water swirl and sound, and a lid that opens ---------- */
 function toiletRender(c, parts) {
@@ -4048,8 +4071,8 @@ function gbGlowBase(S2) {
   g.beginPath(); g.moveTo(54, 206); g.lineTo(186, 206); g.quadraticCurveTo(212, 212, 214, 240); g.quadraticCurveTo(214, 262, 196, 262); g.lineTo(44, 262); g.quadraticCurveTo(26, 262, 26, 240); g.quadraticCurveTo(28, 212, 54, 206); g.closePath(); g.stroke();
   g.beginPath(); g.roundRect(52, 199, 136, 15, 7); g.stroke();
   g.strokeStyle = 'hsl(335,100%,76%)'; g.lineWidth = 2.2; g.beginPath(); g.arc(120, 236, 12, 0, 7); g.stroke(); g.fillStyle = 'hsl(335,100%,86%)'; g.font = '800 17px "Segoe UI",Roboto,Arial,sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('♪', 120, 237);
-  g.strokeStyle = 'hsl(200,100%,74%)'; g.lineWidth = 2.6; g.beginPath(); g.arc(gc.x, gc.y, gc.R, 0, 7); g.stroke();
-  g.save(); g.beginPath(); g.arc(gc.x, gc.y, gc.R - 1.5, 0, 7); g.clip();
+  g.save(); g.beginPath(); g.rect(0, 0, 240, 200); g.clip(); g.strokeStyle = 'hsl(200,100%,74%)'; g.lineWidth = 2.6; g.beginPath(); g.arc(gc.x, gc.y, gc.R, 0, 7); g.stroke(); g.restore();
+  g.save(); g.beginPath(); g.arc(gc.x, gc.y, gc.R - 1.5, 0, 7); g.clip(); g.beginPath(); g.rect(0, 0, 240, 200); g.clip();
   g.lineWidth = 2; const hy = gbGround(120) + 1;
   g.strokeStyle = 'hsl(335,100%,76%)'; g.beginPath(); g.moveTo(85, hy - 28); g.lineTo(120, hy - 56); g.lineTo(155, hy - 28); g.closePath(); g.stroke();
   g.strokeStyle = 'hsl(40,100%,76%)'; g.beginPath(); g.roundRect(92, hy - 30, 56, 31, 2); g.stroke(); g.beginPath(); g.roundRect(123, hy - 19, 14, 20, [7, 7, 0, 0]); g.stroke();
@@ -4066,7 +4089,7 @@ function gbGlow(c, parts, t) { // in the dark only the cosy yellow light from th
   g.save(); g.translate(L.ox, 0); g.scale(L.k, L.k);
   g.translate(120, 206); g.rotate(GB.gx * 0.004); g.translate(-120 + GB.gx * 0.6, -206 + GB.gy * 0.4);
   const hy = gbGround(120) + 1, fl = 0.85 + 0.15 * Math.sin(time * 5.3) * Math.sin(time * 2.1);
-  g.save(); g.beginPath(); g.arc(gc.x, gc.y, gc.R - 3, 0, 7); g.clip();
+  g.save(); g.beginPath(); g.arc(gc.x, gc.y, gc.R - 3, 0, 7); g.clip(); g.beginPath(); g.rect(0, 0, 240, 200); g.clip();
   const wg = g.createRadialGradient(106, hy - 14, 2, 106, hy - 14, 105); wg.addColorStop(0, 'rgba(255,208,100,' + 0.95 * fl + ')'); wg.addColorStop(0.4, 'rgba(255,190,90,' + 0.5 * fl + ')'); wg.addColorStop(1, 'rgba(255,170,80,0)');
   // the sky: a cold soft glow from the top of the sphere, a slow aurora and a few twinkling stars
   const sk = g.createLinearGradient(0, gc.y - gc.R, 0, gc.y + 10); sk.addColorStop(0, 'rgba(150,185,255,0.55)'); sk.addColorStop(0.45, 'rgba(120,150,255,0.22)'); sk.addColorStop(1, 'rgba(120,150,255,0)');
@@ -4088,6 +4111,385 @@ function gbGlow(c, parts, t) { // in the dark only the cosy yellow light from th
   g.restore();
 }
 TOYDEF.globe.glow = gbGlow;
+/* ---------- Food toys: a bowl of soup with a spoon you can stir, and a jar of pickles that sloshes when you touch it ---------- */
+function fdR(a, b) { return a + Math.random() * (b - a); }
+function fdC(v, a, b) { return v < a ? a : v > b ? b : v; }
+
+/* ===== Soup (shchi / rassolnik): a spoon stirs the broth, the vegetables swirl round ===== */
+var SPE = { x: 130, y: 114, rx: 90, ry: 29 }; // the soup surface, design coordinates
+var SP = { cr: 0, it: null, eyes: null, rip: [], om: 0, su: 0.6, sv: -0.05, tu: 0.6, tv: -0.05, svx: 0, svy: 0, drag: false, offx: 0, offy: 0, snd: 0, clk: 0, rt: 0, ph: 0 };
+var SP_KIND = [['cab', 9, 0.1], ['pot', 5, 0.085], ['car', 6, 0.08], ['pic', 4, 0.085], ['dill', 7, 0.075], ['pep', 8, 0.035], ['leaf', 2, 0.11]];
+function spInit() {
+  const a = [{ t: 'cream', u: -0.18, v: 0.05, vx: 0, vy: 0, a: 0, w: 0, r: 0.2, c: 0, hop: 0 }];
+  SP_KIND.forEach(k => {
+    for (let i = 0; i < k[1]; i++) {
+      let u = 0, v = 0, ok = false;
+      for (let tr = 0; tr < 40 && !ok; tr++) {
+        const rr = Math.sqrt(Math.random()) * 0.82, an = Math.random() * 6.283; u = Math.cos(an) * rr; v = Math.sin(an) * rr; ok = true;
+        for (const o of a) if (Math.hypot(o.u - u, o.v - v) < (o.r + k[2]) * 0.85) { ok = false; break; }
+      }
+      a.push({ t: k[0], u, v, vx: 0, vy: 0, a: Math.random() * 6.283, w: 0, r: k[2], c: Math.random(), hop: 0 });
+    }
+  });
+  SP.it = a;
+  SP.eyes = []; for (let i = 0; i < 9; i++) { const rr = Math.sqrt(Math.random()) * 0.85, an = Math.random() * 6.283; SP.eyes.push({ u: Math.cos(an) * rr, v: Math.sin(an) * rr, r: fdR(0.035, 0.08) }); }
+}
+function spReset() { SP.it = null; SP.eyes = null; SP.rip = []; SP.om = 0; SP.su = SP.tu = 0.6; SP.sv = SP.tv = -0.05; SP.svx = SP.svy = 0; SP.drag = false; SP.cr = 0; SP.snd = SP.clk = SP.rt = 0; SP.px = SP.py = undefined; spInit(); }
+function spX(u) { return SPE.x + u * SPE.rx * 0.94; }
+function spY(v) { return SPE.y + v * SPE.ry * 0.94; }
+function spU(dx) { return (dx - SPE.x) / (SPE.rx * 0.94); }
+function spV(dy) { return (dy - SPE.y) / (SPE.ry * 0.94); }
+function spHandle() { // where the handle of the spoon ends
+  const hx = spX(SP.su), hy = spY(SP.sv);
+  return { hx, hy, ex: hx + (hx - 130) * 0.25 + 10, ey: hy - 88 };
+}
+function spSeg(px, py, ax, ay, bx, by) { const dx = bx - ax, dy = by - ay, l2 = dx * dx + dy * dy || 1, t = fdC(((px - ax) * dx + (py - ay) * dy) / l2, 0, 1); return Math.hypot(px - (ax + dx * t), py - (ay + dy * t)); }
+function spCream() { // a fresh dollop of sour cream floats in
+  const c = SP.it.find(i => i.t === 'cream'); if (!c) return;
+  c.off = false; c.mix = 0; c.r = 0.2; c.u = fdR(-0.4, 0.4); c.v = fdR(-0.55, -0.2); c.vx = c.vy = 0; c.hop = 1.2; c.w = fdR(-3, 3);
+  SP.rip.push({ u: c.u, v: c.v, age: 0 });
+}
+function soupHit(dx, dy) {
+  if (dy >= 212 && dy < 236 && dx > 12 && dx < 248) return { type: 'scream', id: 'sp_c' };
+  const q = Math.pow((dx - SPE.x) / (SPE.rx + 12), 2) + Math.pow((dy - SPE.y) / (SPE.ry + 9), 2);
+  if (q < 1) return { type: 'soup', id: 'sp_s' };
+  const h = spHandle(); if (spSeg(dx, dy, h.hx, h.hy, h.ex, h.ey) < 15) return { type: 'soup', id: 'sp_s', handle: true };
+  if (dy > SPE.y - 20 && dy < 232 && dx > 24 && dx < 236) return { type: 'sbowl', id: 'sp_b' };
+  return null;
+}
+function soupStart(z, x, y) {
+  const d = popDesign(x, y);
+  if (z.type === 'scream') { spCream(); Snd.soupPlip(pan(x)); return; }
+  if (z.type === 'sbowl') {
+    Snd.spoonClink(pan(x), 0.6); SP.om += fdR(-1.2, 1.2);
+    for (const it of SP.it) { it.hop = Math.max(it.hop, 0.6); it.w += fdR(-3, 3); }
+    SP.rip.push({ u: 0, v: 0, age: 0 }); return;
+  }
+  SP.drag = true;
+  const h = spHandle();
+  if (z.handle) { SP.offx = h.hx - d.dx; SP.offy = h.hy - d.dy; } else { SP.offx = 0; SP.offy = 0; }
+  SP.tu = spU(d.dx + SP.offx); SP.tv = spV(d.dy + SP.offy);
+  if (!z.handle) { // a tap on a piece makes it hop
+    let best = null, bd = 9;
+    for (const it of SP.it) { const dd = Math.hypot(it.u - SP.tu, it.v - SP.tv) - it.r; if (dd < 0.1 && dd < bd) { bd = dd; best = it; } }
+    if (best) { best.hop = 1; best.w += fdR(-5, 5); best.vx += fdR(-0.3, 0.3); best.vy += fdR(-0.3, 0.3); SP.rip.push({ u: best.u, v: best.v, age: 0 }); Snd.soupPlip(pan(x)); }
+  }
+}
+function soupMove(z, x, y) { if (z.type !== 'soup') return; const d = popDesign(x, y); SP.tu = spU(d.dx + SP.offx); SP.tv = spV(d.dy + SP.offy); }
+function soupEnd() { SP.drag = false; }
+function soupStep(dt) {
+  if (!SP.it) spInit();
+  const S = SP, n = S.it; dt = Math.min(dt, 0.05); if (dt <= 0) return;
+  { // the bowl carried about on its string: the pieces bounce and the broth sloshes
+    const mx = G.ox - (S.px === undefined ? G.ox : S.px), my = G.oy - (S.py === undefined ? G.oy : S.py); S.px = G.ox; S.py = G.oy;
+    const cs = Math.hypot(mx, my) / dt;
+    if (cs > 80) { const kk = Math.min(1, (cs - 80) / 1000); S.om = fdC(S.om + fdC(mx / dt / 1500, -1, 1) * 2.5 * dt, -4.5, 4.5);
+      for (const it of n) { if (Math.random() < dt * 12 * kk) { it.hop = Math.max(it.hop, 0.5 + 0.5 * Math.random()); it.w += fdR(-4, 4); } it.vx -= fdC(mx / dt / 1500, -1, 1) * 0.8 * dt * 10; it.vy += fdR(-1, 1) * kk * dt * 4; }
+      if (time - S.snd > 0.12) { S.snd = time; Snd.soupStir(pan(G.ox), Math.min(1, kk)); } }
+  }
+  const ou = S.su, ov = S.sv, k = Math.min(1, dt * 26);
+  S.su += (S.tu - S.su) * k; S.sv += (S.tv - S.sv) * k;
+  const hr = Math.hypot(S.su, S.sv); if (hr > 0.93) { S.su *= 0.93 / hr; S.sv *= 0.93 / hr; }
+  const ivx = (S.su - ou) / dt, ivy = (S.sv - ov) / dt;
+  S.svx += (ivx - S.svx) * Math.min(1, dt * 14); S.svy += (ivy - S.svy) * Math.min(1, dt * 14);
+  const sp = Math.hypot(S.svx, S.svy);
+  S.om += (S.su * S.svy - S.sv * S.svx) * 2.4 * dt;
+  S.om = fdC(S.om, -4.5, 4.5) * Math.exp(-dt * 0.5);
+  if (Math.abs(S.om) < 0.01) S.om = 0;
+  S.ph += S.om * dt * 0.7;
+  const fk = Math.min(1, dt * 1.7);
+  for (const it of n) {
+    if (it.off) continue;
+    it.vx += (-S.om * it.v * 0.85 - it.vx) * fk; it.vy += (S.om * it.u * 0.85 - it.vy) * fk;
+    const dx = it.u - S.su, dy = it.v - S.sv, d = Math.hypot(dx, dy) || 0.001, rr = it.r + 0.1;
+    if (d < rr + 0.18) { const f = 1 - d / (rr + 0.18); it.vx += (S.svx - it.vx) * Math.min(1, dt * 6 * f); it.vy += (S.svy - it.vy) * Math.min(1, dt * 6 * f); }
+    if (it.t === 'cream' && d < rr + 0.06 && sp > 0.35) { // the spoon stirs the cream into the broth
+      const dm = Math.min(1 - (it.mix || 0), sp * dt * 0.3); it.mix = (it.mix || 0) + dm; S.cr = Math.min(1, S.cr + dm * 1.0);
+      if (it.mix >= 0.999) { it.off = true; S.rip.push({ u: it.u, v: it.v, age: 0 }); Snd.soupPlip(pan(G.ox)); }
+    }
+    if (d < rr) { const nx = dx / d, ny = dy / d, pen = rr - d; it.u += nx * pen * 0.7; it.v += ny * pen * 0.7; it.vx += nx * pen * 5; it.vy += ny * pen * 5; it.w += (Math.random() - 0.5) * 5 * Math.min(1, sp); if (sp > 0.7) it.hop = Math.max(it.hop, 0.45 + 0.3 * Math.random()); }
+    it.u += it.vx * dt; it.v += it.vy * dt;
+    it.a += (S.om * 0.35 + it.w) * dt; it.w *= Math.exp(-dt * 1.2);
+    if (it.hop > 0) it.hop = Math.max(0, it.hop - dt * 3.2);
+  }
+  S.cr *= Math.exp(-dt * 0.03); if (S.cr < 0.004) S.cr = 0;
+  for (let i = 0; i < n.length; i++) for (let j = i + 1; j < n.length; j++) {
+    const a = n[i], b = n[j]; if (a.off || b.off) continue;
+    const dx = b.u - a.u, dy = b.v - a.v, md = (a.r + b.r) * 0.8, d2 = dx * dx + dy * dy;
+    if (d2 < md * md && d2 > 1e-8) { const d = Math.sqrt(d2), p = (md - d) * 0.5, nx = dx / d, ny = dy / d; a.u -= nx * p; a.v -= ny * p; b.u += nx * p; b.v += ny * p; }
+  }
+  for (const it of n) {
+    if (it.off) continue;
+    const r = Math.hypot(it.u, it.v), lim = 0.95 - it.r * 0.6;
+    if (r > lim) { const nx = it.u / r, ny = it.v / r; it.u = nx * lim; it.v = ny * lim; const dp = it.vx * nx + it.vy * ny; if (dp > 0) { it.vx -= 1.4 * dp * nx; it.vy -= 1.4 * dp * ny; } }
+  }
+  { const c = Math.cos(S.om * 0.6 * dt), s = Math.sin(S.om * 0.6 * dt); for (const e of S.eyes) { const u = e.u * c - e.v * s, v = e.u * s + e.v * c; e.u = u; e.v = v; } }
+  S.rt -= dt; if (sp > 0.9 && S.rt <= 0) { S.rt = 0.14; S.rip.push({ u: S.su, v: S.sv, age: 0 }); }
+  for (const r of S.rip) r.age += dt * 1.1; S.rip = S.rip.filter(r => r.age < 1);
+  if (sp > 0.35 && time - S.snd > 0.1) { S.snd = time; Snd.soupStir(pan(G.ox), Math.min(1, sp / 2.2)); }
+  else if (Math.abs(S.om) > 0.9 && time - S.snd > 0.24) { S.snd = time; Snd.soupStir(pan(G.ox), Math.min(0.5, Math.abs(S.om) / 6)); }
+  if (hr > 0.86 && sp > 0.55 && time - S.clk > 0.2) { S.clk = time; Snd.spoonClink(pan(G.ox), Math.min(1, sp / 2)); }
+}
+function spItem(g, it, X, Y, R, up) {
+  g.save(); g.translate(X, Y - up);
+  const L = '#5f9a45', t = it.t;
+  if (t === 'cream') { // a dollop of sour cream floating in the soup, a dill sprig on top
+    g.fillStyle = 'rgba(120,90,40,0.35)'; g.beginPath(); g.ellipse(0, 3, R * 1.05, R * 0.6, 0, 0, 7); g.fill();
+    const gr = g.createRadialGradient(-R * 0.3, -R * 0.35, 1, 0, 0, R * 1.1); gr.addColorStop(0, '#ffffff'); gr.addColorStop(1, '#efe4cc');
+    g.fillStyle = gr; g.strokeStyle = '#cdbf9f'; g.lineWidth = 1.2;
+    g.beginPath(); g.ellipse(0, -R * 0.1, R, R * 0.62, 0, 0, 7); g.fill(); g.stroke();
+    g.beginPath(); g.moveTo(-R * 0.55, -R * 0.3); g.quadraticCurveTo(-R * 0.3, -R * 0.95, R * 0.05, -R * 1.15); g.quadraticCurveTo(R * 0.4, -R * 0.9, R * 0.55, -R * 0.3); g.quadraticCurveTo(0, -R * 0.05, -R * 0.55, -R * 0.3); g.fill(); g.stroke();
+    g.strokeStyle = '#4f9a52'; g.lineWidth = 1.6; for (let i = 0; i < 7; i++) { const an = -2.6 + i * 0.35; g.beginPath(); g.moveTo(R * 0.05, -R * 1.1); g.lineTo(R * 0.05 + Math.cos(an) * R * 0.55, -R * 1.1 + Math.sin(an) * R * 0.45 + R * 0.25); g.stroke(); }
+    g.restore(); return;
+  }
+  g.scale(1, 0.62); g.rotate(it.a);
+  g.lineJoin = g.lineCap = 'round'; g.lineWidth = 1.3;
+  if (t === 'cab') {
+    const lt = it.c > 0.5;
+    g.fillStyle = lt ? '#cfe9a0' : '#a8d672'; g.strokeStyle = L;
+    g.beginPath(); g.moveTo(-R * 1.5, 0); g.quadraticCurveTo(-R * 0.3, -R * 0.8, R * 1.5, -R * 0.1); g.quadraticCurveTo(R * 0.3, R * 0.9, -R * 1.5, 0); g.fill(); g.stroke();
+    g.strokeStyle = 'rgba(255,255,255,0.55)'; g.beginPath(); g.moveTo(-R * 1.1, 0); g.quadraticCurveTo(0, -R * 0.1, R * 1.1, -R * 0.1); g.stroke();
+  } else if (t === 'pot') {
+    g.fillStyle = '#d9b25f'; g.beginPath(); g.roundRect(-R, -R + 4, R * 2, R * 2, R * 0.35); g.fill();
+    g.fillStyle = '#f6dc8a'; g.strokeStyle = '#c49a45'; g.beginPath(); g.roundRect(-R, -R, R * 2, R * 2, R * 0.35); g.fill(); g.stroke();
+    g.fillStyle = 'rgba(255,255,255,0.4)'; g.beginPath(); g.roundRect(-R * 0.7, -R * 0.7, R * 0.9, R * 0.3, 2); g.fill();
+  } else if (t === 'car') {
+    g.fillStyle = '#d9722a'; g.beginPath(); g.arc(0, 4, R * 0.95, 0, 7); g.fill();
+    g.fillStyle = '#f58a3a'; g.strokeStyle = '#c4621f'; g.beginPath(); g.arc(0, 0, R * 0.95, 0, 7); g.fill(); g.stroke();
+    g.strokeStyle = '#ffb36b'; g.beginPath(); g.arc(0, 0, R * 0.5, 0, 7); g.stroke();
+  } else if (t === 'pic') {
+    g.fillStyle = '#7fa84a'; g.beginPath(); g.arc(0, 4, R * 0.95, 0, 7); g.fill();
+    g.fillStyle = '#a9cf62'; g.strokeStyle = '#6a9a3a'; g.beginPath(); g.arc(0, 0, R * 0.95, 0, 7); g.fill(); g.stroke();
+    g.fillStyle = '#d6e8a0'; g.beginPath(); g.arc(0, 0, R * 0.58, 0, 7); g.fill();
+    g.fillStyle = '#f4f7d0'; for (let i = 0; i < 5; i++) { const an = i * 1.2566; g.beginPath(); g.arc(Math.cos(an) * R * 0.3, Math.sin(an) * R * 0.3, R * 0.09, 0, 7); g.fill(); }
+  } else if (t === 'dill') {
+    g.strokeStyle = '#4f9a52'; g.lineWidth = 1.4;
+    for (let i = 0; i < 9; i++) { const an = i * 0.7 + it.c * 3, l = R * (1.1 + (i % 3) * 0.25); g.beginPath(); g.moveTo(0, 0); g.lineTo(Math.cos(an) * l, Math.sin(an) * l); g.stroke(); g.beginPath(); g.moveTo(Math.cos(an) * l * 0.6, Math.sin(an) * l * 0.6); g.lineTo(Math.cos(an + 0.5) * l * 0.95, Math.sin(an + 0.5) * l * 0.95); g.stroke(); }
+  } else if (t === 'pep') {
+    g.fillStyle = '#2c2433'; g.beginPath(); g.arc(0, 0, R * 1.1, 0, 7); g.fill(); g.fillStyle = 'rgba(255,255,255,0.5)'; g.beginPath(); g.arc(-R * 0.3, -R * 0.3, R * 0.3, 0, 7); g.fill();
+  } else if (t === 'leaf') {
+    g.fillStyle = '#8da34a'; g.strokeStyle = '#5d6f2c'; g.beginPath(); g.ellipse(0, 0, R * 1.5, R * 0.62, 0, 0, 7); g.fill(); g.stroke();
+    g.beginPath(); g.moveTo(-R * 1.4, 0); g.lineTo(R * 1.4, 0); g.stroke();
+  }
+  g.restore();
+}
+function soupRender(c) {
+  const S2 = c.width, L = toyLayout(S2, { toy: 'soup' }), g = c.getContext('2d'), OUT = '#7f6db0';
+  if (!SP.it) spInit();
+  g.clearRect(0, 0, S2, S2); g.imageSmoothingQuality = 'high';
+  g.save(); g.translate(L.ox, 0); g.scale(L.k, L.k); g.lineJoin = g.lineCap = 'round';
+  g.translate(0, 34);
+  const cx = 130;
+  // the saucer
+  g.fillStyle = '#f3eefc'; g.strokeStyle = OUT; g.lineWidth = 3; g.beginPath(); g.ellipse(cx, 180, 116, 15, 0, 0, 7); g.fill(); g.stroke();
+  g.fillStyle = '#e4dcf5'; g.strokeStyle = 'rgba(127,109,176,0.4)'; g.lineWidth = 1.6; g.beginPath(); g.ellipse(cx, 178, 84, 10, 0, 0, 7); g.fill(); g.stroke();
+  g.fillStyle = 'rgba(60,40,100,0.3)'; g.beginPath(); g.ellipse(cx, 177, 52, 8.5, 0, 0, 7); g.fill();
+  // the bowl body
+  const bg = g.createLinearGradient(cx - 100, 0, cx + 100, 0); bg.addColorStop(0, '#e8edfb'); bg.addColorStop(0.25, '#ffffff'); bg.addColorStop(1, '#cfd8ef');
+  g.fillStyle = bg; g.strokeStyle = OUT; g.lineWidth = 3.2;
+  g.beginPath(); g.moveTo(cx - 102, 76); g.bezierCurveTo(cx - 102, 130, cx - 80, 168, cx - 40, 172); g.ellipse(cx, 172, 40, 6.5, 0, Math.PI, 0, true); g.bezierCurveTo(cx + 80, 168, cx + 102, 130, cx + 102, 76); g.ellipse(cx, 76, 102, 36, 0, 0, Math.PI, false); g.closePath(); g.fill(); g.stroke();
+  // blue folk pattern: a band under the rim, flowers and dots
+  g.save(); g.clip();
+  g.strokeStyle = '#4a6fd0'; g.lineWidth = 4; g.beginPath(); g.ellipse(cx, 92, 100, 36, 0, 0.12, Math.PI - 0.12); g.stroke();
+  g.lineWidth = 1.8; g.beginPath(); g.ellipse(cx, 102, 98, 36, 0, 0.14, Math.PI - 0.14); g.stroke();
+  g.fillStyle = '#4a6fd0';
+  [[58, 146], [94, 156], [130, 158], [166, 156], [202, 146]].forEach((f, i) => {
+    for (let p = 0; p < 5; p++) { const an = p * 1.2566 - 1.57; g.beginPath(); g.ellipse(f[0] + Math.cos(an) * 7, f[1] + Math.sin(an) * 5.5, 4.6, 3.1, an, 0, 7); g.fill(); }
+    g.fillStyle = '#ffffff'; g.beginPath(); g.arc(f[0], f[1], 2.4, 0, 7); g.fill(); g.fillStyle = '#4a6fd0';
+  });
+  g.fillStyle = 'rgba(255,255,255,0.7)'; g.beginPath(); g.roundRect(cx - 88, 118, 9, 40, 4.5); g.fill();
+  g.restore();
+  // rim, the inside wall and the soup
+  g.fillStyle = '#ffffff'; g.strokeStyle = OUT; g.lineWidth = 3.2; g.beginPath(); g.ellipse(cx, 76, 102, 36, 0, 0, 7); g.fill(); g.stroke();
+  g.fillStyle = '#dde5f8'; g.lineWidth = 1.6; g.strokeStyle = 'rgba(127,109,176,0.6)'; g.beginPath(); g.ellipse(cx, 78, 95, 31, 0, 0, 7); g.fill(); g.stroke();
+  const ex = SPE.x, ey = SPE.y - 34, erx = SPE.rx, ery = SPE.ry; // (the soup ellipse in the shifted space)
+  g.save(); g.beginPath(); g.ellipse(ex, ey, erx, ery, 0, 0, 7); g.clip();
+  const sg = g.createRadialGradient(ex - 20, ey - 6, 4, ex, ey, erx); const cr = SP.cr, mixc = (a, b) => { const A = parseInt(a.slice(1), 16), B = parseInt(b.slice(1), 16), f = (sh) => Math.round(((A >> sh) & 255) * (1 - cr * 0.75) + ((B >> sh) & 255) * cr * 0.75); return 'rgb(' + f(16) + ',' + f(8) + ',' + f(0) + ')'; };
+  sg.addColorStop(0, mixc('#f0d27a', '#fbf1d6')); sg.addColorStop(0.7, mixc('#dcae52', '#f1dcab')); sg.addColorStop(1, mixc('#c48f3c', '#e3c58b'));
+  g.fillStyle = sg; g.fillRect(ex - erx, ey - ery, erx * 2, ery * 2);
+  // swirl marks follow the flow
+  g.lineWidth = 2.2; for (let i = 0; i < 3; i++) { const rr = 0.38 + i * 0.24, an = SP.ph * (1.4 - i * 0.25) + i * 2.1; g.strokeStyle = 'rgba(255,245,200,' + (0.28 - i * 0.05) + ')'; g.beginPath(); g.ellipse(ex, ey, erx * rr, ery * rr, 0, an, an + 1.5); g.stroke(); g.beginPath(); g.ellipse(ex, ey, erx * rr, ery * rr, 0, an + 3.14, an + 4.4); g.stroke(); }
+  if (SP.cr > 0.02) { g.lineWidth = 6; for (let i = 0; i < 3; i++) { const rr = 0.3 + i * 0.25, an = SP.ph * (1.2 - i * 0.2) + i * 1.7 + 0.8; g.strokeStyle = 'rgba(255,252,240,' + (0.55 * SP.cr) + ')'; g.beginPath(); g.ellipse(ex, ey, erx * rr, ery * rr, 0, an, an + 1.9); g.stroke(); } }
+  g.translate(0, -34);
+  for (const e of SP.eyes) { const X = spX(e.u), Y = spY(e.v), r = e.r * SPE.rx; g.fillStyle = 'rgba(255,238,150,0.5)'; g.strokeStyle = 'rgba(255,250,210,0.85)'; g.lineWidth = 1; g.beginPath(); g.ellipse(X, Y, r, r * 0.62, 0, 0, 7); g.fill(); g.stroke(); }
+  for (const r of SP.rip) { g.strokeStyle = 'rgba(255,250,220,' + (0.55 * (1 - r.age)) + ')'; g.lineWidth = 1.8; g.beginPath(); g.ellipse(spX(r.u), spY(r.v), 8 + r.age * 62, 3 + r.age * 19, 0, 0, 7); g.stroke(); }
+  const order = SP.it.filter(i => !i.off).sort((a, b) => a.v - b.v);
+  for (const it of order) { const mx = it.mix || 0, R = it.r * SPE.rx * (1 - 0.55 * mx); if (mx > 0) g.globalAlpha = 1 - 0.8 * mx * mx; spItem(g, it, spX(it.u), spY(it.v), R, it.hop * 8 * Math.sin(Math.min(1, it.hop) * 3.14)); g.globalAlpha = 1; }
+  g.restore(); // clip
+  g.translate(0, 0);
+  // steam
+  g.lineWidth = 3; g.lineCap = 'round';
+  for (let i = 0; i < 4; i++) { const ph = (time * 0.35 + i * 0.25) % 1, bx = 70 + i * 40 + Math.sin(time * 0.8 + i) * 6; g.strokeStyle = 'rgba(255,255,255,' + (0.38 * Math.sin(ph * 3.14)) + ')'; g.beginPath(); g.moveTo(bx, 56 - ph * 12); g.bezierCurveTo(bx + 10, 40 - ph * 22, bx - 10, 26 - ph * 28, bx + 4, 10 - ph * 34); g.stroke(); }
+  g.restore();
+  // the spoon: its head in the soup, the handle leaning out
+  g.save(); g.translate(L.ox, 0); g.scale(L.k, L.k); g.lineJoin = g.lineCap = 'round';
+  { const h = spHandle(), hx = h.hx, hy = h.hy;
+    const ang = Math.atan2(h.ey - hy, h.ex - hx);
+    g.strokeStyle = OUT; g.lineWidth = 9; g.beginPath(); g.moveTo(hx, hy); g.lineTo(h.ex, h.ey); g.stroke();
+    g.strokeStyle = '#d8dded'; g.lineWidth = 5.4; g.beginPath(); g.moveTo(hx, hy); g.lineTo(h.ex, h.ey); g.stroke();
+    g.strokeStyle = 'rgba(255,255,255,0.8)'; g.lineWidth = 1.6; g.beginPath(); g.moveTo(hx - 1.5, hy - 6); g.lineTo(h.ex - 1.5, h.ey + 2); g.stroke();
+    g.fillStyle = '#d8dded'; g.strokeStyle = OUT; g.lineWidth = 2.6; g.beginPath(); g.ellipse(h.ex, h.ey, 7.5, 10, ang + 1.57, 0, 7); g.fill(); g.stroke();
+    const hg = g.createRadialGradient(hx - 4, hy - 3, 1, hx, hy, 17); hg.addColorStop(0, '#f4f6fc'); hg.addColorStop(1, '#a9b2cc');
+    g.fillStyle = hg; g.strokeStyle = OUT; g.lineWidth = 2.6; g.beginPath(); g.ellipse(hx, hy, 17, 10.5, ang + 1.57 - 1.2, 0, 7); g.fill(); g.stroke();
+    g.fillStyle = 'rgba(240,205,110,0.4)'; g.beginPath(); g.ellipse(hx, hy + 1.5, 14, 7, ang + 1.57 - 1.2, 0, 7); g.fill(); }
+  g.restore();
+}
+TOYDEF.soup = { W: 260, H: 236, render: soupRender, hit: soupHit };
+
+/* ===== Jar of pickles: touch the glass and the jar rocks, the brine sloshes and the cucumbers bob about ===== */
+var JR = { ivx: 0, ivy: 0, ev: 0, evy: 0, lx: 0, ly: 0, lt: 0, it: null, bub: [], x: 0, y: 0, a: 0, vx: 0, vy: 0, va: 0, tx: 0, ty: 0, ta: 0, sl: 0, slv: 0, wa: 0, drag: false, sx: 0, sy: 0, snd: 0, knk: 0, px: undefined, py: undefined, lid: 0, lidv: 0, pvx: 0, pva: 0, jax: 0, ava: 0 };
+function jrPath(g, i) {
+  g.beginPath(); g.moveTo(58 + i, 46); g.lineTo(58 + i, 64); g.bezierCurveTo(58 + i, 86, 38 + i, 84, 38 + i, 112); g.lineTo(38 + i, 220 - i);
+  g.arcTo(38 + i, 246 - i, 64 + i, 246 - i, 26); g.lineTo(156 - i, 246 - i); g.arcTo(182 - i, 246 - i, 182 - i, 220 - i, 26); g.lineTo(182 - i, 112);
+  g.bezierCurveTo(182 - i, 84, 162 - i, 86, 162 - i, 64); g.lineTo(162 - i, 46); g.closePath();
+}
+var JR_REST = [['pk', 74, 164, 1.47, 90], ['pk', 112, 166, 1.64, 94], ['pk', 150, 162, 1.72, 88], ['pk', 100, 226, 0.06, 74], ['pk', 138, 214, -0.12, 60], ['pk', 112, 100, 0.1, 68]];
+function jrInit() {
+  const a = [];
+  JR_REST.forEach((r, i) => {
+    const bumps = []; for (let k = 0; k < 9; k++) bumps.push({ x: fdR(-0.42, 0.42), y: fdR(-0.32, 0.32), l: Math.random() < 0.5 });
+    a.push({ t: 'pk', x: r[1], y: r[2], a: r[3], L: r[4], W: 27 + (i % 2) * 2, ox: 0, oy: 0, vx: 0, vy: 0, oa: 0, ova: 0, g: 0.1 + 0.05 * (i % 3), bumps, col: i % 2 });
+  });
+  [[62, 124, 0.6], [152, 118, -0.4], [110, 190, 0.2]].forEach(d => a.push({ t: 'dl', x: d[0], y: d[1], a: d[2], L: 46, ox: 0, oy: 0, vx: 0, vy: 0, oa: 0, ova: 0, g: 0.2 }));
+  [[58, 196], [162, 186], [76, 236], [148, 236]].forEach(d => a.push({ t: 'gl', x: d[0], y: d[1], a: fdR(-1, 1), L: 20, ox: 0, oy: 0, vx: 0, vy: 0, oa: 0, ova: 0, g: 0.16 }));
+  for (let i = 0; i < 16; i++) a.push({ t: i % 3 ? 'sd' : 'pp', x: fdR(54, 166), y: fdR(98, 236), a: 0, L: 2, ox: 0, oy: 0, vx: 0, vy: 0, oa: 0, ova: 0, g: 0.3 });
+  JR.it = a; JR.bub = [];
+}
+function jrReset() { JR.x = JR.y = JR.a = JR.vx = JR.vy = JR.va = JR.tx = JR.ty = JR.ta = JR.sl = JR.slv = JR.wa = 0; JR.lid = JR.lidv = 0; JR.drag = false; JR.px = JR.py = undefined; jrInit(); }
+function jarHit(dx, dy) {
+  if (dx > 50 && dx < 170 && dy > 10 && dy < 46) return { type: 'jlid', id: 'pj_l' };
+  if (dx > 36 && dx < 184 && dy > 46 && dy < 250) return { type: 'jdrag', id: 'pj_g' };
+  return null;
+}
+function jarStart(z, x, y) {
+  const d = popDesign(x, y);
+  if (z.type === 'jlid') { JR.lidv -= 190; JR.va += fdR(-0.4, 0.4); JR.slv += fdR(-0.6, 0.6); Snd.jarLid(pan(x)); for (const p of JR.it) p.vy -= 40; return; }
+  JR.drag = true; JR.sx = d.dx; JR.sy = d.dy;
+  const push = (110 - d.dx); JR.vx += push * 1.2; JR.va += push * 0.003; JR.slv += push * 0.03; JR.ivx += push * 18; for (const p of JR.it) p.vx += push * 0.5;
+  Snd.jarGlass(pan(x)); Snd.jarSlosh(pan(x), 0.3);
+}
+function jarMove(z, x, y) {
+  if (z.type !== 'jdrag') return; const d = popDesign(x, y);
+  JR.tx = fdC((d.dx - JR.sx) * 0.12, -7, 7); JR.ty = fdC((d.dy - JR.sy) * 0.1, -5, 5); JR.ta = fdC((d.dx - JR.sx) * 0.001, -0.05, 0.05);
+  const t = time, dtm = Math.max(0.008, t - (JR.lt || t)); if (JR.lt) { JR.ivx += (d.dx - JR.lx) / dtm * 0.5; JR.ivy += (d.dy - JR.ly) / dtm * 0.5; } JR.lx = d.dx; JR.ly = d.dy; JR.lt = t;
+}
+function jarEnd() { JR.lt = 0; JR.drag = false; JR.tx = JR.ty = JR.ta = 0; }
+if (typeof window !== 'undefined' && window.addEventListener) {
+  try { window.addEventListener('devicemotion', (e) => { if (!(isToy() && OBJECTS[G.kind].toy === 'pickles' && !G.layers.length && !G.inWax)) return; const a = e.acceleration; if (!a) return; const m = Math.hypot(a.x || 0, a.y || 0, a.z || 0); if (m > 4) { JR.vx += (Math.random() - 0.5) * m * 18; JR.va += (Math.random() - 0.5) * m * 0.05; JR.slv += (Math.random() - 0.5) * m * 0.12; } }); } catch (e) { /* no motion sensor */ }
+}
+function jarStep(dt, steps, h) {
+  if (!JR.it) jrInit();
+  const J = JR; dt = Math.min(dt, 0.05); if (dt <= 0) return;
+  // the shaking that reaches the contents: the finger on the glass and the whole jar being carried on its string
+  let cvx = 0, cvy = 0;
+  { const mx = G.ox - (J.px === undefined ? G.ox : J.px), my = G.oy - (J.py === undefined ? G.oy : J.py); J.px = G.ox; J.py = G.oy; cvx = mx / dt; cvy = my / dt; }
+  const evx = fdC(cvx * 2.2 + J.ivx, -2600, 2600), evy = fdC(cvy * 2.2 + J.ivy, -2600, 2600); J.ivx *= Math.exp(-dt * 14); J.ivy *= Math.exp(-dt * 14);
+  const jax0 = fdC((evx - J.ev) / dt, -9000, 9000), jay0 = fdC((evy - J.evy) / dt, -9000, 9000); J.ev = evx; J.evy = evy;
+  const ovx = J.vx, ova = J.va;
+  const st = Math.max(1, Math.ceil(dt / 0.008)), hh = dt / st;
+  for (let i = 0; i < st; i++) {
+    J.vx += ((J.tx - J.x) * 150 - J.vx * 9) * hh; J.x += J.vx * hh;
+    J.vy += ((J.ty - J.y) * 150 - J.vy * 9) * hh; J.y += J.vy * hh;
+    J.va += ((J.ta - J.a) * 170 - J.va * 8) * hh; J.a += J.va * hh;
+    J.lidv += ((0 - J.lid) * 320 - J.lidv * 16) * hh; J.lid += J.lidv * hh;
+  }
+  const ax = jax0 * 1.0;
+  J.slv += (-150 * J.sl - 3.2 * J.slv - ax * 0.0065) * dt; J.sl = fdC(J.sl + J.slv * dt, -0.5, 0.5);
+  J.wa = Math.max(Math.min(6, Math.abs(J.slv) * 3.2), J.wa * Math.exp(-dt * 2.2));
+  for (const p of J.it) {
+    p.vx += (-p.ox * 62 - p.vx * 5.2 - ax * p.g * 1.4) * dt; p.vy += (-p.oy * 62 - p.vy * 5.2 - jay0 * p.g * 1.1) * dt;
+    p.ova += (-p.oa * 70 - p.ova * 5 - ax * p.g * 0.012) * dt;
+    p.ox += p.vx * dt; p.oy += p.vy * dt; p.oa += p.ova * dt;
+    const lx = p.t === 'pk' ? 13 : 18, ly = p.t === 'pk' ? 12 : 16;
+    if (Math.abs(p.ox) > lx) { if (p.vx * p.ox > 30 && time - J.knk > 0.1 && p.t === 'pk') { J.knk = time; Snd.jarKnock(pan(G.ox), Math.min(1, Math.abs(p.vx) / 160)); } p.ox = Math.sign(p.ox) * lx; p.vx *= -0.35; }
+    if (Math.abs(p.oy) > ly) { p.oy = Math.sign(p.oy) * ly; p.vy *= -0.35; }
+    p.oa = fdC(p.oa, -0.5, 0.5);
+  }
+  J.pvy = J.vy;
+  // bubbles rise when the brine is stirred up (and now and then by themselves)
+  const agi = Math.abs(J.slv) + Math.abs(J.sl) * 6;
+  if (J.bub.length < 22 && Math.random() < dt * (0.6 + agi * 9)) J.bub.push({ x: fdR(56, 164), y: fdR(190, 238), r: fdR(1.4, 3.4), ph: fdR(0, 6) });
+  for (const b of J.bub) { b.y -= (18 + b.r * 9) * dt; b.x += Math.sin(time * 4 + b.ph) * 8 * dt; b.dead = b.y < 76 + (b.x - 110) * Math.tan(-J.a * 0.9 + J.sl); }
+  J.bub = J.bub.filter(b => !b.dead);
+  if (Math.abs(J.slv) > 0.9 && time - J.snd > 0.14) { J.snd = time; Snd.jarSlosh(pan(G.ox), Math.min(1, Math.abs(J.slv) / 3)); }
+}
+function jrDrawItem(g, p) {
+  g.save(); g.translate(p.x + p.ox, p.y + p.oy); g.rotate(p.a + p.oa); g.lineJoin = g.lineCap = 'round';
+  if (p.t === 'pk') {
+    const L = p.L, W = p.W;
+    const gr = g.createLinearGradient(0, -W / 2, 0, W / 2); gr.addColorStop(0, p.col ? '#b3cd6a' : '#a3c25a'); gr.addColorStop(1, p.col ? '#76993a' : '#6b8f30');
+    g.fillStyle = gr; g.strokeStyle = '#4f6e26'; g.lineWidth = 2; g.beginPath(); g.roundRect(-L / 2, -W / 2, L, W, W * 0.5); g.fill(); g.stroke();
+    g.save(); g.beginPath(); g.roundRect(-L / 2, -W / 2, L, W, W * 0.5); g.clip();
+    for (const b of p.bumps) { g.fillStyle = b.l ? 'rgba(235,245,170,0.7)' : 'rgba(60,90,25,0.55)'; g.beginPath(); g.arc(b.x * L, b.y * W, b.l ? 1.5 : 1.9, 0, 7); g.fill(); }
+    g.strokeStyle = 'rgba(255,255,255,0.4)'; g.lineWidth = 3; g.beginPath(); g.moveTo(-L / 2 + W * 0.5, -W * 0.28); g.lineTo(L / 2 - W * 0.5, -W * 0.28); g.stroke();
+    g.restore();
+    g.fillStyle = '#5a7a2a'; g.beginPath(); g.arc(L / 2 - 3, 0, 3, 0, 7); g.fill();
+  } else if (p.t === 'dl') {
+    g.strokeStyle = '#4f9a52'; g.lineWidth = 2; g.beginPath(); g.moveTo(0, 22); g.quadraticCurveTo(3, 4, 0, -4); g.stroke();
+    g.lineWidth = 1.5; g.strokeStyle = '#6cbf66';
+    for (let i = 0; i < 13; i++) { const an = -1.57 + (i - 6) * 0.26, l = 22 + (i % 2) * 5; g.beginPath(); g.moveTo(0, -4); g.lineTo(Math.cos(an) * l, -4 + Math.sin(an) * l); g.stroke(); g.beginPath(); g.moveTo(Math.cos(an) * l * 0.55, -4 + Math.sin(an) * l * 0.55); g.lineTo(Math.cos(an + 0.5) * l * 0.85, -4 + Math.sin(an + 0.5) * l * 0.85); g.stroke(); }
+  } else if (p.t === 'gl') {
+    g.fillStyle = '#f6efdc'; g.strokeStyle = '#cdbf9f'; g.lineWidth = 1.6; g.beginPath(); g.ellipse(0, 0, 7.5, 10.5, 0, 0, 7); g.fill(); g.stroke();
+    g.beginPath(); g.moveTo(0, -10); g.quadraticCurveTo(-3, 0, 0, 10); g.stroke();
+    g.fillStyle = 'rgba(255,255,255,0.6)'; g.beginPath(); g.ellipse(-3, -3, 1.6, 4, 0, 0, 7); g.fill();
+  } else if (p.t === 'sd') { g.fillStyle = '#d9c25a'; g.beginPath(); g.arc(0, 0, 1.9, 0, 7); g.fill(); }
+  else { g.fillStyle = '#3a2e2c'; g.beginPath(); g.arc(0, 0, 2.5, 0, 7); g.fill(); g.fillStyle = 'rgba(255,255,255,0.4)'; g.beginPath(); g.arc(-0.8, -0.8, 0.8, 0, 7); g.fill(); }
+  g.restore();
+}
+function jarRender(c) {
+  const S2 = c.width, L = toyLayout(S2, { toy: 'pickles' }), g = c.getContext('2d'), J = JR, OUT = '#7f6db0';
+  if (!J.it) jrInit();
+  g.clearRect(0, 0, S2, S2); g.imageSmoothingQuality = 'high';
+  g.save(); g.translate(L.ox, 0); g.scale(L.k, L.k); g.lineJoin = g.lineCap = 'round';
+  g.fillStyle = 'rgba(40,25,60,0.22)'; g.beginPath(); g.ellipse(110 + J.x * 0.6, 250, 74, 8, 0, 0, 7); g.fill();
+  g.save(); g.translate(110 + J.x, 246 + J.y); g.rotate(J.a); g.translate(-110, -246);
+  // glass back
+  jrPath(g, 0); g.fillStyle = 'rgba(214,236,240,0.3)'; g.fill();
+  g.save(); jrPath(g, 3); g.clip();
+  const sa = -J.a * 0.92 + J.sl, tn = Math.tan(sa), lvl = 76;
+  const surf = (x) => lvl + (x - 110) * tn + Math.sin(x * 0.09 + time * 7) * J.wa * 0.6 * Math.sin(time * 3.1 + x * 0.02);
+  const brine = (alpha) => { g.beginPath(); g.moveTo(0, surf(0)); for (let x = 0; x <= 220; x += 8) g.lineTo(x, surf(x)); g.lineTo(220, 270); g.lineTo(0, 270); g.closePath(); };
+  const bg = g.createLinearGradient(0, 70, 0, 246); bg.addColorStop(0, '#e6e08a'); bg.addColorStop(1, '#bdb856'); brine(); g.fillStyle = bg; g.fill();
+  for (const p of J.it) if (p.t === 'dl' || p.t === 'gl' || p.t === 'pk') jrDrawItem(g, p);
+  for (const p of J.it) if (p.t === 'sd' || p.t === 'pp') jrDrawItem(g, p);
+  for (const b of J.bub) { g.strokeStyle = 'rgba(255,255,240,0.8)'; g.fillStyle = 'rgba(255,255,255,0.18)'; g.lineWidth = 1; g.beginPath(); g.arc(b.x, b.y, b.r, 0, 7); g.fill(); g.stroke(); }
+  brine(); g.fillStyle = 'rgba(200,196,80,0.26)'; g.fill();
+  g.strokeStyle = 'rgba(255,255,235,0.85)'; g.lineWidth = 2.2; g.beginPath(); g.moveTo(0, surf(0)); for (let x = 0; x <= 220; x += 6) g.lineTo(x, surf(x)); g.stroke();
+  g.strokeStyle = 'rgba(255,255,235,0.3)'; g.lineWidth = 5; g.beginPath(); g.moveTo(0, surf(0) + 5); for (let x = 0; x <= 220; x += 6) g.lineTo(x, surf(x) + 5); g.stroke();
+  g.restore();
+  // glass edge and shine
+  jrPath(g, 0); g.strokeStyle = '#8aa6c8'; g.lineWidth = 3.4; g.stroke();
+  g.strokeStyle = 'rgba(255,255,255,0.6)'; g.lineWidth = 6; g.beginPath(); g.moveTo(52, 126); g.lineTo(52, 216); g.stroke();
+  g.fillStyle = 'rgba(255,255,255,0.7)'; g.beginPath(); g.arc(52, 112, 3, 0, 7); g.fill();
+  g.strokeStyle = 'rgba(255,255,255,0.25)'; g.lineWidth = 4; g.beginPath(); g.moveTo(170, 130); g.lineTo(170, 200); g.stroke();
+  g.fillStyle = '#d7ecf2'; g.strokeStyle = '#8aa6c8'; g.lineWidth = 2.6; g.beginPath(); g.roundRect(54, 42, 112, 9, 3); g.fill(); g.stroke();
+  // the lid
+  const ly = J.lid; g.save(); g.translate(110, 30 + ly); g.rotate(J.lid * -0.004); g.translate(-110, -30);
+  const lg = g.createLinearGradient(0, 14, 0, 44); lg.addColorStop(0, '#f8dc86'); lg.addColorStop(1, '#c9962f');
+  g.fillStyle = lg; g.strokeStyle = '#8a6420'; g.lineWidth = 2.8; g.beginPath(); g.roundRect(50, 14, 120, 31, 6); g.fill(); g.stroke();
+  g.strokeStyle = 'rgba(120,80,20,0.4)'; g.lineWidth = 1.4; for (let x = 62; x < 160; x += 8) { g.beginPath(); g.moveTo(x, 20); g.lineTo(x, 40); g.stroke(); }
+  g.fillStyle = 'rgba(255,255,255,0.45)'; g.beginPath(); g.roundRect(56, 17, 108, 5, 2.5); g.fill();
+  g.restore();
+  g.restore(); g.restore();
+}
+TOYDEF.pickles = { W: 220, H: 262, render: jarRender, hit: jarHit };
+
+/* hooks the toy engine calls for the food toys */
+function foodStart(z, x, y) {
+  if (z.type === 'soup' || z.type === 'sbowl' || z.type === 'scream') { soupStart(z, x, y); return true; }
+  if (z.type === 'jdrag' || z.type === 'jlid') { jarStart(z, x, y); return true; }
+  return false;
+}
+function foodMove(z, x, y) {
+  if (z.type === 'soup') { soupMove(z, x, y); return true; }
+  if (z.type === 'jdrag') { jarMove(z, x, y); return true; }
+  return z.type === 'sbowl' || z.type === 'scream' || z.type === 'jlid';
+}
+function foodEnd(z) {
+  if (z.type === 'soup') { soupEnd(); return true; }
+  if (z.type === 'jdrag') { jarEnd(); return true; }
+  return z.type === 'sbowl' || z.type === 'scream' || z.type === 'jlid';
+}
 /* ---------- Helpers ---------- */
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const rnd = (a, b) => a + Math.random() * (b - a);
@@ -6582,7 +6984,7 @@ function setView(v) {
   if (studio === ST.on) return;
   ST.on = studio;
   appEl.dataset.view = v;
-  closeSheet();
+  closeSheet(); if (typeof scrollOpen !== 'undefined' && scrollOpen) scrollSet(false);
   viewBtn.querySelector('.vi').textContent = studio ? '←' : '🧪';
   viewBtn.querySelector('.vl').textContent = studio ? ' К окунанию' : ' Мастерская';
   viewBtn.setAttribute('aria-label', studio ? 'К окунанию' : 'Мастерская');
@@ -6671,7 +7073,7 @@ function fsRelayout() { onResize(); setTimeout(onResize, 120); setTimeout(onResi
 function setFullscreen(on) {
   if (on === FS.on) return;
   if (on && ST.on) setView('main');
-  FS.on = on; document.body.classList.toggle('fs', on);
+  FS.on = on; document.body.classList.toggle('fs', on); if (typeof scrollOpen !== 'undefined' && scrollOpen) scrollSet(false);
   fsBtn.textContent = on ? '✕' : '⛶'; fsBtn.setAttribute('aria-label', on ? 'Выйти из полного экрана' : 'Во весь экран'); fsBtn.title = fsBtn.getAttribute('aria-label');
   closeSheet(); closeSettings(); closeQuest();
   try {
@@ -6911,7 +7313,39 @@ const ORDERS = [
   { id: 'glassneon', d: 3, n: 'Неоновое стекло', s: 'Прозрачный телефон с неоном и блёстками.', r: [R.kind('Телефон'), R.fx('glass', 'Прозрачный воск'), R.fx('neon', 'Неоновый воск'), R.fx('glitter', 'Блёстки')] },
   { id: 'cosmosgold', d: 3, n: 'Космос и золото', s: 'Два слоя: космический и золотой. Богатая вселенная.', r: [R.fx('cosmos', 'Космический воск'), R.fx('gold', 'Золотой воск'), R.layers(2)] },
   { id: 'donutdream', d: 3, n: 'Пончик мечты', s: 'Градиент, шарики и конфетти. Диета подождёт.', r: [R.kind('Пончик'), R.fx('grad', 'Градиентный воск'), R.fx('sugar', 'Сахарные шарики'), R.fx('confetti', 'Конфетти')] },
-  { id: 'iceglowcat', d: 3, n: 'Ледяная Кисюля с сиянием', s: 'Холодная, но светится. Так бывает.', r: [R.kind('Кисюля'), R.fx('ice', 'Ледяной цвет (от 20%)'), R.fx('glow', 'Светлячок (от 20%)')] }
+  { id: 'iceglowcat', d: 3, n: 'Ледяная Кисюля с сиянием', s: 'Холодная, но светится. Так бывает.', r: [R.kind('Кисюля'), R.fx('ice', 'Ледяной цвет (от 20%)'), R.fx('glow', 'Светлячок (от 20%)')] },
+  // ---- v150: orders for the interactive objects, the soup, the jar and the cherries
+  { id: 'toiletpink', d: 1, n: 'Розовый унитаз', s: 'Самое уютное место в доме. Говорят.', r: [R.kind('Унитаз'), R.hue('pink', 'Розовый воск')] },
+  { id: 'calcgreen', d: 1, n: 'Зелёный калькулятор', s: 'Считает только приятные суммы.', r: [R.kind('Калькулятор'), R.hue('green', 'Зелёный воск')] },
+  { id: 'popitlav', d: 1, n: 'Лавандовый поп-ит', s: 'Пузырьки лопаются бесплатно.', r: [R.kind('Поп-ит'), R.hue('purple', 'Лавандовый воск')] },
+  { id: 'mousewhite', d: 1, n: 'Белая мышка', s: 'Не та, что бегает по кухне.', r: [R.kind('Мышка'), R.hue('white', 'Белый воск')] },
+  { id: 'remotered', d: 1, n: 'Красный пульт', s: 'Найден под диваном. Заслужил воск.', r: [R.kind('Пульт'), R.hue('red', 'Красный воск')] },
+  { id: 'tapblue', d: 1, n: 'Синий кран', s: 'Капает только воском.', r: [R.kind('Кран'), R.hue('blue', 'Синий воск')] },
+  { id: 'lampyellow', d: 1, n: 'Жёлтая лампа', s: 'Светит даже без розетки. Почти.', r: [R.kind('Лампа'), R.hue('yellow', 'Жёлтый воск')] },
+  { id: 'soupgreen', d: 1, n: 'Зелёные щи', s: 'Как у бабушки, только воск.', r: [R.kind('Суп'), R.hue('green', 'Зелёный воск')] },
+  { id: 'picklegreen', d: 1, n: 'Банка огурцов', s: 'Хрустят даже в воске. Особенно в воске.', r: [R.kind('Банка огурцов'), R.hue('green', 'Зелёный воск')] },
+  { id: 'cherryred', d: 1, n: 'Красные вишни', s: 'Две вишенки. Косточек нет, воск же.', r: [R.kind('Вишни'), R.hue('red', 'Красный воск')] },
+  { id: 'toiletglit', d: 2, n: 'Блестящий трон', s: 'Трон есть трон. Пусть сверкает.', r: [R.kind('Унитаз'), R.fx('glitter', 'Блёстки')] },
+  { id: 'calcneon', d: 2, n: 'Неоновый калькулятор', s: 'Считает в темноте и не ошибается.', r: [R.kind('Калькулятор'), R.fx('neon', 'Неоновый воск')] },
+  { id: 'popitconf', d: 2, n: 'Праздничный поп-ит', s: 'Лопаем с конфетти. Повод найдётся.', r: [R.kind('Поп-ит'), R.fx('confetti', 'Конфетти')] },
+  { id: 'mousepearl', d: 2, n: 'Перламутровая мышка', s: 'Клик-клик, и всё переливается.', r: [R.kind('Мышка'), R.fx('pearl', 'Перламутр')] },
+  { id: 'remoteglass', d: 2, n: 'Прозрачный пульт', s: 'Теперь видно, где потерялись батарейки.', r: [R.kind('Пульт'), R.fx('glass', 'Прозрачный воск')] },
+  { id: 'tapice', d: 2, n: 'Ледяной кран', s: 'Замёрз, как положено зимой.', r: [R.kind('Кран'), R.fx('ice', 'Ледяной цвет (от 20%)')] },
+  { id: 'lampglow', d: 2, n: 'Лампа-светлячок', s: 'Лампа, которая светится сама. Круг замкнулся.', r: [R.kind('Лампа'), R.fx('glow', 'Светлячок (от 20%)')] },
+  { id: 'soupgold', d: 2, n: 'Золотой бульон', s: 'Фольга вместо золотых глазков жира.', r: [R.kind('Суп'), R.fx('foil', 'Фольга'), R.hue('yellow', 'Жёлтый воск')] },
+  { id: 'pickleglass', d: 2, n: 'Прозрачная банка', s: 'Чтобы огурцы были видны. Ну почти.', r: [R.kind('Банка огурцов'), R.fx('glass', 'Прозрачный воск')] },
+  { id: 'cherrygloss', d: 2, n: 'Глянцевые вишни', s: 'Блестят, как в рекламе компота.', r: [R.kind('Вишни'), R.fx('gloss', 'Глянец')] },
+  { id: 'souptwo', d: 2, n: 'Двухслойный суп', s: 'Щи отдельно, сметана отдельно. По-честному.', r: [R.kind('Суп'), R.layers(2), R.hues(2)] },
+  { id: 'toiletgold', d: 3, n: 'Золотой трон', s: 'Золото, глянец и два слоя. Королевский визит.', r: [R.kind('Унитаз'), R.fx('gold', 'Золотой воск'), R.fx('gloss', 'Глянец'), R.layers(2)] },
+  { id: 'calcrain', d: 3, n: 'Радужный калькулятор', s: 'Радуга, блёстки и перламутр. Два плюс два равно красота.', r: [R.kind('Калькулятор'), R.fx('rainbow', 'Радужный воск'), R.fx('glitter', 'Блёстки'), R.fx('pearl', 'Перламутр')] },
+  { id: 'popitparty', d: 3, n: 'Вечеринка в поп-ите', s: 'Конфетти, шарики и блёстки. Лопать обязательно.', r: [R.kind('Поп-ит'), R.fx('confetti', 'Конфетти'), R.fx('sugar', 'Сахарные шарики'), R.fx('glitter', 'Блёстки')] },
+  { id: 'mouseglow', d: 3, n: 'Мышка-светлячок', s: 'Светится и мерцает. Кот уже охотится.', r: [R.kind('Мышка'), R.fx('glow', 'Светлячок (от 20%)'), R.fx('neon', 'Неоновый воск'), R.fx('glitter', 'Блёстки')] },
+  { id: 'lampava', d: 3, n: 'Лава-лампа', s: 'Классика из семидесятых. Лава внутри, два слоя.', r: [R.kind('Лампа'), R.fx('lava', 'Лавовый цвет (от 20%)'), R.fx('gloss', 'Глянец'), R.layers(2)] },
+  { id: 'tapocean', d: 3, n: 'Морской кран', s: 'Синий, прозрачный и с перламутром. Из него течёт море.', r: [R.kind('Кран'), R.hue('blue', 'Синий воск'), R.fx('glass', 'Прозрачный воск'), R.fx('pearl', 'Перламутр')] },
+  { id: 'soupfull', d: 3, n: 'Суп с горошком', s: 'Два слоя: желтоватый бульон и зелёный горошек, то есть шарики.', r: [R.kind('Суп'), R.layers(2), R.hue('yellow', 'Жёлтый слой'), R.hue('green', 'Зелёный слой'), R.fx('sugar', 'Сахарные шарики')] },
+  { id: 'picklesurp', d: 3, n: 'Маринад с сюрпризом', s: 'Внутри что-то лежит. И это не огурец.', r: [R.kind('Банка огурцов'), R.fx('glass', 'Прозрачный воск'), R.fx('charm', 'Сюрприз всплыл')] },
+  { id: 'remotespace', d: 3, n: 'Космический пульт', s: 'Переключает каналы между галактиками.', r: [R.kind('Пульт'), R.fx('cosmos', 'Космический воск'), R.fx('glitter', 'Блёстки'), R.fx('pearl', 'Перламутр')] },
+  { id: 'cherryice', d: 3, n: 'Ледяные вишни', s: 'Заморозка, прозрачность и глянец. Компот будущего.', r: [R.kind('Вишни'), R.fx('ice', 'Ледяной цвет (от 20%)'), R.fx('glass', 'Прозрачный воск'), R.fx('gloss', 'Глянец')] }
 ];
 const ORD_REWARD = { 1: 2, 2: 4, 3: 7 };
 function orderById(id) { return ORDERS.find(o => o.id === id); }
@@ -7036,6 +7470,12 @@ function scrollRender() {
   }
   scrollEl.scrollTop = keep;
 }
+// a tap anywhere closes the scroll (buttons inside still work; a tap on the scroll's own text closes it too)
+document.addEventListener('pointerdown', e => {
+  if (!scrollOpen || scrollBtn.contains(e.target)) return;
+  if (scrollEl.contains(e.target)) { if (!e.target.closest('button')) setTimeout(() => scrollSet(false), 0); return; }
+  scrollSet(false);
+}, true);
 scrollBtn.addEventListener('click', () => { Snd.init(); Snd.tick(0); if (!scrollOpen) { closeSheet(); closeSettings(); if (!questEl.hidden) closeQuest(); } scrollSet(!scrollOpen); });
 
 /* ----- the panel ----- */
@@ -7175,7 +7615,7 @@ const SHOP = [];
 const SHOP_BY_ID = {};
 function shopAdd(it) { SHOP.push(it); SHOP_BY_ID[it.id] = it; }
 (function buildCatalog() {
-  const objP = [0, 0, 0, 0, 40, 40, 60, 60, 80, 80, 100, 100, 150, 200, 150, 150, 50, 50, 60, 60, 80, 80, 0, 200, 120, 100, 100, 100, 120, 100, 100, 100, 100, 100, 100, 100, 100, 100];
+  const objP = [0, 0, 0, 0, 40, 40, 60, 60, 80, 80, 100, 100, 150, 200, 150, 150, 50, 50, 60, 60, 80, 80, 0, 200, 120, 100, 100, 100, 120, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100];
   OBJ_ORDER.forEach(i => { const o = OBJECTS[i]; shopAdd({ id: 'obj:' + i, g: 'Предметы', n: o.n, e: o.e, img: o.img, p: objP[i] || 0 }); });
   const toolP = { finger: 0, stick: 0, spoon: 0, whisk: 40, fork: 30, comb: 30, funnel: 50, brush: 40, glitter0: 0, glitter1: 0, glitter2: 20, glitter3: 20, glitter4: 20, glitter5: 20, pearl_blue: 40, pearl_white: 40,
     sugar: 30, confetti: 30, foil: 50, flake: 50, foam: 60, eyes: 80, oil: 50, gloss: 70, neon: 120, clear: 90 };
@@ -7819,7 +8259,7 @@ function sqBake() {
   const apply = (t) => {
     [...box.children].forEach(b => b.setAttribute('aria-pressed', b.dataset.t === t ? 'true' : 'false'));
     [...objRow.querySelectorAll('.chip')].forEach(c => {
-      const o = OBJECTS[+c.dataset.k], sq = !!o.sq, ty = !!o.toy;
+      const o = OBJECTS[+c.dataset.k], sq = !!o.sq, ty = !!(o.toy || o.rag);
       c.hidden = (t === 'sq' && !sq) || (t === 'toy' && !ty) || (t === 'plain' && (sq || ty));
     });
     try { sessionStorage.setItem('objTab', t); } catch (e) { /* ignore */ }
