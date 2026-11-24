@@ -375,6 +375,37 @@
     display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
   }
   .bbtn[aria-expanded="true"], .bbtn[aria-pressed="true"] { border-color: var(--accent); background: #4a3a5c; }
+  .bbtn { position: relative; }
+  .bbtn .cnt { position: absolute; top: 1px; right: 4px; min-width: 16px; padding: 1px 4px; border-radius: 9px; background: #7b4a68; color: #fff; font: 600 10px/13px var(--font-display, system-ui); text-align: center; pointer-events: none; }
+  .bbtn .cnt.zero { background: #b0384a; }
+  .cs-ov { position: fixed; inset: 0; z-index: 400; background: rgba(12,7,18,.82); display: flex; align-items: center; justify-content: center; padding: 16px; }
+  .cs-box { width: min(100%, 440px); background: var(--panel, #2f243c); border: 1px solid var(--panel-line); border-radius: 18px; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+  .cs-reel { position: relative; overflow: hidden; height: 120px; border-radius: 12px; background: #231a2f; border: 1px solid var(--panel-line); }
+  .cs-strip { display: flex; gap: 8px; position: absolute; left: 0; top: 8px; will-change: transform; }
+  .cs-mark { position: absolute; left: 50%; top: 0; bottom: 0; width: 3px; margin-left: -1.5px; background: #ffd35a; box-shadow: 0 0 10px #ffd35a; z-index: 2; }
+  .cs-card { flex: 0 0 84px; height: 104px; border-radius: 12px; border: 2px solid var(--tc, #888); background: color-mix(in srgb, var(--tc, #888) 18%, #2a2036); display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: 6px 4px; box-sizing: border-box; }
+  .cs-card.win { box-shadow: 0 0 14px 2px var(--tc); }
+  .cs-card.big { flex: none; width: auto; height: auto; }
+  .cs-items { display: flex; flex-wrap: wrap; gap: 4px 6px; justify-content: center; align-items: center; flex: 1; }
+  .cs-it { display: inline-flex; align-items: center; gap: 2px; font-size: 11px; }
+  .cs-it b { font-weight: 600; }
+  .cs-i { display: inline-grid; place-items: center; width: 26px; height: 28px; font-size: 20px; }
+  .cs-i img { max-height: 26px; max-width: 24px; object-fit: contain; }
+  .cs-i img.round { border-radius: 50%; }
+  .cs-i.sm { width: 20px; height: 22px; font-size: 16px; }
+  .cs-i.sm img { max-height: 20px; max-width: 18px; }
+  .cs-cube { display: block; width: 18px; height: 18px; border-radius: 5px; box-shadow: inset 0 0 0 1px rgba(255,255,255,.35); }
+  .cs-tier { font-size: 10px; font-weight: 600; color: var(--tc); text-transform: uppercase; letter-spacing: .04em; }
+  .cs-out { min-height: 66px; text-align: center; }
+  .cs-won { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
+  .cs-items.big { gap: 8px 12px; }
+  .cs-items.big .cs-it { font-size: 16px; }
+  .cs-ok { font: inherit; padding: 10px; border-radius: 12px; border: 1px solid var(--accent); background: #7b4a68; color: var(--fg); cursor: pointer; }
+  .cs-last { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; }
+  .cs-last .cs-card { flex: 0 0 auto; width: auto; height: auto; min-width: 84px; gap: 4px; }
+  .case-r .stk-left { display: block; white-space: normal; margin-top: 2px; }
+  .shop-r.flash { animation: stkflash .45s ease-in-out 5 alternate; }
+  @keyframes stkflash { from { box-shadow: 0 0 0 0 transparent; background: #3a2d49; } to { box-shadow: 0 0 0 2px var(--accent), 0 0 16px 2px var(--accent); background: #5a3f6e; } }
   .bbtn[aria-expanded="true"], #ordBtn[aria-expanded="true"], #setBtn[aria-expanded="true"], #shelfBtn[aria-expanded="true"] { position: relative; z-index: 6; }
   .bbtn[aria-expanded="true"] { box-shadow: 0 0 0 1px var(--accent), 0 0 12px 1px var(--accent); }
   .bico { height: 30px; display: grid; place-items: center; font-size: 24px; line-height: 1; }
@@ -447,6 +478,17 @@
     display: grid; place-items: center; font-size: 22px; line-height: 1;
   }
   .tool[aria-pressed="true"] { border-color: var(--accent); background: #4a3a5c; }
+  .tool { position: relative; }
+  .tool .cnt { position: absolute; top: -4px; right: -3px; min-width: 16px; padding: 1px 4px; border-radius: 9px; background: #7b4a68; color: #fff; font: 600 10px/13px var(--font-display, system-ui); text-align: center; pointer-events: none; }
+  .tool .cnt.zero { background: #b0384a; }
+  .shop-r.stk { flex-wrap: wrap; }
+  .shop-r.stk .shop-n { min-width: 120px; }
+  .stk-left { color: var(--fg-dim); font-size: 11px; white-space: nowrap; }
+  .stk-left.zero { color: #ff8a98; }
+  .stk-btns { display: flex; gap: 6px; margin-left: auto; }
+  .stk-sw { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 8px; }
+  .stk-c { width: 26px; height: 26px; border-radius: 8px; border: 2px solid rgba(255,255,255,.18); padding: 0; cursor: pointer; }
+  .stk-c.sel { border-color: #fff; box-shadow: 0 0 0 2px var(--accent); }
   .tool-img { height: 38px; max-width: 34px; object-fit: contain; display: block; pointer-events: none; }
   .tool-img.round { width: 30px; height: 30px; border-radius: 50%; }
   .lbtn {
@@ -527,7 +569,7 @@
       <div class="opt-note" id="saveNote" hidden></div>
       <div class="opt-note">Прогресс сохраняется сам. Файл нужен, чтобы перенести его на другой телефон или если браузер всё забывает. Если ты вошла в аккаунт, файл хранит и вход: при загрузке ты сразу в аккаунте, поэтому не отправляй его посторонним.</div>
       <div class="opt-note" id="vibeNote" hidden>На этом устройстве вибрация недоступна</div>
-      <div class="ver-tag" id="verTag">v152</div>
+      <div class="ver-tag" id="verTag">v154</div>
       <div id="setMore" hidden>↓ листай ниже, там ещё настройки</div>
     </div>
   </header>
@@ -5282,7 +5324,7 @@ cv.addEventListener('pointerdown', (e) => {
   G.hold = null;
   if ((G.tool === 'twist' || G.tool === 'freeze' || G.tool === 'heat' || G.tool === 'laser') && G.layers.length && G.cool >= 0.98 && G.oy + G.bot <= waxY - 4 && !inPan(x, y)) {
     ensurePieces();
-    if (findPiece(x, y, G.tool === 'laser' ? 40 : 22)) { G.hold = { tool: G.tool, x, y, snd: 0 }; down.hold = true; down.scrape = false; down.groove = false; }
+    if (findPiece(x, y, G.tool === 'laser' ? 40 : 22) && stkTake('b:' + G.tool)) { G.hold = { tool: G.tool, x, y, snd: 0 }; down.hold = true; down.scrape = false; down.groove = false; }
   }
   G.scrapeSpeed = 0;
   G.held = true; cv.classList.add('dragging');
@@ -5355,10 +5397,11 @@ const toolFx = [], iceBits = [], finds = [], bombs = [];
     b.addEventListener('click', () => {
       Snd.init();
       if (t.rw && !rewardOn(t.rw)) { Snd.tick(0); showInfo('🔒 Награда за последний этап: ' + rewardName(t.rw), 3000); return; }
+      if (STK_BRK[t.id] && stkGate('b:' + t.id)) return; // empty: off to the shop
       G.tool = t.id; G.hold = null; G.twist = 0; G.freezeP = 0;
       row.querySelectorAll('.tool').forEach(x => x.setAttribute('aria-pressed', x.dataset.id === t.id ? 'true' : 'false'));
       document.getElementById('icoBrk').innerHTML = t.gold ? '<span class="ge">' + t.e + '</span>' : t.e; document.getElementById('lblBrk').textContent = t.n;
-      closeSheet(); Snd.tick(0);
+      closeSheet(); Snd.tick(0); stkBadges();
     });
     row.appendChild(b);
   });
@@ -5427,6 +5470,7 @@ function breakFx(x, y) {
 // bomb: a fuse burns for a moment, then it blows the nearby pieces off and cracks the ones around them
 function plantBomb(px, py) {
   if (bombs.length >= 3) { Snd.tick(pan(px)); return; }
+  if (!stkTake('b:bomb')) return;
   bombs.push({ x: px, y: py, t: 0, tk: 0 });
   Snd.fuse(pan(px));
 }
@@ -6196,6 +6240,7 @@ function stUpdate(dt) {
   if (ST.down && ST.down.mode === 'spr' && ST.ptr && !ST.pouring) {
     const inside = stInside(ST.ptr.x, ST.ptr.y + 20, 1.05);
     if (inside && ST.parts.length < 1500) {
+      ST.sprUse = (ST.sprUse || 0) + dt; if (ST.sprUse > 1.6) { ST.sprUse = 0; if (!stkTake('a:' + tool.id)) ST.down.mode = 'none'; } // one charge lasts about a second and a half of sprinkling
       const rate = tool.kind === 'pearl' ? 120 : tool.ex === 'sugar' ? 18 : tool.ex === 'flake' ? 9 : tool.ex === 'foam' ? 5 : tool.ex === 'eyes' ? 6 : tool.kind === 'ex' ? 34 : 55;
       let n = rate * dt + (ST.sprAcc || 0); const cnt = Math.floor(n); ST.sprAcc = n - cnt;
       const u = stTo(ST.ptr.x, ST.ptr.y + 14);
@@ -6895,6 +6940,7 @@ sv.addEventListener('pointerdown', (e) => {
     if (((i / SHELF_PAGE) | 0) !== ST.page) continue;
     const b = ST.bins[i];
     if (p.x > b.x && p.x < b.x + b.w && p.y > b.y && p.y < b.y + b.h && binLocked(i)) { ST.down = null; shopDeny(colsPack(i)); return; }
+    if (p.x > b.x && p.x < b.x + b.w && p.y > b.y && p.y < b.y + b.h && ST.nbin[i] <= 0) { ST.down = null; Snd.tick(0); stkGoShop('c:' + i); return; }
     if (p.x > b.x && p.x < b.x + b.w && p.y > b.y && p.y < b.y + b.h && ST.nbin[i] > 0) {
       ST.nbin[i]--; ST.drag = { cube: stMakeCube(i), from: 'bin', t: 0 }; ST.down.mode = 'cube'; Snd.clink(stPan(p.x)); { const spc = STSPEC[STCOL[i]]; if (spc) { ST.specHint = spc.e + ' ' + spc.n + ': ' + spc.s; ST.specHintT = 4; ST.hintT = 0; } } return;
     }
@@ -6908,12 +6954,14 @@ sv.addEventListener('pointerdown', (e) => {
   if (stInside(p.x, p.y, 1.05)) {
     const k = ST.tool.kind;
     if (k === 'stir') ST.down.mode = 'stir';
-    else if (k === 'glit' || k === 'pearl' || k === 'ex') ST.down.mode = 'spr';
+    else if (k === 'glit' || k === 'pearl' || k === 'ex') { if (stkTake('a:' + ST.tool.id)) { ST.down.mode = 'spr'; ST.sprUse = 0; } }
     else if (k === 'charm') {
+      if (!stkTake('a:' + ST.tool.id)) return;
       const u = stTo(p.x, p.y - 12);
       ST.parts.push({ ch: ST.tool.ch, x: clamp(u[0], -0.8, 0.8), y: clamp(u[1], -0.8, 0.8), z: 1.1, sz: 13, ph: 0, sp: 1 });
       Snd.plopIn ? Snd.drip(stPan(p.x)) : 0; ST.down.mode = 'charm';
     } else if (k === 'oil' || k === 'gloss' || k === 'neon' || k === 'clear') {
+      if (!stkTake('a:' + ST.tool.id)) return;
       const u = stTo(p.x, p.y); ST.drops.push({ x: clamp(u[0], -0.8, 0.8), y: clamp(u[1], -0.8, 0.8), z: 1, gk: k === 'gloss', nk: k === 'neon', ck: k === 'clear' }); ST.down.mode = 'oil';
     }
   }
@@ -6966,6 +7014,7 @@ TOOLS.forEach((t, i) => {
   const cap = document.createElement('span'); cap.className = 'cap'; cap.textContent = t.short; b.appendChild(cap);
   b.addEventListener('click', () => {
     if (!isOpen('tool:' + t.id)) { shopDeny('tool:' + t.id); return; }
+    if (t.kind !== 'stir' && stkGate('a:' + t.id)) return; // empty: off to the shop
     Snd.init(); ST.tool = t;
     if (t.kind === 'stir') ST.lastStir = t; else ST.lastJar = t;
     document.querySelectorAll('.tool').forEach(x => x.setAttribute('aria-pressed', +x.dataset.i === i ? 'true' : 'false'));
@@ -6982,7 +7031,11 @@ flameBtn.addEventListener('click', () => {
 document.getElementById('speedRange').addEventListener('input', (e) => { ST.speed = +e.target.value; });
 document.getElementById('pourBtn').addEventListener('click', () => { Snd.init(); stStartPour(); });
 document.getElementById('resetShelfBtn').addEventListener('click', () => {
-  Snd.init(); ST.nbin = STCOL.map(() => BIN_START); ST.cubes.length = 0; Snd.chime();
+  Snd.init();
+  // not a free refill any more: it only helps when the shelf is nearly empty (one cube of every basic colour)
+  if (cubesTotal() >= 8) { Snd.tick(0); showInfo('Кубики ещё есть. Докупить: 🛒 Магазин → Расходники', 3000); return; }
+  for (let i = 0; i < SHELF_PAGE; i++) if (ST.nbin[i] < 1) ST.nbin[i] = 1;
+  Snd.chime(); showInfo('🎁 Кубиков почти не было: добавила по одному базовых цветов', 3000);
 });
 
 /* ----- switching between dipping and the workshop ----- */
@@ -7071,6 +7124,7 @@ function refreshBar() {
     document.getElementById('barStir').setAttribute('aria-pressed', ST.tool.kind === 'stir' ? 'true' : 'false');
     document.getElementById('barJar').setAttribute('aria-pressed', ST.tool.kind !== 'stir' ? 'true' : 'false');
   }
+  if (typeof stkBadges === 'function') stkBadges();
 }
 refreshBar();
 
@@ -7181,7 +7235,7 @@ document.getElementById('recClose').addEventListener('click', () => { recToast.h
 /* ---------- Orders and achievements ---------- */
 const QS = {
   stats: { pieces: 0, layers: 0, pours: 0, melted: 0, orders: 0, drained: 0 },
-  kinds: [], tools: [], effects: [], ach: {}, order: null, recent: [], coins: 0, earned: 0, per: null, owned: {}, bg: 'night', skin: 'plain', plate: 'plain', snd: 'classic', bfx: 'none', shelf: [], ready: false
+  kinds: [], tools: [], effects: [], ach: {}, order: null, recent: [], coins: 0, earned: 0, per: null, stock: null, gift: '', rr: null, owned: {}, bg: 'night', skin: 'plain', plate: 'plain', snd: 'classic', bfx: 'none', shelf: [], ready: false
 };
 const Q = {
   stat(k, n) { QS.stats[k] = (QS.stats[k] || 0) + (n || 1); },
@@ -7192,11 +7246,11 @@ const Q = {
     const L = G.layers[G.layers.length - 1]; if (!L) return;
     for (const f of layerFx(L)) if (!QS.effects.includes(f)) QS.effects.push(f);
   },
-  save() { perSync(); return { earned: QS.earned, per: QS.per, stats: QS.stats, kinds: QS.kinds, tools: QS.tools, effects: QS.effects, ach: QS.ach, order: QS.order, recent: QS.recent, coins: QS.coins, owned: QS.owned, bg: QS.bg, skin: QS.skin, snd: QS.snd, bfx: QS.bfx, plate: QS.plate, shelf: QS.shelf }; },
+  save() { perSync(); return { earned: QS.earned, per: QS.per, stock: QS.stock, gift: QS.gift, rr: QS.rr, stats: QS.stats, kinds: QS.kinds, tools: QS.tools, effects: QS.effects, ach: QS.ach, order: QS.order, recent: QS.recent, coins: QS.coins, owned: QS.owned, bg: QS.bg, skin: QS.skin, snd: QS.snd, bfx: QS.bfx, plate: QS.plate, shelf: QS.shelf }; },
   load(d) {
     if (!d) return;
     Object.assign(QS.stats, d.stats || {}); QS.kinds = d.kinds || []; QS.tools = d.tools || []; QS.effects = d.effects || [];
-    QS.ach = d.ach || {}; QS.order = d.order || null; QS.recent = d.recent || []; QS.coins = d.coins || 0; QS.owned = d.owned || {}; QS.earned = d.earned != null ? d.earned | 0 : earnedGuess(); QS.per = d.per || null; QS.bg = d.bg || 'night'; QS.skin = d.skin || 'plain'; QS.snd = d.snd || 'classic'; QS.bfx = d.bfx || 'none'; QS.plate = d.plate || 'plain'; QS.shelf = d.shelf || [];
+    QS.ach = d.ach || {}; QS.order = d.order || null; QS.recent = d.recent || []; QS.coins = d.coins || 0; QS.owned = d.owned || {}; QS.earned = d.earned != null ? d.earned | 0 : earnedGuess(); QS.per = d.per || null; QS.stock = d.stock || null; QS.gift = d.gift || ''; QS.rr = d.rr || null; if (typeof stkBadges === 'function') try { stkBadges(); } catch (e) { } QS.bg = d.bg || 'night'; QS.skin = d.skin || 'plain'; QS.snd = d.snd || 'classic'; QS.bfx = d.bfx || 'none'; QS.plate = d.plate || 'plain'; QS.shelf = d.shelf || [];
   }
 };
 
@@ -7383,7 +7437,7 @@ const FX_GATE = { ice: () => isOpen('cols:4'), lava: () => isOpen('cols:4'), sof
 function reqOpen(r) {
   if (r.obj && !isOpen('obj:' + OID(r.obj))) return false;
   if (r.fxk && FX_GATE[r.fxk] && !FX_GATE[r.fxk]()) return false;
-  const src = r.fxk && FX_SRC[r.fxk]; return !src || src.some(t => isOpen('tool:' + t));
+  const src = r.fxk && FX_SRC[r.fxk]; return !src || src.some(t => isOpen('tool:' + t) && stkGet('a:' + t) > 0); // an add-in that has run out does not come up in new orders
 }
 function orderDoable(o) { return o.r.every(reqOpen); }
 function orderPick(vip) {
@@ -7402,6 +7456,15 @@ function orderNew() {
   const vip = fxOn('orders') && Math.random() < 0.3;
   const o = orderPick(vip); QS.order = { id: o.id };
   if (vip) { const opts = VIP_EXTRA.map((e, i) => i).filter(i => !o.r.some(r => r.t === VIP_EXTRA[i].t) && reqOpen(VIP_EXTRA[i])); if (!opts.length) opts.push(VIP_EXTRA.findIndex(reqOpen) < 0 ? 4 : VIP_EXTRA.findIndex(reqOpen)); QS.order.vip = true; QS.order.x = opts[(Math.random() * opts.length) | 0]; } QS.recent.push(o.id); if (QS.recent.length > 12) QS.recent.shift(); QS.ready = false;
+}
+// changing the order: free once a day (and always free when the order cannot be done because something ran out), then it costs a little
+const SWAP_COST = 15;
+function swapFree() { const o = QS.order && orderById(QS.order.id); return !QS.rr || QS.rr.dk !== dayKey() || !!(o && stkMissing(o).length); }
+function swapLabel() { return 'Другой заказ' + (swapFree() ? ' · бесплатно' : ' · ' + SWAP_COST + ' 🪙'); }
+function orderSwap() {
+  if (!swapFree()) { if (QS.coins < SWAP_COST) { Snd.tick(0); showInfo('Смена заказа стоит ' + SWAP_COST + ' 🪙', 2200); return false; } QS.coins -= SWAP_COST; }
+  else { const o = QS.order && orderById(QS.order.id); if (!(o && stkMissing(o).length)) QS.rr = { dk: dayKey() }; }
+  orderNew(); saveNow(); return true;
 }
 function orderStatus() {
   const o = QS.order && orderById(QS.order.id); if (!o) return null;
@@ -7492,7 +7555,7 @@ function scrollRender() {
     const give = h('button', null, 'Сдать'); give.type = 'button'; give.disabled = !st.done;
     give.addEventListener('click', () => { orderHandIn(); setTimeout(scrollRender, 0); });
     const swap = h('button', null, 'Другой'); swap.type = 'button';
-    swap.addEventListener('click', () => { orderNew(); saveNow(); questTick(); Snd.tick(0); scrollRender(); });
+    swap.addEventListener('click', () => { if (!orderSwap()) return; questTick(); Snd.tick(0); scrollRender(); });
     row.appendChild(give); row.appendChild(swap); scrollEl.appendChild(row);
   }
   scrollEl.scrollTop = keep;
@@ -7564,8 +7627,9 @@ function renderQuest() {
     const row = h('div', 'savebtns');
     const give = h('button', null, 'Сдать заказ'); give.type = 'button'; give.disabled = !st.done; give.id = 'ordGive';
     give.addEventListener('click', orderHandIn);
-    const swap = h('button', null, 'Другой заказ'); swap.type = 'button';
-    swap.addEventListener('click', () => { orderNew(); saveNow(); renderQuest(); questTick(); Snd.tick(0); });
+    const swap = h('button', null, swapLabel()); swap.type = 'button';
+    swap.addEventListener('click', () => { if (!orderSwap()) return; renderQuest(); questTick(); Snd.tick(0); });
+    { const lack = stkMissing(st.o); if (lack.length) card.appendChild(h('div', 'opt-note', '⚠️ Не хватает: ' + lack.join(', ') + '. Докупи в магазине (Расходники) или смени заказ, это бесплатно.')); }
     row.appendChild(give); row.appendChild(swap); card.appendChild(row);
     questEl.appendChild(card);
   }
@@ -7703,6 +7767,7 @@ function applyLocks() {
   if (!isOpen('tool:' + ST.tool.id)) { const b = document.querySelector('#stirRow .tool'); if (b) b.click(); }
   for (const eq in EQ_DEF) if (QS[eq] !== EQ_DEF[eq] && !isOpen(eq + ':' + QS[eq])) QS[eq] = EQ_DEF[eq];
   Snd.setSet(QS.snd);
+  if (typeof stkBadges === 'function') stkBadges();
 }
 function setFree(v) {
   prefs.free = v; applyPrefs(); savePrefs(); applyLocks(); closeSheet(); renderQuest();
@@ -7739,9 +7804,11 @@ var SHOP_OPEN = {};
 function renderShop(root) {
   const top = h('div', 'ord');
   top.appendChild(h('div', 'ord-n', '🪙 ' + QS.coins));
-  top.appendChild(h('div', 'opt-note', prefs.free ? 'Сейчас всё открыто: покупки не нужны, монеты просто копятся' : 'Закрытое открывается за монеты. Монеты дают за заказы и этапы достижений'));
+  top.appendChild(h('div', 'opt-note', prefs.free ? 'Сейчас всё открыто: расходники и кейсы можно брать бесплатно, но они тратятся и могут закончиться' : 'Закрытое открывается за монеты. Монеты дают за заказы и этапы достижений'));
   if (prefs.free) { const sw = h('button', null, '🔒 Включить режим магазина'); sw.type = 'button'; sw.className = 'shopmode'; sw.addEventListener('click', () => setFree(false)); top.appendChild(sw); }
   root.appendChild(top);
+  renderStockShop(root);
+  renderCases(root);
   let grp = null, box = root, rowBox = root, subCur = null;
   const cnt = {}, scnt = {}, SUBS = ['Обычные', 'Сквиши', 'Интерактив'];
   // the objects are split into small sub-sections (plain, squishies, interactive)
@@ -9155,6 +9222,285 @@ setTimeout(() => {
   askConfirm('Создать аккаунт или войти? Прогресс сохранится в облаке, и ты попадёшь в таблицу лидеров.', () => { Snd.init(); openQuest('top'); topLoad(TOPS.k, false); },
     () => { try { localStorage.setItem('waxAsmrAccAsk', String(n + 1)); } catch (e) { } }, ['Давай', 'Позже']);
 }, 3500);
+/* ---------- Consumables: charges for add-ins and break tools, packs in the shop, a daily gift ----------
+   QS.stock holds the charges: 'a:<tool id>' for add-ins, 'b:<tool id>' for break tools (freeze, heat, laser, bomb).
+   A key that has never been used starts with its starting amount, so old saves get a full supply. */
+var STK_READY;
+var STK_BRK = {
+  freeze: { n: 'Мороз', e: '❄️', start: 20, floor: 3, packs: [[10, 20], [30, 50]] },
+  heat: { n: 'Фен', e: '🔥', start: 20, floor: 3, packs: [[10, 20], [30, 50]] },
+  laser: { n: 'Лазер', e: '🔦', start: 10, floor: 0, packs: [[5, 30], [15, 75]] },
+  bomb: { n: 'Бомба', e: '💣', start: 8, floor: 0, packs: [[3, 30], [10, 85]] }
+};
+// price of ten uses of an add-in
+var STK_ADD_P = { glitter0: 12, glitter1: 12, glitter2: 12, glitter3: 12, glitter4: 12, glitter5: 12, pearl_blue: 15, pearl_white: 15, sugar: 12, confetti: 12, foil: 15, flake: 15, foam: 15, eyes: 20, oil: 15, gloss: 20, neon: 30, clear: 25 };
+var STK_CUBE_P = [[1, 5], [5, 20], [15, 50]], STK_CUBE_SP = [[1, 8], [5, 32], [15, 80]]; // [pieces, coins]; special colours cost more
+var STK_RAND = [10, 30];
+function stkInfo(key) {
+  if (!STK_READY) return null; // this file is loaded late: until then (while the game starts up) nothing is limited
+  if (key.charAt(0) === 'b') return STK_BRK[key.slice(2)] || null;
+  const t = TOOLS.find(x => 'a:' + x.id === key); if (!t || t.kind === 'stir') return null;
+  if (t.kind === 'charm') { const c = CHARMS.find(q => q.id === t.ch); if (c && c.rare) return null; } // rare surprises are rewards, not consumables
+  const p10 = t.kind === 'charm' ? 20 : (STK_ADD_P[t.id] || 15), sh = SHOP_BY_ID['tool:' + t.id];
+  return { n: t.n.replace(/ \(.*\)$/, ''), t, start: 15, floor: sh && sh.p === 0 ? 8 : 0, packs: [[10, p10], [30, Math.round(p10 * 2.5 / 5) * 5]] };
+}
+function stkKeys() { return Object.keys(STK_BRK).map(k => 'b:' + k).concat(TOOLS.map(t => 'a:' + t.id).filter(k => stkInfo(k))); }
+function stkGet(key) {
+  const i = stkInfo(key); if (!i) return Infinity;
+  if (!QS.stock) QS.stock = {};
+  if (QS.stock[key] == null) QS.stock[key] = i.start;
+  return QS.stock[key];
+}
+// once a day the basic supplies are topped up for free, so nobody is ever stuck
+function stkDaily() {
+  const d = dayKey(); if (QS.gift === d) return false; QS.gift = d;
+  let any = false;
+  stkKeys().forEach(k => { const i = stkInfo(k); if (i.floor && stkGet(k) < i.floor) { QS.stock[k] = i.floor; any = true; } });
+  if (any) { showInfo('🎁 Подарок дня: базовые расходники пополнены', 3200); stkBadges(); }
+  return any;
+}
+function stkTake(key, n) {
+  n = n || 1; const i = stkInfo(key); if (!i) return true;
+  let v = stkGet(key); if (v < n) { stkDaily(); v = stkGet(key); }
+  if (v < n) { Snd.tick(0); showInfo('Кончилось: ' + i.n + '. Пополнить: 🛒 Магазин → Расходники', 3400); stkBadges(); return false; }
+  QS.stock[key] = v - n; stkBadges(); return true;
+}
+function stkAdd(key, n) { stkGet(key); QS.stock[key] += n; stkBadges(); }
+// the little numbers on the tool buttons
+function stkBadges() {
+  const set = (b, key) => {
+    const i = stkInfo(key); let c = b.querySelector('.cnt');
+    if (!i) { if (c) c.remove(); return; }
+    const v = stkGet(key);
+    if (!c) { c = document.createElement('span'); c.className = 'cnt'; b.appendChild(c); }
+    c.textContent = v > 999 ? '999+' : String(v); c.classList.toggle('zero', v <= 0);
+  };
+  document.querySelectorAll('#jarRow .tool').forEach(b => { const t = TOOLS[+b.dataset.i]; if (t) set(b, 'a:' + t.id); });
+  document.querySelectorAll('#brkRow .tool').forEach(b => set(b, 'b:' + b.dataset.id));
+  // the bottom bar: the add-in and the breaker that are selected right now
+  const bj = document.getElementById('barJar'), bb = document.getElementById('barBrk');
+  if (bj && typeof ST !== 'undefined') set(bj, ST.lastJar ? 'a:' + ST.lastJar.id : 'none');
+  if (bb && typeof G !== 'undefined') set(bb, 'b:' + G.tool);
+}
+// which add-ins an order needs that have run out
+function stkMissing(o) {
+  const out = [];
+  for (const r of o.r) { const src = r.fxk && FX_SRC[r.fxk]; if (src && src.some(t => isOpen('tool:' + t)) && !src.some(t => isOpen('tool:' + t) && stkGet('a:' + t) > 0)) out.push(r.t); }
+  return out;
+}
+
+/* ----- the shop section ----- */
+var STK_COL = 0;
+function cubesTotal() { let n = 0; ST.nbin.forEach(v => { n += v; }); ST.cubes.forEach(c => { if (!c.crumb && c.bin != null) n++; }); return n; }
+function stkPay(price) { if (prefs.free) return true; if (QS.coins < price) { Snd.tick(0); showInfo('Не хватает монет: нужно ' + price + ' 🪙', 2200); return false; } QS.coins -= price; return true; }
+function stkBuy(key, n, price) {
+  if (!stkPay(price)) return; stkAdd(key, n); Snd.chime(); saveNow(); renderQuest();
+  showInfo('+' + n + ' · ' + stkInfo(key).n, 1800);
+}
+function stkBuyCubes(i, n, price) {
+  if (!stkPay(price)) return; ST.nbin[i] += n; Snd.chime(); saveNow(); renderQuest(); showInfo('+' + n + ' кубиков на полку', 1800);
+}
+function stkBuyRandom(n, price) {
+  const open = []; STCOL.forEach((c, i) => { if (!binLocked(i) && !STSPEC[c]) open.push(i); });
+  if (!open.length || !stkPay(price)) return;
+  for (let q = 0; q < n; q++) ST.nbin[open[(Math.random() * open.length) | 0]]++;
+  Snd.chime(); saveNow(); renderQuest(); showInfo('+' + n + ' случайных кубиков на полку', 1800);
+}
+function stkSec(root, title, key, note) {
+  const hb = h('button', 'shop-h sub'); hb.type = 'button'; hb.setAttribute('aria-expanded', SHOP_OPEN[key] ? 'true' : 'false');
+  const st = h('span', null, title); hb.appendChild(st); hb.appendChild(h('i', 'chev', '▾'));
+  const bx = h('div', 'shop-sec'); bx.hidden = !SHOP_OPEN[key];
+  hb.addEventListener('click', () => { SHOP_OPEN[key] = bx.hidden; bx.hidden = !bx.hidden; hb.setAttribute('aria-expanded', bx.hidden ? 'false' : 'true'); });
+  root.appendChild(hb); root.appendChild(bx); if (note) bx.appendChild(h('div', 'opt-note', note)); return bx;
+}
+function stkRow(box, icon, name, left, packs, onBuy, key) {
+  const row = h('div', 'shop-r own stk'); row.appendChild(icon); if (key) { row.dataset.stk = key; if (key === STK_FLASH && Date.now() < STK_FLASH_T) row.classList.add('flash'); }
+  const nm = h('span', 'shop-n', name); nm.appendChild(h('span', 'stk-left' + (left <= 0 ? ' zero' : ''), ' · осталось ' + left)); row.appendChild(nm);
+  const bw = h('span', 'stk-btns');
+  packs.forEach(pk => { const b = h('button', 'buy', '×' + pk[0] + ' · ' + (prefs.free ? 0 : pk[1]) + ' 🪙'); b.type = 'button'; b.disabled = !prefs.free && QS.coins < pk[1]; b.addEventListener('click', () => onBuy(pk[0], pk[1])); bw.appendChild(b); });
+  row.appendChild(bw); box.appendChild(row);
+}
+function renderStockShop(root) {
+  if (SHOP_OPEN['Расходники'] === undefined) SHOP_OPEN['Расходники'] = true;
+  const g0 = 'Расходники';
+  const hb = h('button', 'shop-h'); hb.type = 'button'; hb.setAttribute('aria-expanded', SHOP_OPEN[g0] ? 'true' : 'false');
+  const ti = h('span', null, '🧺 ' + g0); hb.appendChild(ti); hb.appendChild(h('i', 'chev', '▾'));
+  const box = h('div', 'shop-sec'); box.hidden = !SHOP_OPEN[g0];
+  hb.addEventListener('click', () => { SHOP_OPEN[g0] = box.hidden; box.hidden = !box.hidden; hb.setAttribute('aria-expanded', box.hidden ? 'false' : 'true'); });
+  root.appendChild(hb); root.appendChild(box);
+  box.appendChild(h('div', 'opt-note', (prefs.free ? 'Сейчас всё открыто, поэтому докупать расходники можно бесплатно. ' : '') + 'Добавки и инструменты тратятся при каждом применении. Чем больше пак, тем он выгоднее. Базовое (молоток, палец, щипок, мешалки) бесплатно всегда, а ещё раз в день немного базового добавляется само.'));
+  // cubes
+  const cb = stkSec(box, '🧊 Кубики', 'Расходники/Кубики', 'Выбери цвет и докупи кубиков на полку. «Случайные» дешевле.');
+  const rr = h('div', 'stk-sw');
+  STCOL.forEach((c, i) => {
+    if (binLocked(i)) return;
+    const s = h('button', 'stk-c' + (STK_COL === i ? ' sel' : '')); s.type = 'button'; s.style.background = c; s.setAttribute('aria-label', 'цвет ' + (i + 1));
+    s.addEventListener('click', () => { STK_COL = i; Snd.tick(0); renderQuest(); }); rr.appendChild(s);
+  });
+  cb.appendChild(rr);
+  if (binLocked(STK_COL)) STK_COL = 0;
+  const sw = h('span', 'shop-ico'); const dot = h('i'); dot.style.cssText = 'background:' + STCOL[STK_COL] + ';width:26px;height:26px;border-radius:7px;display:block'; sw.appendChild(dot);
+  stkRow(cb, sw, 'Этот цвет', ST.nbin[STK_COL], STSPEC[STCOL[STK_COL]] ? STK_CUBE_SP : STK_CUBE_P, (n, p) => stkBuyCubes(STK_COL, n, p), 'c:' + STK_COL);
+  const rw = h('span', 'shop-ico'); rw.textContent = '🎲';
+  stkRow(cb, rw, 'Случайные цвета', cubesTotal(), [[STK_RAND[0], 30], [STK_RAND[1], 80]], (n, p) => stkBuyRandom(n, p), 'c:rand');
+  // add-ins
+  const ab = stkSec(box, '✨ Добавки', 'Расходники/Добавки', 'Показаны только открытые добавки.');
+  TOOLS.forEach(t => { const k = 'a:' + t.id, i = stkInfo(k); if (!i || !isOpen('tool:' + t.id)) return; stkRow(ab, iconFor({ timg: t.img, pearl: t.kind === 'pearl', e: t.e }), i.n, stkGet(k), i.packs, (n, p) => stkBuy(k, n, p), k); });
+  // break tools
+  const bb = stkSec(box, '🔨 Инструменты', 'Расходники/Инструменты', 'Бомба и лазер видны, когда получены наградой.');
+  Object.keys(STK_BRK).forEach(id => { const t = BRK_TOOLS.find(x => x.id === id); if (!t || (t.rw && !rewardOn(t.rw))) return; const k = 'b:' + id, i = STK_BRK[id]; stkRow(bb, iconFor({ e: i.e }), i.n, stkGet(k), i.packs, (n, p) => stkBuy(k, n, p), k); });
+}
+/* ----- an empty tool or cube bin takes you to the shop, to the right row, which blinks for a moment ----- */
+var STK_FLASH = '', STK_FLASH_T = 0;
+function stkGoShop(key) {
+  let sub = 'Расходники/Добавки';
+  if (key.charAt(0) === 'b') sub = 'Расходники/Инструменты';
+  else if (key.charAt(0) === 'c') { sub = 'Расходники/Кубики'; const n = +key.slice(2); if (n >= 0) STK_COL = n; }
+  SHOP_OPEN['Расходники'] = true; SHOP_OPEN[sub] = true; STK_FLASH = key; STK_FLASH_T = Date.now() + 2300;
+  try { closeSheet(); } catch (e) { }
+  openQuest('shop');
+  setTimeout(() => {
+    const r = questEl.querySelector('[data-stk="' + key + '"]'); if (!r) return;
+    r.scrollIntoView({ block: 'center', behavior: 'smooth' }); r.classList.add('flash'); setTimeout(() => { r.classList.remove('flash'); STK_FLASH = ''; }, 2300);
+  }, 80);
+}
+// true when the tool is empty (after trying the daily gift) and the player was sent to the shop
+function stkGate(key) {
+  if (!stkInfo(key) || stkGet(key) > 0) return false;
+  stkDaily(); if (stkGet(key) > 0) return false;
+  Snd.tick(0); showInfo('Кончилось: ' + stkInfo(key).n + '. Вот где пополнить', 2200); stkGoShop(key); return true;
+}
+STK_READY = true;
+try { stkBadges(); } catch (e) { }
+/* ---------- Cases: pay coins, a reel of prize sets spins, you get a set of cubes / add-ins / tool charges ----------
+   Each case rolls a rarity first (a small chance of a weak set, mostly sets worth about the price or more, a rare jackpot),
+   then builds a set of that value from its pools. Prizes are only consumables, never coins. */
+var CASES = [
+  { id: 'cubes', n: 'Кубиковый кейс', e: '🧊', price: 60, pools: ['cube'], d: 'Наборы цветных кубиков, в редких есть особые цвета' },
+  { id: 'adds', n: 'Кейс добавок', e: '✨', price: 60, pools: ['add'], d: 'Наборы блёсток, шариков, капель и сюрпризов' },
+  { id: 'royal', n: 'Королевский кейс', e: '👑', price: 150, pools: ['cube', 'add', 'brk'], d: 'Всё сразу: кубики, добавки и заряды инструментов' }
+];
+// chance, how much the set is worth compared to the price, name, colour, how many kinds of things in it
+var CASE_TIERS = [
+  { id: 'weak', p: 0.12, m: 0.5, n: 'Скромный', c: '#8d8aa0', k: [1, 1] },
+  { id: 'even', p: 0.28, m: 1.0, n: 'Обычный', c: '#5aa2e0', k: [1, 2] },
+  { id: 'good', p: 0.40, m: 1.1, n: 'Хороший', c: '#a06be0', k: [2, 2] },
+  { id: 'rare', p: 0.17, m: 1.6, n: 'Редкий', c: '#e060a8', k: [2, 3] },
+  { id: 'jack', p: 0.03, m: 4.0, n: 'ДЖЕКПОТ', c: '#f2b632', k: [3, 4] }
+];
+var CASE_FIX = 1; // a small correction so the average prize is a little above the price (see the simulation test)
+var CASE_BUSY = false, CASE_LAST = {};
+// value of one piece in coins, counted at the cheapest (biggest pack) price
+function caseUnit(key) {
+  if (key.charAt(0) === 'c') return STSPEC[STCOL[+key.slice(2)]] ? 6 : 3.3;
+  const i = stkInfo(key); if (!i) return 1;
+  if (key.charAt(0) === 'b') return i.packs[1][1] / i.packs[1][0];
+  return i.packs[1][1] / i.packs[1][0];
+}
+function casePool(c) {
+  const out = [];
+  if (c.pools.includes('cube')) STCOL.forEach((col, i) => { if (!binLocked(i)) out.push('c:' + i); });
+  if (c.pools.includes('add')) TOOLS.forEach(t => { const k = 'a:' + t.id; if (stkInfo(k) && isOpen('tool:' + t.id)) out.push(k); });
+  if (c.pools.includes('brk')) Object.keys(STK_BRK).forEach(id => { const t = BRK_TOOLS.find(x => x.id === id); if (t && (!t.rw || rewardOn(t.rw))) out.push('b:' + id); });
+  return out;
+}
+function caseTier(c) {
+  let r = Math.random(), acc = 0; for (const t of CASE_TIERS) { acc += t.p; if (r < acc) return t; } return CASE_TIERS[2];
+}
+function caseRoll(c, tier) {
+  tier = tier || caseTier(c);
+  const pool = casePool(c), ti = CASE_TIERS.indexOf(tier);
+  const kinds = Math.min(pool.length, tier.k[0] + Math.floor(Math.random() * (tier.k[1] - tier.k[0] + 1)));
+  const V = c.price * tier.m * CASE_FIX * (0.9 + Math.random() * 0.2);
+  // pricey things (special colours, neon, bombs…) are weighted up in the better tiers and almost never come in weak ones
+  const w = k => Math.pow(caseUnit(k) / 3, ti >= 2 ? 0.8 : ti === 0 ? -0.6 : 0);
+  const pick = [], left = pool.slice();
+  while (pick.length < kinds && left.length) {
+    let tot = 0; left.forEach(k => { tot += w(k); }); let r = Math.random() * tot, j = 0;
+    for (; j < left.length - 1; j++) { r -= w(left[j]); if (r <= 0) break; }
+    pick.push(left.splice(j, 1)[0]);
+  }
+  const sh = pick.map(() => 0.5 + Math.random()); const ss = sh.reduce((a, b) => a + b, 0);
+  const items = pick.map((k, j) => { const u = caseUnit(k); let n = Math.round(V * sh[j] / ss / u); n = Math.max(1, Math.min(k.charAt(0) === 'c' ? 45 : k.charAt(0) === 'b' ? 30 : 90, n)); return { key: k, n }; });
+  const value = items.reduce((a, it) => a + it.n * caseUnit(it.key), 0);
+  return { tier, items, value };
+}
+function caseGrant(res) {
+  res.items.forEach(it => { if (it.key.charAt(0) === 'c') ST.nbin[+it.key.slice(2)] += it.n; else stkAdd(it.key, it.n); });
+}
+function caseIcon(key, sm) {
+  const w = h('span', 'cs-i' + (sm ? ' sm' : ''));
+  if (key.charAt(0) === 'c') { const q = h('i', 'cs-cube'); q.style.background = STCOL[+key.slice(2)]; w.appendChild(q); }
+  else if (key.charAt(0) === 'b') w.textContent = STK_BRK[key.slice(2)].e;
+  else { const t = TOOLS.find(x => 'a:' + x.id === key); if (t && t.img) { const im = document.createElement('img'); im.alt = ''; im.src = t.img === 'oil' ? OIL_SVG : TOOL_IMG[t.img]; if (t.kind === 'pearl') im.className = 'round'; w.appendChild(im); } else w.textContent = t ? (t.e || '🫙') : '🫙'; }
+  return w;
+}
+function caseCard(res, big) {
+  const cd = h('div', 'cs-card' + (big ? ' big' : '')); cd.style.setProperty('--tc', res.tier.c);
+  const row = h('div', 'cs-items');
+  res.items.forEach(it => { const b = h('span', 'cs-it'); b.appendChild(caseIcon(it.key, !big)); b.appendChild(h('b', null, '×' + it.n)); row.appendChild(b); });
+  cd.appendChild(row); cd.appendChild(h('div', 'cs-tier', res.tier.n)); return cd;
+}
+function caseOpen(c) {
+  if (CASE_BUSY) return;
+  if (casePool(c).length < 2) { showInfo('В этом кейсе пока нечего выдавать', 2200); return; }
+  if (!stkPay(c.price)) return;
+  CASE_BUSY = true;
+  const res = caseRoll(c); caseGrant(res); CASE_LAST[c.id] = res; saveNow();
+  // the overlay lives outside the shop panel, so redraws of the shop cannot break the spin
+  const ov = h('div', 'cs-ov'), box = h('div', 'cs-box');
+  box.appendChild(h('div', 'ord-n', c.e + ' ' + c.n));
+  const reel = h('div', 'cs-reel'), strip = h('div', 'cs-strip'); reel.appendChild(strip); reel.appendChild(h('div', 'cs-mark'));
+  const W = 40, N = 48; const cards = [];
+  for (let i = 0; i < N; i++) { const r = i === W ? res : caseRoll(c); cards.push(r); strip.appendChild(caseCard(r, false)); }
+  box.appendChild(reel);
+  const out = h('div', 'cs-out'); box.appendChild(out);
+  const ok = h('button', 'cs-ok', 'Пропустить'); ok.type = 'button'; box.appendChild(ok);
+  ov.appendChild(box); document.body.appendChild(ov);
+  const CW = 92; // card width with the gap
+  const rw = reel.clientWidth || 300, jitter = (Math.random() - 0.5) * CW * 0.6;
+  const target = W * CW + CW / 2 - rw / 2 + jitter, T = 4800, t0 = performance.now(); let lastI = -1, done = false;
+  const finish = () => {
+    if (done) return; done = true; strip.style.transform = 'translateX(' + (-target) + 'px)';
+    cards.forEach((_, i) => strip.children[i].classList.toggle('win', i === W));
+    out.textContent = ''; out.appendChild(h('div', 'cs-won', res.tier.id === 'jack' ? '🎉 ДЖЕКПОТ!' : res.tier.n + ' набор'));
+    const row = h('div', 'cs-items big'); res.items.forEach(it => { const b = h('span', 'cs-it'); b.appendChild(caseIcon(it.key)); b.appendChild(h('b', null, '×' + it.n)); row.appendChild(b); }); out.appendChild(row);
+    ok.textContent = 'Забрать'; Snd.chime(); if (res.tier.id === 'jack') { setTimeout(() => Snd.chime(), 220); setTimeout(() => Snd.chime(), 440); }
+    CASE_BUSY = false; renderQuest(); stkBadges();
+  };
+  const step = (now) => {
+    if (done) return; const k = Math.min(1, (now - t0) / T), e = 1 - Math.pow(1 - k, 4), x = target * e;
+    strip.style.transform = 'translateX(' + (-x) + 'px)';
+    const idx = Math.floor((x + rw / 2) / CW); if (idx !== lastI) { lastI = idx; Snd.tick(0); }
+    if (k < 1) requestAnimationFrame(step); else finish();
+  };
+  ok.addEventListener('click', () => { if (!done) { finish(); ok.textContent = 'Забрать'; return; } ov.remove(); });
+  requestAnimationFrame(step);
+}
+function caseOdds() {
+  const tot = CASE_TIERS.reduce((a, t) => a + t.p, 0);
+  return CASE_TIERS.map(t => t.n + ' ' + Math.round(t.p / tot * 100) + '% (набор ≈ ×' + t.m + ' от цены)').join('\n');
+}
+var CASE_ODDS = false;
+function renderCases(root) {
+  if (SHOP_OPEN['Кейсы'] === undefined) SHOP_OPEN['Кейсы'] = true;
+  const g0 = 'Кейсы';
+  const hb = h('button', 'shop-h'); hb.type = 'button'; hb.setAttribute('aria-expanded', SHOP_OPEN[g0] ? 'true' : 'false');
+  hb.appendChild(h('span', null, '🎁 ' + g0)); hb.appendChild(h('i', 'chev', '▾'));
+  const box = h('div', 'shop-sec'); box.hidden = !SHOP_OPEN[g0];
+  hb.addEventListener('click', () => { SHOP_OPEN[g0] = box.hidden; box.hidden = !box.hidden; hb.setAttribute('aria-expanded', box.hidden ? 'false' : 'true'); });
+  root.appendChild(hb); root.appendChild(box);
+  box.appendChild(h('div', 'opt-note', 'Платишь монетами и крутишь ленту: выпадает набор расходников. Чаще всего он стоит примерно как кейс или чуть дороже, редко слабее, и совсем редко бывает джекпот.'));
+  const ob = h('button', 'top-ref', CASE_ODDS ? 'Скрыть шансы' : 'Шансы'); ob.type = 'button'; ob.addEventListener('click', () => { CASE_ODDS = !CASE_ODDS; renderQuest(); }); box.appendChild(ob);
+  if (CASE_ODDS) { const o = h('div', 'opt-note', caseOdds()); o.style.whiteSpace = 'pre-line'; box.appendChild(o); }
+  CASES.forEach(c => {
+    const row = h('div', 'shop-r own stk case-r'); const ic = h('span', 'shop-ico'); ic.textContent = c.e; row.appendChild(ic);
+    const nm = h('span', 'shop-n', c.n); nm.appendChild(h('span', 'stk-left', ' · ' + c.d)); row.appendChild(nm);
+    const bw = h('span', 'stk-btns'); const b = h('button', 'buy', 'Открыть · ' + (prefs.free ? 0 : c.price) + ' 🪙'); b.type = 'button'; b.disabled = !prefs.free && QS.coins < c.price; b.addEventListener('click', () => caseOpen(c)); bw.appendChild(b); row.appendChild(bw);
+    box.appendChild(row);
+    const last = CASE_LAST[c.id]; if (last) { const l = h('div', 'cs-last'); l.appendChild(h('span', 'opt-note', 'Последний приз: ')); l.appendChild(caseCard(last, false)); box.appendChild(l); }
+  });
+}
 /* ---------- Ragdoll ---------- */
 // joint: spring stiffness, damping, how far it may swing outward / inward, and which side it sits on
 const RAG_JOINTS = {
