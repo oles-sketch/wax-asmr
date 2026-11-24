@@ -404,6 +404,21 @@
   .cs-last { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; }
   .cs-last .cs-card { flex: 0 0 auto; width: auto; height: auto; min-width: 84px; gap: 4px; }
   .case-r .stk-left { display: block; white-space: normal; margin-top: 2px; }
+  .chat-list { max-height: 42vh; min-height: 120px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; padding: 8px; border-radius: 12px; background: #2a2036; border: 1px solid var(--panel-line); }
+  .chat-m { align-self: flex-start; max-width: 86%; background: #3a2d49; border-radius: 12px 12px 12px 3px; padding: 6px 10px; }
+  .chat-m.me { align-self: flex-end; background: #4a3a5c; border: 1px solid var(--accent); border-radius: 12px 12px 3px 12px; }
+  .chat-h { display: flex; gap: 8px; align-items: baseline; font-size: 11px; color: var(--fg-dim); }
+  .chat-n { font-weight: 600; }
+  .chat-x { font-size: 15px; line-height: 1.3; overflow-wrap: anywhere; white-space: pre-wrap; }
+  .chat-in { display: flex; gap: 6px; align-items: stretch; margin-top: 6px; }
+  .chat-in .acc-in { margin: 0; flex: 1; min-width: 0; }
+  .chat-in .top-ref { margin: 0; width: auto; padding: 8px 12px; white-space: nowrap; }
+  .mystat { display: grid; grid-template-columns: auto 1fr 1fr 1fr; gap: 4px 6px; align-items: center; text-align: center; }
+  .mystat .mh { font-size: 11px; color: var(--fg-dim); white-space: nowrap; }
+  .mystat .ml { text-align: left; font-size: 13px; color: var(--fg-dim); padding-right: 4px; }
+  .mystat .mv { font-weight: 600; font-size: 16px; padding: 5px 4px; border-radius: 8px; background: #3a2d49; }
+  .acc-line { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 6px; font-size: 12px; color: var(--fg-dim); }
+  .acc-line .top-ref { width: auto; padding: 4px 12px; margin: 0; }
   .shop-r.flash { animation: stkflash .45s ease-in-out 5 alternate; }
   @keyframes stkflash { from { box-shadow: 0 0 0 0 transparent; background: #3a2d49; } to { box-shadow: 0 0 0 2px var(--accent), 0 0 16px 2px var(--accent); background: #5a3f6e; } }
   .bbtn[aria-expanded="true"], #ordBtn[aria-expanded="true"], #setBtn[aria-expanded="true"], #shelfBtn[aria-expanded="true"] { position: relative; z-index: 6; }
@@ -561,15 +576,17 @@
       <div id="fxAdv" hidden></div>
       <button type="button" class="opt" id="optFree" role="switch" aria-checked="true"><span>🔓 Всё открыто (без магазина)</span><i class="sw"></i></button>
       <div class="opt-note" id="freeNote">Выключи, чтобы предметы, добавки и цвета открывались за монеты</div>
-      <div class="secret" id="secretRow" hidden><input type="password" id="secretIn" inputmode="numeric" placeholder="пароль" autocomplete="off" maxlength="20"><button type="button" id="secretOk">OK</button></div>
+      <div class="secret" id="secretRow" hidden><input type="password" id="secretIn" placeholder="пароль" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="40"><button type="button" id="secretOk">OK</button></div>
       <div class="vlvl" id="vibeLvl"><button type="button" data-k="1">Слабая</button><button type="button" data-k="2">Средняя</button><button type="button" data-k="4">Сильная</button></div>
+      <button type="button" class="opt sub" id="optAcc" aria-expanded="false"><span>👤 Аккаунт и облако</span><i class="chev">▾</i></button>
+      <div id="accAdv" hidden></div>
       <div class="savebtns"><button type="button" id="saveFileBtn">💾 Сохранить в файл</button><button type="button" id="loadFileBtn">📂 Загрузить</button></div>
       <div class="savebtns" style="margin-top:6px"><button type="button" id="wipeBtn">🗑 Стереть прогресс на этом устройстве</button></div>
       <input type="file" id="loadFile" accept=".json,application/json" hidden>
       <div class="opt-note" id="saveNote" hidden></div>
       <div class="opt-note">Прогресс сохраняется сам. Файл нужен, чтобы перенести его на другой телефон или если браузер всё забывает. Если ты вошла в аккаунт, файл хранит и вход: при загрузке ты сразу в аккаунте, поэтому не отправляй его посторонним.</div>
       <div class="opt-note" id="vibeNote" hidden>На этом устройстве вибрация недоступна</div>
-      <div class="ver-tag" id="verTag">v154</div>
+      <div class="ver-tag" id="verTag">v156</div>
       <div id="setMore" hidden>↓ листай ниже, там ещё настройки</div>
     </div>
   </header>
@@ -5494,6 +5511,7 @@ function bombBlast(b) {
 }
 // laser: burns the pieces under the finger one after another
 function laserStep(dt, H, P, pn) {
+  H.use = (H.use || 0) + dt; if (H.use >= 1) { H.use = 0; if (!stkTake('b:laser')) { G.hold = null; return; } } // the press costs 1, then 1 more for every second of burning
   H.snd -= dt;
   if (H.snd <= 0) { H.snd = 0.11; Snd.zap(pn); }
   if (Math.random() < dt * 40) chips.push({ x: H.x, y: H.y, vx: rnd(-160, 160), vy: rnd(-200, 40), s: rnd(1.5, 3), rot: 0, vr: 0, life: 0, col: [255, rnd(60, 170), rnd(40, 90)] });
@@ -5566,6 +5584,7 @@ function toolStep(dt) {
     } else if (H.tool === 'laser') {
       laserStep(dt, H, P, pn);
     } else if (H.tool === 'heat') {
+      H.use = (H.use || 0) + dt; if (H.use >= 1) { H.use = 0; if (!stkTake('b:heat')) { G.hold = null; } } // the press costs 1, then 1 more for every second of heating
       H.snd -= dt;
       if (H.snd <= 0) { H.snd = 0.28; Snd.hiss(pn); }
       const cp = worldToCanvas(H.x, H.y);
@@ -7460,7 +7479,7 @@ function orderNew() {
 // changing the order: free once a day (and always free when the order cannot be done because something ran out), then it costs a little
 const SWAP_COST = 15;
 function swapFree() { const o = QS.order && orderById(QS.order.id); return !QS.rr || QS.rr.dk !== dayKey() || !!(o && stkMissing(o).length); }
-function swapLabel() { return 'Другой заказ' + (swapFree() ? ' · бесплатно' : ' · ' + SWAP_COST + ' 🪙'); }
+function swapLabel() { return 'Другой заказ (' + (swapFree() ? 'бесплатно' : SWAP_COST + ' 🪙') + ')'; }
 function orderSwap() {
   if (!swapFree()) { if (QS.coins < SWAP_COST) { Snd.tick(0); showInfo('Смена заказа стоит ' + SWAP_COST + ' 🪙', 2200); return false; } QS.coins -= SWAP_COST; }
   else { const o = QS.order && orderById(QS.order.id); if (!(o && stkMissing(o).length)) QS.rr = { dk: dayKey() }; }
@@ -7554,7 +7573,7 @@ function scrollRender() {
     const row = h('div', 'savebtns');
     const give = h('button', null, 'Сдать'); give.type = 'button'; give.disabled = !st.done;
     give.addEventListener('click', () => { orderHandIn(); setTimeout(scrollRender, 0); });
-    const swap = h('button', null, 'Другой'); swap.type = 'button';
+    const swap = h('button', null, 'Другой (' + (swapFree() ? '0' : SWAP_COST) + ' 🪙)'); swap.type = 'button';
     swap.addEventListener('click', () => { if (!orderSwap()) return; questTick(); Snd.tick(0); scrollRender(); });
     row.appendChild(give); row.appendChild(swap); scrollEl.appendChild(row);
   }
@@ -7777,14 +7796,14 @@ document.getElementById('optFree').addEventListener('click', () => setFree(!pref
 // secret: tap the "Настройки" title 10 times, then type the password
 (function () {
   const title = document.querySelector('#settings .sheet-title'), row = document.getElementById('secretRow'), inp = document.getElementById('secretIn');
-  const hsh = (t) => { let x = 5381; for (let i = 0; i < t.length; i++) x = ((x * 33) ^ t.charCodeAt(i)) >>> 0; return x; };
+  const hsh = (str) => { let h1 = 0xdeadbeef, h2 = 0x41c6ce57; for (let i = 0, ch; i < str.length; i++) { ch = str.charCodeAt(i); h1 = Math.imul(h1 ^ ch, 2654435761); h2 = Math.imul(h2 ^ ch, 1597334677); } h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507); h1 ^= Math.imul(h2 ^ (h2 >>> 13), 3266489909); h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507); h2 ^= Math.imul(h1 ^ (h1 >>> 13), 3266489909); return 4294967296 * (2097151 & h2) + (h1 >>> 0); };
   let n = 0, last = 0;
   title.addEventListener('click', () => {
     const now = Date.now(); n = now - last < 2500 ? n + 1 : 1; last = now;
     if (n >= 10 && !prefs.free) { n = 0; row.hidden = false; row.classList.remove('bad'); inp.value = ''; inp.focus(); Snd.tick(0); }
   });
   function tryPass() {
-    if (hsh(inp.value.trim()) === 193359061) { row.hidden = true; inp.value = ''; setFree(true); }
+    if (hsh(inp.value.trim()) === 1575793385217129) { row.hidden = true; inp.value = ''; setFree(true); }
     else { row.classList.remove('bad'); void row.offsetWidth; row.classList.add('bad'); inp.value = ''; Snd.tick(0); }
   }
   document.getElementById('secretOk').addEventListener('click', tryPass);
@@ -9116,7 +9135,7 @@ async function topLoad(k0, force) {
   TOPS.loading = false; renderTopSoon();
 }
 var topRT = 0;
-function renderTopSoon() { clearTimeout(topRT); topRT = setTimeout(() => { if (!questEl.hidden && QTAB === 'top') renderQuest(); }, 30); }
+function renderTopSoon() { clearTimeout(topRT); topRT = setTimeout(() => { if (!questEl.hidden && QTAB === 'top' && CHAT.view !== 'chat') renderQuest(); }, 30); }
 // a password field with an eye to peek at what was typed
 function pwField(ph, key, ac, max) {
   const w = h('div', 'pw-wrap'), i2 = h('input', 'acc-in'); i2.type = 'password'; i2.placeholder = ph; if (max) i2.maxLength = max; i2.autocomplete = ac; i2.value = TOPF[key] || '';
@@ -9126,9 +9145,8 @@ function pwField(ph, key, ac, max) {
   w.appendChild(i2); w.appendChild(eye); return w;
 }
 var TOPF = { nick: '', pass: '', busy: false, msg: '' }; // what is typed in the form survives redraws
-function renderTop(el) {
-  el.appendChild(h('div', 'sheet-title', 'Лидеры'));
-  const card = h('div', 'ord');
+// the account card (login form or the signed-in account): it lives in Settings now, under "👤 Аккаунт и облако"
+function accCard(card) {
   if (!ACC.uid) {
     card.appendChild(h('div', 'ord-n', 'Войти или создать аккаунт'));
     card.appendChild(h('div', 'opt-note', 'Логин и пароль нужны, чтобы попасть в таблицу и хранить прогресс в облаке: с любого телефона зашла, и всё на месте. Ник в таблице потом можно поменять, а логин для входа остаётся.'));
@@ -9138,11 +9156,11 @@ function renderTop(el) {
     const row = h('div', 'savebtns');
     const go = (kind) => async () => {
       if (TOPF.busy) return; const nick = TOPF.nick.trim(), pass = TOPF.pass;
-      if (!nickOk(nick)) { TOPF.msg = 'Логин: 3–14 символов, буквы, цифры, _ или -'; renderQuest(); return; }
-      if (pass.length < 6) { TOPF.msg = 'Пароль от 6 символов'; renderQuest(); return; }
-      TOPF.busy = true; TOPF.msg = 'Секунду…'; renderQuest();
+      if (!nickOk(nick)) { TOPF.msg = 'Логин: 3–14 символов, буквы, цифры, _ или -'; accRender(); return; }
+      if (pass.length < 6) { TOPF.msg = 'Пароль от 6 символов'; accRender(); return; }
+      TOPF.busy = true; TOPF.msg = 'Секунду…'; accRender();
       try { await accAuth(kind, nick, pass); TOPF.pass = ''; TOPF.msg = await accAfterLogin(kind === 'new'); TOPS.data = {}; } catch (e) { TOPF.msg = fbErrText(e); }
-      TOPF.busy = false; renderQuest(); topLoad(TOPS.k, true);
+      TOPF.busy = false; accRender(); topLoad(TOPS.k, true);
     };
     const b1 = h('button', null, 'Войти'); b1.type = 'button'; b1.addEventListener('click', go('in'));
     const b2 = h('button', null, 'Создать аккаунт'); b2.type = 'button'; b2.addEventListener('click', go('new'));
@@ -9152,16 +9170,15 @@ function renderTop(el) {
   } else {
     card.appendChild(h('div', 'ord-n', '👤 ' + ACC.nick));
     if (ACC.login && ACC.login !== ACC.nick) card.appendChild(h('div', 'opt-note', 'Логин для входа: ' + ACC.login));
-    { const pp = perSync(); card.appendChild(h('div', 'opt-note', 'Сломано ' + G.broken + ' · заработано ' + QS.earned + ' 🪙 · на руках ' + QS.coins + ' 🪙 · заказов ' + QS.stats.orders)); card.appendChild(h('div', 'opt-note', 'Сегодня: сломано ' + pp.dB + ', заработано ' + pp.dC + ' 🪙, заказов ' + pp.dO + '  ·  За неделю: ' + pp.wB + ' / ' + pp.wC + ' 🪙 / ' + pp.wO)); }
     card.appendChild(h('div', 'opt-note', ONL.err ? '⚠️ ' + ONL.err : ACC.pushed ? '☁️ Сохранено в облаке в ' + new Date(ACC.pushed).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) : '☁️ Ещё не сохранено'));
     const row = h('div', 'savebtns');
-    const sv = h('button', null, '☁️ Сохранить'); sv.type = 'button'; sv.addEventListener('click', async () => { sv.disabled = true; const ok = await accPush('user'); TOPS.data = {}; showInfo(ok ? 'Сохранено в облако' : (ONL.err || 'Не вышло'), 2400); renderQuest(); topLoad(TOPS.k, true); });
-    const pw = h('button', null, '⚙ Аккаунт'); pw.type = 'button'; pw.addEventListener('click', () => { TOPF.pw = !TOPF.pw; TOPF.pmsg = ''; renderQuest(); });
-    const lo = h('button', null, 'Выйти'); lo.type = 'button'; lo.addEventListener('click', () => { askConfirm('Выйти из аккаунта? Прогресс на этом устройстве останется.', () => { accOut(); TOPF.msg = ''; renderQuest(); }, null, ['Выйти', 'Остаться']); });
+    const sv = h('button', null, '☁️ Сохранить'); sv.type = 'button'; sv.addEventListener('click', async () => { sv.disabled = true; const ok = await accPush('user'); TOPS.data = {}; showInfo(ok ? 'Сохранено в облако' : (ONL.err || 'Не вышло'), 2400); accRender(); topLoad(TOPS.k, true); });
+    const pw = h('button', null, '⚙ Аккаунт'); pw.type = 'button'; pw.addEventListener('click', () => { TOPF.pw = !TOPF.pw; TOPF.pmsg = ''; accRender(); });
+    const lo = h('button', null, 'Выйти'); lo.type = 'button'; lo.addEventListener('click', () => { askConfirm('Выйти из аккаунта? Прогресс на этом устройстве останется.', () => { accOut(); TOPF.msg = ''; accRender(); }, null, ['Выйти', 'Остаться']); });
     row.appendChild(sv); row.appendChild(pw); row.appendChild(lo); card.appendChild(row);
     if (TOPF.pw) {
       const mk = (ph, key, ac, max) => { const i2 = h('input', 'acc-in'); i2.type = 'text'; i2.placeholder = ph; if (max) i2.maxLength = max; i2.autocomplete = ac; i2.value = TOPF[key] || ''; i2.addEventListener('input', () => { TOPF[key] = i2.value; }); return i2; };
-      const run = async (fn, ok) => { TOPF.pmsg = 'Секунду…'; renderQuest(); try { await fn(); TOPF.pmsg = ok; } catch (e) { TOPF.pmsg = e && e.message && !/^[A-Z_ :0-9]+$/.test(e.message) && !e.http && !e.net ? e.message : fbErrText(e); } renderQuest(); };
+      const run = async (fn, ok) => { TOPF.pmsg = 'Секунду…'; accRender(); try { await fn(); TOPF.pmsg = ok; } catch (e) { TOPF.pmsg = e && e.message && !/^[A-Z_ :0-9]+$/.test(e.message) && !e.http && !e.net ? e.message : fbErrText(e); } accRender(); };
       const btn = (t, f, cls) => { const b3 = h('button', cls || 'top-ref', t); b3.type = 'button'; b3.addEventListener('click', f); return b3; };
       const box = (title, note, cls) => { const b4 = h('div', 'acc-box' + (cls ? ' ' + cls : '')); b4.appendChild(h('div', 'acc-sec-t', title)); if (note) b4.appendChild(h('div', 'opt-note', note)); card.appendChild(b4); return b4; };
       const b1 = box('✏️ Ник в таблице', 'Так тебя видят другие. Пароль не нужен.' + (ACC.login && ACC.login !== ACC.nick ? ' Вход остаётся по логину «' + ACC.login + '».' : ''));
@@ -9170,14 +9187,132 @@ function renderTop(el) {
       const b2 = box('🔑 Пароль', TOPF.needOld ? 'Вход устарел, введи текущий пароль один раз.' : 'Ты уже в аккаунте, старый пароль не нужен.');
       if (TOPF.needOld) b2.appendChild(pwField('текущий пароль', 'opass', 'current-password', 40));
       b2.appendChild(pwField('новый пароль (от 6 символов)', 'npass', 'new-password', 40));
-      b2.appendChild(btn('Сменить пароль', () => { if ((TOPF.npass || '').length < 6) { TOPF.pmsg = 'Новый пароль от 6 символов'; renderQuest(); return; } run(async () => { await accChangePass(TOPF.opass || '', TOPF.npass); TOPF.opass = TOPF.npass = ''; TOPF.pw = false; showInfo('Пароль сменён', 2400); }, 'Пароль сменён. Старые файлы сохранения больше не входят сами, сохрани новый файл'); }));
+      b2.appendChild(btn('Сменить пароль', () => { if ((TOPF.npass || '').length < 6) { TOPF.pmsg = 'Новый пароль от 6 символов'; accRender(); return; } run(async () => { await accChangePass(TOPF.opass || '', TOPF.npass); TOPF.opass = TOPF.npass = ''; TOPF.pw = false; showInfo('Пароль сменён', 2400); }, 'Пароль сменён. Старые файлы сохранения больше не входят сами, сохрани новый файл'); }));
       const b3 = box('⚠️ Удаление', 'Аккаунт и всё из облака пропадёт. Прогресс на этом устройстве останется.', 'danger');
       b3.appendChild(btn('🗑 Удалить аккаунт', () => { askConfirm('Удалить аккаунт ' + ACC.nick + ' и всё из облака (прогресс, место в таблице)? Прогресс на этом устройстве останется. Это не отменить.', () => { run(async () => { await accDelete(TOPF.opass || ''); TOPF.opass = ''; TOPF.pw = false; }, 'Аккаунт удалён. Можно создать новый'); }, null, ['Удалить', 'Не надо']); }, 'top-ref danger'));
     }
     if (TOPF.pmsg) card.appendChild(h('div', 'opt-note', TOPF.pmsg));
     card.appendChild(h('div', 'opt-note', '💾 Файл сохранения из настроек теперь хранит и вход в аккаунт: открой его на другом телефоне и ты сразу в аккаунте. Не отправляй этот файл посторонним.'));
   }
-  el.appendChild(card);
+}
+function accRender() { renderQuest(); renderAccSettings(); }
+function renderAccSettings() {
+  const box = document.getElementById('accAdv'); if (!box || box.hidden) return;
+  const keep = box.querySelector('input:focus'), ph = keep && keep.placeholder;
+  box.textContent = ''; const card = h('div', 'ord'); accCard(card); box.appendChild(card);
+  if (ph) { const n = [...box.querySelectorAll('input')].find(x => x.placeholder === ph); if (n) { n.focus(); try { n.setSelectionRange(n.value.length, n.value.length); } catch (e) { } } }
+}
+function openAccSettings() {
+  try { closeQuest(); closeSheet(); } catch (e) { }
+  settingsEl.hidden = false; backdropEl.hidden = false; setBtn.setAttribute('aria-expanded', 'true');
+  const box = document.getElementById('accAdv'), btn = document.getElementById('optAcc');
+  box.hidden = false; btn.setAttribute('aria-expanded', 'true'); renderAccSettings();
+  setTimeout(() => { try { btn.scrollIntoView({ block: 'start', behavior: 'smooth' }); } catch (e) { } }, 60);
+}
+(function () {
+  const btn = document.getElementById('optAcc'), box = document.getElementById('accAdv'); if (!btn || !box) return;
+  btn.addEventListener('click', () => { box.hidden = !box.hidden; btn.setAttribute('aria-expanded', box.hidden ? 'false' : 'true'); if (!box.hidden) renderAccSettings(); });
+})();
+
+
+/* ----- mini chat in Лидеры: only for signed-in players, short messages, a pause between them, the last 30 are shown ----- */
+var CHAT = { view: 'top', msgs: [], last: 0, seen: 0, busy: false, err: '', draft: '', next: 0, sending: false, t: 0, inp: null };
+try { CHAT.seen = +localStorage.getItem('waxAsmrChatSeen') || 0; } catch (e) { }
+function chatNewest() { return CHAT.msgs.length ? CHAT.msgs[CHAT.msgs.length - 1] : null; }
+function chatUnread() { const m = chatNewest(); return !!(m && m.ts > CHAT.seen && m.uid !== ACC.uid); }
+function chatMarkSeen() { const m = chatNewest(); if (m && m.ts > CHAT.seen) { CHAT.seen = m.ts; try { localStorage.setItem('waxAsmrChatSeen', String(CHAT.seen)); } catch (e) { } } }
+function chatMerge(rows) {
+  const have = new Set(CHAT.msgs.map(m => m.id)); let add = 0;
+  rows.forEach(r => { if (!have.has(r.id)) { CHAT.msgs.push(r); have.add(r.id); add++; } if (r.ts > CHAT.last) CHAT.last = r.ts; });
+  CHAT.msgs.sort((a, b) => a.ts - b.ts); if (CHAT.msgs.length > 60) CHAT.msgs = CHAT.msgs.slice(-60);
+  return add;
+}
+async function chatLoad() {
+  if (!ACC.uid || CHAT.busy) return; CHAT.busy = true; CHAT.t = Date.now();
+  try {
+    const tok = await accToken(), first = !CHAT.last;
+    const sq = { from: [{ collectionId: 'chat' }], orderBy: [{ field: { fieldPath: 'ts' }, direction: first ? 'DESCENDING' : 'ASCENDING' }], limit: first ? 30 : 50 };
+    if (!first) sq.where = { fieldFilter: { field: { fieldPath: 'ts' }, op: 'GREATER_THAN', value: { integerValue: String(CHAT.last - 60000) } } }; // a minute of overlap: clocks of phones differ a bit
+    const j = await fbFetch(FB_DOC + ':runQuery', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + tok }, body: JSON.stringify({ structuredQuery: sq }) });
+    const rows = (j || []).filter(r => r.document).map(r => { const f = r.document.fields || {}; return { id: r.document.name.split('/').pop(), uid: fgS(f, 'uid'), nick: fgS(f, 'nick') || '???', text: fgS(f, 'text'), ts: fgI(f, 'ts') }; });
+    const add = chatMerge(rows); CHAT.err = '';
+    if (CHAT.view === 'chat') { chatMarkSeen(); if (add || first) chatDraw(); } else if (add && chatUnread()) renderTopSoon();
+  } catch (e) { CHAT.err = (e && /PERMISSION_DENIED|Missing or insufficient/.test(String(e.message))) ? 'Чат ещё не включён: нужно вставить новые правила базы (см. firestore-rules.txt)' : fbErrText(e); if (CHAT.view === 'chat') chatDraw(); }
+  CHAT.busy = false;
+}
+function chatDraw() {
+  const box = document.getElementById('chatList'); if (!box) return;
+  const atEnd = box.scrollHeight - box.scrollTop - box.clientHeight < 40 || !box.childNodes.length;
+  box.textContent = '';
+  if (CHAT.err) box.appendChild(h('div', 'opt-note', '⚠️ ' + CHAT.err));
+  else if (!CHAT.msgs.length) box.appendChild(h('div', 'opt-note', CHAT.busy || !CHAT.t ? 'Загружаю…' : 'Пока тихо. Напиши первой!'));
+  CHAT.msgs.forEach(m => {
+    const me = m.uid === ACC.uid, b = h('div', 'chat-m' + (me ? ' me' : ''));
+    const hd = h('div', 'chat-h'); hd.appendChild(h('span', 'chat-n', m.nick)); hd.appendChild(h('span', 'chat-t', new Date(m.ts).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })));
+    b.appendChild(hd); b.appendChild(h('div', 'chat-x', m.text)); box.appendChild(b);
+  });
+  if (atEnd) box.scrollTop = box.scrollHeight;
+}
+function chatBtnLabel() { const w = Math.ceil((CHAT.next - Date.now()) / 1000); return CHAT.sending ? '…' : w > 0 ? 'Ещё ' + w + ' с' : 'Отправить'; }
+async function chatSend() {
+  const t = (CHAT.draft || '').replace(/\s+/g, ' ').trim().slice(0, 200);
+  if (!t || !ACC.uid || CHAT.sending) return;
+  if (CHAT.next > Date.now()) { showInfo('Подожди ещё ' + Math.ceil((CHAT.next - Date.now()) / 1000) + ' с', 1400); return; }
+  CHAT.sending = true; chatBtnTick();
+  try {
+    const tok = await accToken(), ts = Date.now();
+    const j = await fbFetch(FB_DOC + '/chat', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + tok }, body: JSON.stringify({ fields: { uid: fvS(ACC.uid), nick: fvS(ACC.nick), text: fvS(t), ts: { integerValue: String(ts) } } }) });
+    chatMerge([{ id: String(j.name).split('/').pop(), uid: ACC.uid, nick: ACC.nick, text: t, ts }]);
+    CHAT.draft = ''; if (CHAT.inp) CHAT.inp.value = ''; CHAT.next = Date.now() + 10000; CHAT.err = ''; chatMarkSeen();
+    const box = document.getElementById('chatList'); if (box) { chatDraw(); box.scrollTop = box.scrollHeight; }
+  } catch (e) { CHAT.err = /PERMISSION_DENIED|Missing or insufficient/.test(String(e && e.message)) ? 'Чат ещё не включён: нужно вставить новые правила базы (см. firestore-rules.txt)' : fbErrText(e); chatDraw(); }
+  CHAT.sending = false; chatBtnTick();
+}
+function chatBtnTick() { const b = document.getElementById('chatSend'); if (b) { b.textContent = chatBtnLabel(); b.disabled = CHAT.sending; } }
+function renderChat(el) {
+  if (!ACC.uid) {
+    el.appendChild(h('div', 'opt-note', 'Чат только для тех, кто вошёл в аккаунт: так видно, кто пишет.'));
+    const ab = h('button', 'top-ref', '👤 Войти или создать аккаунт'); ab.type = 'button'; ab.addEventListener('click', openAccSettings); el.appendChild(ab); return;
+  }
+  const list = h('div', 'chat-list'); list.id = 'chatList'; el.appendChild(list); chatDraw();
+  const row = h('div', 'chat-in'), inp = h('input', 'acc-in'); inp.type = 'text'; inp.maxLength = 200; inp.placeholder = 'Сообщение (до 200 символов)'; inp.value = CHAT.draft; inp.autocomplete = 'off'; inp.enterKeyHint = 'send';
+  inp.addEventListener('input', () => { CHAT.draft = inp.value; }); inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); chatSend(); } });
+  CHAT.inp = inp;
+  const sb = h('button', 'top-ref', chatBtnLabel()); sb.id = 'chatSend'; sb.type = 'button'; sb.addEventListener('click', chatSend);
+  row.appendChild(inp); row.appendChild(sb); el.appendChild(row);
+  el.appendChild(h('div', 'opt-note', 'Пауза 10 секунд между сообщениями. Видны последние 30.'));
+  chatMarkSeen(); if (Date.now() - CHAT.t > 4000) chatLoad();
+}
+setInterval(() => { chatBtnTick(); }, 1000);
+setInterval(() => { if (!questEl.hidden && QTAB === 'top' && CHAT.view === 'chat' && !document.hidden) chatLoad(); }, 6000);
+
+function renderTop(el) {
+  el.appendChild(h('div', 'sheet-title', 'Лидеры'));
+  const vs = h('div', 'qtabs sub');
+  [['top', '🏆 Таблица'], ['chat', '💬 Чат' + (CHAT.view !== 'chat' && chatUnread() ? ' ●' : '')]].forEach(t => { const b = h('button', null, t[1]); b.type = 'button'; b.setAttribute('aria-pressed', CHAT.view === t[0] ? 'true' : 'false'); b.addEventListener('click', () => { CHAT.view = t[0]; Snd.tick(0); renderQuest(); questEl.scrollTop = 0; }); vs.appendChild(b); });
+  el.appendChild(vs);
+  if (CHAT.view === 'chat') { renderChat(el); return; }
+  if (ACC.uid && Date.now() - CHAT.t > 60000) chatLoad(); // only to know whether there is something new in the chat
+  // my numbers: total / today / this week in one small table
+  const pp = perSync();
+  const st = h('div', 'ord');
+  const g = h('div', 'mystat');
+  const cell = (t, cls) => { const c = h('span', cls || '', t); g.appendChild(c); };
+  cell('', 'mh'); cell('💥 Сломано', 'mh'); cell('🪙 Монеты', 'mh'); cell('📋 Заказы', 'mh');
+  cell('Всего', 'ml'); cell(String(G.broken | 0), 'mv'); cell(String(QS.earned | 0), 'mv'); cell(String(QS.stats.orders | 0), 'mv');
+  cell('Сегодня', 'ml'); cell(String(pp.dB), 'mv'); cell(String(pp.dC), 'mv'); cell(String(pp.dO), 'mv');
+  cell('Неделя', 'ml'); cell(String(pp.wB), 'mv'); cell(String(pp.wC), 'mv'); cell(String(pp.wO), 'mv');
+  st.appendChild(g);
+  st.appendChild(h('div', 'opt-note', 'На руках сейчас: ' + QS.coins + ' 🪙'));
+  if (ACC.uid) {
+    const t = ONL.err ? '⚠️ ' + ONL.err : ACC.pushed ? '☁️ сохранено в ' + new Date(ACC.pushed).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) : '☁️ ещё не сохранено';
+    const ar = h('div', 'acc-line'); ar.appendChild(h('span', null, '👤 ' + ACC.nick + ' · ' + t));
+    const ab = h('button', 'top-ref', '⚙'); ab.type = 'button'; ab.setAttribute('aria-label', 'Аккаунт и облако'); ab.addEventListener('click', openAccSettings); ar.appendChild(ab); st.appendChild(ar);
+  } else {
+    const ab = h('button', 'top-ref', '👤 Войти или создать аккаунт'); ab.type = 'button'; ab.addEventListener('click', openAccSettings);
+    st.appendChild(h('div', 'opt-note', 'Без аккаунта тебя не будет в таблице.')); st.appendChild(ab);
+  }
+  el.appendChild(st);
   const kt = h('div', 'qtabs sub');
   TOPK.forEach(t => { const b = h('button', null, t[1]); b.type = 'button'; b.setAttribute('aria-pressed', TOPS.k === t[0] ? 'true' : 'false'); b.addEventListener('click', () => { TOPS.k = t[0]; Snd.tick(0); renderQuest(); topLoad(t[0], false); }); kt.appendChild(b); });
   el.appendChild(kt);
@@ -9227,10 +9362,10 @@ setTimeout(() => {
    A key that has never been used starts with its starting amount, so old saves get a full supply. */
 var STK_READY;
 var STK_BRK = {
-  freeze: { n: 'Мороз', e: '❄️', start: 20, floor: 3, packs: [[10, 20], [30, 50]] },
-  heat: { n: 'Фен', e: '🔥', start: 20, floor: 3, packs: [[10, 20], [30, 50]] },
-  laser: { n: 'Лазер', e: '🔦', start: 10, floor: 0, packs: [[5, 30], [15, 75]] },
-  bomb: { n: 'Бомба', e: '💣', start: 8, floor: 0, packs: [[3, 30], [10, 85]] }
+  freeze: { n: 'Мороз', e: '❄️', start: 10, floor: 3, packs: [[10, 20], [30, 50]] },
+  heat: { n: 'Фен', e: '🔥', start: 10, floor: 3, packs: [[20, 20], [60, 50]] },
+  laser: { n: 'Лазер', e: '🔦', start: 10, floor: 0, packs: [[15, 30], [45, 75]] },
+  bomb: { n: 'Бомба', e: '💣', start: 10, floor: 0, packs: [[3, 30], [10, 85]] }
 };
 // price of ten uses of an add-in
 var STK_ADD_P = { glitter0: 12, glitter1: 12, glitter2: 12, glitter3: 12, glitter4: 12, glitter5: 12, pearl_blue: 15, pearl_white: 15, sugar: 12, confetti: 12, foil: 15, flake: 15, foam: 15, eyes: 20, oil: 15, gloss: 20, neon: 30, clear: 25 };
@@ -9242,7 +9377,7 @@ function stkInfo(key) {
   const t = TOOLS.find(x => 'a:' + x.id === key); if (!t || t.kind === 'stir') return null;
   if (t.kind === 'charm') { const c = CHARMS.find(q => q.id === t.ch); if (c && c.rare) return null; } // rare surprises are rewards, not consumables
   const p10 = t.kind === 'charm' ? 20 : (STK_ADD_P[t.id] || 15), sh = SHOP_BY_ID['tool:' + t.id];
-  return { n: t.n.replace(/ \(.*\)$/, ''), t, start: 15, floor: sh && sh.p === 0 ? 8 : 0, packs: [[10, p10], [30, Math.round(p10 * 2.5 / 5) * 5]] };
+  return { n: t.n.replace(/ \(.*\)$/, ''), t, start: 10, floor: sh && sh.p === 0 ? 8 : 0, packs: [[10, p10], [30, Math.round(p10 * 2.5 / 5) * 5]] };
 }
 function stkKeys() { return Object.keys(STK_BRK).map(k => 'b:' + k).concat(TOOLS.map(t => 'a:' + t.id).filter(k => stkInfo(k))); }
 function stkGet(key) {
