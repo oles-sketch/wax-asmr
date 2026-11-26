@@ -418,7 +418,7 @@
   .chat-n { font-weight: 600; }
   .chat-x { font-size: 15px; line-height: 1.3; overflow-wrap: anywhere; white-space: pre-wrap; }
   .chat-in { display: flex; gap: 6px; align-items: stretch; margin-top: 6px; }
-  .chat-in .acc-in { margin: 0; flex: 1; min-width: 0; }
+  .chat-in .acc-in { margin: 0; flex: 1; min-width: 0; resize: none; height: 40px; line-height: 20px; overflow: hidden; }
   .chat-in .top-ref { margin: 0; width: auto; padding: 8px 12px; white-space: nowrap; }
   .mystat { display: grid; grid-template-columns: auto 1fr 1fr 1fr; gap: 4px 6px; align-items: center; text-align: center; }
   .mystat .mh { font-size: 11px; color: var(--fg-dim); white-space: nowrap; }
@@ -593,7 +593,7 @@
       <div class="opt-note" id="saveNote" hidden></div>
       <div class="opt-note">Прогресс сохраняется сам. Файл нужен, чтобы перенести его на другой телефон или если браузер всё забывает. Если ты вошла в аккаунт, файл хранит и вход: при загрузке ты сразу в аккаунте, поэтому не отправляй его посторонним.</div>
       <div class="opt-note" id="vibeNote" hidden>На этом устройстве вибрация недоступна</div>
-      <div class="ver-tag" id="verTag">v160</div>
+      <div class="ver-tag" id="verTag">v161</div>
       <div id="setMore" hidden>↓ листай ниже, там ещё настройки</div>
     </div>
   </header>
@@ -9495,8 +9495,10 @@ function renderChat(el) {
     const ab = h('button', 'top-ref', '👤 Войти или создать аккаунт'); ab.type = 'button'; ab.addEventListener('click', openAccSettings); el.appendChild(ab); return;
   }
   const list = h('div', 'chat-list'); list.id = 'chatList'; el.appendChild(list); chatDraw();
-  const row = h('div', 'chat-in'), inp = h('input', 'acc-in'); inp.type = 'text'; inp.maxLength = 200; inp.placeholder = 'Сообщение (до 200 символов)'; inp.value = CHAT.draft; inp.autocomplete = 'off'; inp.enterKeyHint = 'send';
-  inp.addEventListener('input', () => { CHAT.draft = inp.value; }); inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); chatSend(); } });
+  // a textarea, not an input: the phone offers saved logins and passwords for text inputs on a page that has password fields
+  const row = h('div', 'chat-in'), inp = h('textarea', 'acc-in'); inp.rows = 1; inp.maxLength = 200; inp.placeholder = 'Сообщение (до 200 символов)'; inp.value = CHAT.draft; inp.autocomplete = 'off'; inp.name = 'wax_chat_msg_' + Date.now(); inp.enterKeyHint = 'send'; inp.spellcheck = true;
+  inp.setAttribute('data-lpignore', 'true'); inp.setAttribute('data-1p-ignore', 'true'); inp.setAttribute('data-form-type', 'other'); inp.setAttribute('autocapitalize', 'sentences');
+  inp.addEventListener('input', () => { if (/[\r\n]/.test(inp.value)) inp.value = inp.value.replace(/[\r\n]+/g, ' '); CHAT.draft = inp.value; }); inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); chatSend(); } });
   CHAT.inp = inp;
   const sb = h('button', 'top-ref', chatBtnLabel()); sb.id = 'chatSend'; sb.type = 'button'; sb.addEventListener('click', chatSend);
   row.appendChild(inp); row.appendChild(sb); el.appendChild(row);
