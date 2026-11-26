@@ -408,7 +408,9 @@
   .cs-last { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; }
   .cs-last .cs-card { flex: 0 0 auto; width: auto; height: auto; min-width: 84px; gap: 4px; }
   .case-r .stk-left { display: block; white-space: normal; margin-top: 2px; }
-  .chat-ev { align-self: center; text-align: center; max-width: 94%; font-size: 12px; line-height: 1.3; color: #c9b3ff; opacity: .9; padding: 2px 8px; overflow-wrap: anywhere; }
+  .chat-ev { align-self: center; display: flex; flex-direction: column; align-items: flex-end; max-width: 94%; padding: 2px 8px; color: #c9b3ff; opacity: .9; }
+  .chat-evx { font-size: 12px; line-height: 1.3; text-align: center; overflow-wrap: anywhere; }
+  .chat-et { font-size: 9.5px; line-height: 1; opacity: .65; margin-top: 1px; }
   #ticker { position: fixed; left: 0; right: 0; top: env(safe-area-inset-top, 0px); height: 15px; overflow: hidden; pointer-events: none; z-index: 30; font-size: 11px; line-height: 15px; color: rgba(214, 196, 255, 0.55); white-space: nowrap; -webkit-user-select: none; user-select: none; }
   #ticker span { display: inline-block; visibility: hidden; transform: translateX(-9999px); will-change: transform; }
   .chat-list { max-height: 42vh; min-height: 120px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; padding: 8px; border-radius: 12px; background: #2a2036; border: 1px solid var(--panel-line); }
@@ -593,7 +595,7 @@
       <div class="opt-note" id="saveNote" hidden></div>
       <div class="opt-note">Прогресс сохраняется сам. Файл нужен, чтобы перенести его на другой телефон или если браузер всё забывает. Если ты вошла в аккаунт, файл хранит и вход: при загрузке ты сразу в аккаунте, поэтому не отправляй его посторонним.</div>
       <div class="opt-note" id="vibeNote" hidden>На этом устройстве вибрация недоступна</div>
-      <div class="ver-tag" id="verTag">v161</div>
+      <div class="ver-tag" id="verTag">v167</div>
       <div id="setMore" hidden>↓ листай ниже, там ещё настройки</div>
     </div>
   </header>
@@ -1552,7 +1554,7 @@ const OBJECTS = [
   { e: '❄️', toy: 'globe', n: 'Снежный шар', zoom: 1.5 },
   { e: '🍲', toy: 'soup', n: 'Суп', zoom: 1.5 },
   { e: '🥒', toy: 'pickles', n: 'Банка огурцов', zoom: 1.5 },
-  { img: 'holodets', n: 'Холодец', zoom: 1.7, sq: true, parts: ['holodetsp', 'holodetsj'] },
+  { img: 'holodets', n: 'Холодец', zoom: 1.7, sq: true, sqk: 0.5, parts: ['holodetsp', 'holodetsj'] },
   { e: '🍌', toy: 'banana', n: 'Банан', zoom: 1.5 }
 ];
 // order of the object chips: the four free ones, then the beer (also free), then the rest
@@ -4593,25 +4595,31 @@ function foodEnd(z) {
 /* ---------- Interactive banana: three strips of peel come off (pull them down) and go back on (pull them up) ---------- */
 // design coordinates 220 x 300; the three strips hang from the tip at the bottom, the stem is at the top
 var BN = { th: [0, 0, 0], tg: [0, 0, 0], vel: [0, 0, 0], k: -1, grab: null, snd: 0, poly: [[], [], []], wob: 0, wobv: 0, fell: [0, 0, 0], ver: 0 };
-var BN_T = { x: 164, y: 224 }; // the tip (where the strips are hinged)
-var BN_L = 190; // length of the body
+var BN_T = { x: 122, y: 258 }; // the tip (where the strips are hinged)
+var BN_L = 252;
+var BN_OPEN = 0.55; // an opened strip is drawn this much shorter along its curl, so it stays inside the picture // length of the body
 var BN_MAX = 2.2;
 function bnReset() { BN.th = [0, 0, 0]; BN.tg = [0, 0, 0]; BN.vel = [0, 0, 0]; BN.k = -1; BN.grab = null; BN.wob = BN.wobv = 0; BN.fell = [0, 0, 0]; BN.snd = 0; }
 // the centre line of the body: t = 0 at the tip, 1 at the stem
-function bnC(t) { return { x: BN_T.x + 17 * t - 19 * Math.sin(Math.PI * t) + BN.wob * 6 * Math.sin(Math.PI * t), y: BN_T.y - BN_L * t }; }
+function bnC(t) { return { x: BN_T.x + 28 * t - 36 * Math.sin(Math.PI * t) + BN.wob * 6 * Math.sin(Math.PI * t), y: BN_T.y - BN_L * t }; }
 function bnN(t) { const a = bnC(Math.max(0, t - 0.01)), b = bnC(Math.min(1, t + 0.01)), dx = b.x - a.x, dy = b.y - a.y, l = Math.hypot(dx, dy) || 1; return { x: -dy / l, y: dx / l }; } // normal (points to the right on the screen when the tip is at the bottom)
-function bnHW(t) { return 3.5 + 23.5 * Math.pow(Math.sin(Math.PI * Math.min(1, Math.max(0, t))), 0.5); }
+function bnHW(t) { // half width: blunt tip, a long full belly, a short shoulder, then the narrow neck up to the stem
+  t = Math.min(1, Math.max(0, t));
+  if (t < 0.2) return 5 + 33 * Math.pow(Math.sin(t / 0.2 * Math.PI / 2), 0.7);
+  const a = t < 0.6 ? 1 : t < 0.86 ? 0.5 + 0.5 * Math.cos((t - 0.6) / 0.26 * Math.PI) : 0;
+  return 7.5 - 1.2 * Math.max(0, (t - 0.86) / 0.14) + (38 - 7.5) * a;
+}
 function bnP(t, u) { const c = bnC(t), n = bnN(t), w = bnHW(t) * u; return { x: c.x + n.x * w, y: c.y + n.y * w }; }
 var BN_U = [[-1, -0.34], [-0.34, 0.34], [0.34, 1]]; // which part of the width each strip covers (left, front, right)
 
 // a point of strip k (t along it, u across the body) in its present pose. Opening a strip curls it up like a ribbon
 // (so it stays near the tip instead of hanging a whole banana-length down): the centre line is integrated from the tip
 // with a turning angle that grows with the opening, and the point keeps its offset from the straight line, turned the same way
-var BN_CURL = [[-1, 0.2, 3.4], [-1, 0.15, 2.2], [1, 0.2, 3.4]]; // per strip: direction, tilt at the tip, how fast it curls
+var BN_CURL = [[-1, 0.2, 1.5], [-1, 0.15, 1.1], [1, 0.2, 1.5]]; // per strip: direction, tilt at the tip, how fast it curls
 function bnQ(k, t) { // centre line of the opened strip: [x, y, angle]
   const th = BN.th[k], c = BN_CURL[k], n = Math.max(1, Math.ceil(t * 24)), h = t / n, o = bnC(0);
   let x = o.x, y = o.y, al = 0;
-  for (let i = 0; i < n; i++) { al = c[0] * th * (c[1] + c[2] * (i + 0.5) * h); x += Math.sin(al) * BN_L * h; y -= Math.cos(al) * BN_L * h; }
+  for (let i = 0; i < n; i++) { al = c[0] * th * (c[1] + c[2] * (i + 0.5) * h); x += Math.sin(al) * BN_L * BN_OPEN * h; y -= Math.cos(al) * BN_L * BN_OPEN * h; }
   return [x, y, c[0] * th * (c[1] + c[2] * t)];
 }
 function bnPt(k, t, u) {
@@ -4637,7 +4645,10 @@ function bnInPoly(px, py, pts) {
 function bananaHit(dx, dy) {
   if (dy < 4 || dy > 296 || dx < -30 || dx > 330) return null;
   for (const k of [1, 2, 0]) if (BN.poly[k].length && bnInPoly(dx, dy, BN.poly[k])) return { type: 'bnp', id: 'bn' + k, k };
-  const c = bnC(0.5); if (Math.hypot(dx - c.x, dy - c.y) < 60) return { type: 'bnf', id: 'bnf' }; // the bare banana
+  // a curled strip is thin: a touch near its centre line counts too
+  let bk = -1, bd = 30;
+  for (const k of [1, 2, 0]) { if (BN.th[k] < 0.05) continue; const um = (BN_U[k][0] + BN_U[k][1]) / 2; for (let i = 0; i <= 12; i++) { const q = bnPt(k, i / 12, um), d = Math.hypot(dx - q.x, dy - q.y); if (d < bd) { bd = d; bk = k; } } }
+  if (bk >= 0) return { type: 'bnp', id: 'bn' + bk, k: bk };
   return { type: 'bnf', id: 'bnf' };
 }
 function bnOpen() { return BN.th.every(v => v > 1.2); }
@@ -4685,13 +4696,13 @@ function bananaStep(dt) {
 
 function bnPath(g, pts) { g.beginPath(); pts.forEach((p, i) => i ? g.lineTo(p.x, p.y) : g.moveTo(p.x, p.y)); g.closePath(); }
 // speckles on the peel, always at the same places
-var BN_SPECK = (function () { const a = []; let s = 7; const r = () => { s = (s * 16807) % 2147483647; return s / 2147483647; }; for (let i = 0; i < 26; i++) a.push({ t: 0.08 + r() * 0.84, u: r() * 2 - 1, r: 0.9 + r() * 1.3 }); return a; })();
+var BN_SPECK = (function () { const a = []; let s = 7; const r = () => { s = (s * 16807) % 2147483647; return s / 2147483647; }; for (let i = 0; i < 14; i++) a.push({ t: 0.08 + r() * 0.84, u: r() * 2 - 1, r: 0.9 + r() * 1.3 }); return a; })();
 function bananaRender(c) {
   const S2 = c.width, L = toyLayout(S2, { toy: 'banana' }), g = c.getContext('2d');
   g.clearRect(0, 0, S2, S2); g.imageSmoothingQuality = 'high';
   g.save(); g.translate(L.ox, 0); g.scale(L.k, L.k); g.lineJoin = g.lineCap = 'round';
   // shadow
-  g.fillStyle = 'rgba(40,25,60,0.22)'; g.beginPath(); g.ellipse(BN_T.x - 4, BN_T.y + 6, 62, 8, 0, 0, 7); g.fill();
+  g.fillStyle = 'rgba(40,25,60,0.22)'; g.beginPath(); g.ellipse(BN_T.x - 4, BN_T.y + 6, 78, 9, 0, 0, 7); g.fill();
   // the bare banana
   const body = []; const N = 18;
   for (let i = 0; i <= N; i++) body.push(bnP(i / N, -0.97)); for (let i = N; i >= 0; i--) body.push(bnP(i / N, 0.97));
@@ -4708,7 +4719,8 @@ function bananaRender(c) {
     const th = BN.th[k], inside = th > 1.1;
     const p0 = pts[0], p1 = pts[pts.length >> 1];
     const gr = g.createLinearGradient(p0.x, p0.y, p1.x, p1.y);
-    if (inside) { gr.addColorStop(0, '#ecd96c'); gr.addColorStop(1, '#d9c14a'); } else { gr.addColorStop(0, '#f4cf32'); gr.addColorStop(1, '#fbe45e'); }
+    if (inside) { gr.addColorStop(0, '#ecd96c'); gr.addColorStop(1, '#d9c14a'); }
+    else { gr.addColorStop(0, '#f0c52a'); gr.addColorStop(0.45, '#f9dd48'); gr.addColorStop(0.75, '#f6df58'); gr.addColorStop(0.9, '#cfd45c'); gr.addColorStop(1, '#b6c04e'); }
     bnPath(g, pts); g.fillStyle = gr; g.fill();
     g.strokeStyle = inside ? '#a58a22' : '#a8841a'; g.lineWidth = 2.2; g.stroke();
     // a darker rim along the outer edge and the ridge line down the middle
@@ -4718,21 +4730,28 @@ function bananaRender(c) {
       g.fillStyle = 'rgba(110,70,20,0.55)';
       for (const sp of BN_SPECK) { if (sp.u < BN_U[k][0] || sp.u > BN_U[k][1]) continue; const q = bnStrip1(k, sp.t, sp.u); g.beginPath(); g.arc(q.x, q.y, sp.r, 0, 7); g.fill(); }
     }
+    if (!inside && th < 0.35) { const l0 = bnP(0.45, -1), l1 = bnP(0.45, 1), sh = g.createLinearGradient(l0.x, l0.y, l1.x, l1.y); sh.addColorStop(0, 'rgba(255,255,225,0.34)'); sh.addColorStop(0.45, 'rgba(255,255,225,0)'); sh.addColorStop(1, 'rgba(150,100,0,0.26)'); g.fillStyle = sh; g.fillRect(0, 0, 300, 300); }
     g.restore();
     // the dark tip where the strips meet at the bottom
-    const tip = pts[0]; g.fillStyle = '#4b3a1b'; g.beginPath(); g.arc(tip.x, tip.y, 6, 0, 7); g.fill();
+    const tip = pts[0]; g.fillStyle = '#8a6f2a'; g.beginPath(); g.arc(tip.x, tip.y, 4.5, 0, 7); g.fill();
     if (!inside) { g.strokeStyle = 'rgba(255,255,255,0.45)'; g.lineWidth = 3; g.beginPath(); for (let i = 3; i < 15; i++) { const q = bnStrip1(k, i / 18, (BN_U[k][0] * 0.4 + BN_U[k][1] * 0.6)); i === 3 ? g.moveTo(q.x, q.y) : g.lineTo(q.x, q.y); } g.stroke(); }
   }
-  // the stem
-  { const a = bnC(1), n = bnN(1), tx = -n.y, ty = n.x; // along the body, towards the top
-    const sx = a.x, sy = a.y, ex = sx + tx * 26, ey = sy + ty * 26;
-    g.strokeStyle = '#6e5e2a'; g.lineWidth = 15; g.beginPath(); g.moveTo(sx, sy + 2); g.lineTo(ex, ey); g.stroke();
-    g.strokeStyle = '#8f7d3c'; g.lineWidth = 9; g.beginPath(); g.moveTo(sx - 1, sy + 2); g.lineTo(ex - 1, ey); g.stroke();
-    g.fillStyle = '#3f3519'; g.beginPath(); g.ellipse(ex, ey, 7.5, 3.8, 0, 0, 7); g.fill(); }
+  // the cut end of the stem (pale, with a brown rim) and the twine knot the banana hangs by
+  { const a = bnC(0.985), b = bnC(1), ang = Math.atan2(b.y - a.y, b.x - a.x), hw = bnHW(1);
+    // a few turns of twine round the neck
+    g.strokeStyle = '#c8b27a'; g.lineWidth = 2.4;
+    for (const t of [0.93, 0.95, 0.97]) { const p = bnP(t, -1.3), q = bnP(t, 1.3); g.beginPath(); g.moveTo(p.x, p.y); g.lineTo(q.x, q.y); g.stroke(); }
+    g.save(); g.translate(b.x, b.y); g.rotate(ang);
+    g.fillStyle = '#e6dba6'; g.strokeStyle = '#6f5527'; g.lineWidth = 1.8; g.beginPath(); g.ellipse(0, 0, 2.8, hw + 0.8, 0, 0, 7); g.fill(); g.stroke();
+    g.fillStyle = '#7a5f2e'; g.beginPath(); g.arc(0.5, 0, 1.6, 0, 7); g.fill();
+    g.restore(); }
   g.restore();
 }
 function bnStrip1(k, t, u) { return bnPt(k, t, u); }
 TOYDEF.banana = { W: 300, H: 300, render: bananaRender, hit: bananaHit };
+
+// where the string meets the banana (the knot on the stem), in the object's own picture coordinates
+function bnHang() { const L = toyLayout(S, { toy: 'banana' }), c = bnC(1); return { x: L.ox + c.x * L.k - S / 2, y: c.y * L.k }; }
 /* ---------- Helpers ---------- */
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const rnd = (a, b) => a + Math.random() * (b - a);
@@ -5236,8 +5255,15 @@ function potRefillable() {
   if (G.layers.some(l => (l.src || 'pot') !== 'mix') && shellValueLeft() > 0.0005) return false;
   return true;
 }
+// topping up the plain wax costs a little (by how much is missing); when there are not enough coins it is free, so nobody gets stuck
+var REFILL_FULL = 15;
+function refillPrice() { return Math.max(1, Math.round((1 - G.level) * REFILL_FULL)); }
 function askRefill() {
-  askConfirm('Долить воск до 100%? Бесплатно.', () => { Snd.init(); setLvl('pot', 1); Snd.pour(false); Snd.chime(0); Snd.squish(0.5); saveNow(); }, null, ['Долить', 'Не надо']);
+  const pr = refillPrice(), free = prefs.free || QS.coins < pr;
+  askConfirm('Долить воск до 100%? ' + (free ? 'Бесплатно' + (prefs.free ? '.' : ' (монет не хватает).') : pr + ' 🪙'), () => {
+    Snd.init(); if (!free) { if (QS.coins < pr) { Snd.tick(0); return; } QS.coins -= pr; }
+    setLvl('pot', 1); Snd.pour(false); Snd.chime(0); Snd.squish(0.5); saveNow(); if (typeof renderQuest === 'function' && !questEl.hidden) renderQuest();
+  }, null, ['Долить', 'Не надо']);
 }
 function inPotBody(px, py) { return px > potCx - potRx * 0.92 && px < potCx + potRx * 0.92 && py > rimY + potRy + 14 && py < potBottom; }
 function handleTap(px, py) {
@@ -5689,7 +5715,7 @@ function bombBlast(b) {
 }
 // laser: burns the pieces under the finger one after another
 function laserStep(dt, H, P, pn) {
-  H.use = (H.use || 0) + dt; if (H.use >= 1) { H.use = 0; if (!stkTake('b:laser')) { G.hold = null; return; } } // the press costs 1, then 1 more for every second of burning
+  H.use = (H.use || 0) + dt; if (H.use >= 0.8) { H.use = 0; if (!stkTake('b:laser')) { G.hold = null; return; } } // the press costs 1, then 1 more for every second of burning
   H.snd -= dt;
   if (H.snd <= 0) { H.snd = 0.11; Snd.zap(pn); }
   if (Math.random() < dt * 40) chips.push({ x: H.x, y: H.y, vx: rnd(-160, 160), vy: rnd(-200, 40), s: rnd(1.5, 3), rot: 0, vr: 0, life: 0, col: [255, rnd(60, 170), rnd(40, 90)] });
@@ -5762,7 +5788,7 @@ function toolStep(dt) {
     } else if (H.tool === 'laser') {
       laserStep(dt, H, P, pn);
     } else if (H.tool === 'heat') {
-      H.use = (H.use || 0) + dt; if (H.use >= 1) { H.use = 0; if (!stkTake('b:heat')) { G.hold = null; } } // the press costs 1, then 1 more for every second of heating
+      H.use = (H.use || 0) + dt; if (H.use >= 0.8) { H.use = 0; if (!stkTake('b:heat')) { G.hold = null; } } // the press costs 1, then 1 more for every second of heating
       H.snd -= dt;
       if (H.snd <= 0) { H.snd = 0.28; Snd.hiss(pn); }
       const cp = worldToCanvas(H.x, H.y);
@@ -6437,7 +6463,7 @@ function stUpdate(dt) {
   if (ST.down && ST.down.mode === 'spr' && ST.ptr && !ST.pouring) {
     const inside = stInside(ST.ptr.x, ST.ptr.y + 20, 1.05);
     if (inside && ST.parts.length < 1500) {
-      ST.sprUse = (ST.sprUse || 0) + dt; if (ST.sprUse > 1.6) { ST.sprUse = 0; if (!stkTake('a:' + tool.id)) ST.down.mode = 'none'; } // one charge lasts about a second and a half of sprinkling
+      ST.sprUse = (ST.sprUse || 0) + dt; if (ST.sprUse > 1.1) { ST.sprUse = 0; if (!stkTake('a:' + tool.id)) ST.down.mode = 'none'; } // one charge lasts about a second of sprinkling
       const rate = tool.kind === 'pearl' ? 120 : tool.ex === 'sugar' ? 18 : tool.ex === 'flake' ? 9 : tool.ex === 'foam' ? 5 : tool.ex === 'eyes' ? 6 : tool.kind === 'ex' ? 34 : 55;
       let n = rate * dt + (ST.sprAcc || 0); const cnt = Math.floor(n); ST.sprAcc = n - cnt;
       const u = stTo(ST.ptr.x, ST.ptr.y + 14);
@@ -7646,7 +7672,9 @@ const ORDERS = [
   { id: 'remotespace', d: 3, n: 'Космический пульт', s: 'Переключает каналы между галактиками.', r: [R.kind('Пульт'), R.fx('cosmos', 'Космический воск'), R.fx('glitter', 'Блёстки'), R.fx('pearl', 'Перламутр')] },
   { id: 'cherryice', d: 3, n: 'Ледяные вишни', s: 'Заморозка, прозрачность и глянец. Компот будущего.', r: [R.kind('Вишни'), R.fx('ice', 'Ледяной цвет (от 20%)'), R.fx('glass', 'Прозрачный воск'), R.fx('gloss', 'Глянец')] }
 ];
-const ORD_REWARD = { 1: 2, 2: 4, 3: 7 };
+const ORD_REWARD = { 1: 2, 2: 3, 3: 5 }; // cubes per order
+const ORD_COIN = { 1: 8, 2: 16, 3: 24 }; // coins per order
+const VIP_K = 2, VIP_CHANCE = 0.10; // a VIP order pays double, and comes up less often
 function orderById(id) { return ORDERS.find(o => o.id === id); }
 // in the shop mode an order must be doable with what is already open (objects and add-ins)
 const FX_SRC = { foil: ['foil'], sugar: ['sugar'], confetti: ['confetti'], flake: ['flake'], foam: ['foam'], eyes: ['eyes'], pearl: ['pearl_blue', 'pearl_white'], gloss: ['gloss'], neon: ['neon'], clear: ['clear'], scent: ['oil'], charm: ['ch_coin', 'ch_star', 'ch_heart', 'ch_pearl', 'ch_gem'] };
@@ -7671,7 +7699,7 @@ function orderPick(vip) {
 // VIP orders (the reward of the last orders stage): a harder order with one more wish, three times the reward
 const VIP_EXTRA = [R.fx('eyes', 'Глазки-бегунки'), R.fx('neon', 'Неоновый воск'), R.fx('foam', 'Пенопластовые шарики'), R.fx('pearl', 'Перламутр'), R.fx('glitter', 'Блёстки'), R.fx('sugar', 'Сахарные шарики'), R.fx('glow', 'Светлячок (от 20%)'), R.fx('ice', 'Ледяной цвет (от 20%)'), R.fx('glass', 'Прозрачный воск')];
 function orderNew() {
-  const vip = fxOn('orders') && Math.random() < 0.3;
+  const vip = fxOn('orders') && Math.random() < VIP_CHANCE;
   const o = orderPick(vip); QS.order = { id: o.id };
   if (vip) { const opts = VIP_EXTRA.map((e, i) => i).filter(i => !o.r.some(r => r.t === VIP_EXTRA[i].t) && reqOpen(VIP_EXTRA[i])); if (!opts.length) opts.push(VIP_EXTRA.findIndex(reqOpen) < 0 ? 4 : VIP_EXTRA.findIndex(reqOpen)); QS.order.vip = true; QS.order.x = opts[(Math.random() * opts.length) | 0]; } QS.recent.push(o.id); if (QS.recent.length > 12) QS.recent.shift(); QS.ready = false;
 }
@@ -7695,9 +7723,9 @@ function orderStatus() {
 }
 function orderHandIn() {
   const st = orderStatus(); if (!st || !st.done) return;
-  const vipK = QS.order && QS.order.vip ? 3 : 1, n = ORD_REWARD[st.o.d] * vipK;
+  const vipK = QS.order && QS.order.vip ? VIP_K : 1, n = ORD_REWARD[st.o.d] * vipK;
   for (let i = 0; i < n; i++) ST.nbin[(Math.random() * ST.nbin.length) | 0]++;
-  addCoins(st.o.d * 10 * vipK); Q.stat('orders');
+  addCoins(ORD_COIN[st.o.d] * vipK); Q.stat('orders');
   G.twist = 0; G.freezeP = 0; G.twistBusy = false;
   G.layers = []; G.pieces = null; G.justCleared = true; G.cool = 1; G.committed = false; if (typeof sqRestore === 'function') sqRestore(); rebuildShell(); G.air = [];
   Snd.init(); Snd.chime(); setTimeout(() => Snd.chime(), 180);
@@ -7760,15 +7788,15 @@ function scrollRender() {
   scrollEl.appendChild(h('div', 'sheet-title', '📜 Заказ'));
   if (st) {
     const vip = !!(QS.order && QS.order.vip);
-    if (vip) scrollEl.appendChild(h('div', 'vip-badge', '⭐ VIP-заказ · награда ×3'));
+    if (vip) scrollEl.appendChild(h('div', 'vip-badge', '⭐ VIP-заказ · награда ×' + VIP_K + ''));
     scrollEl.appendChild(h('div', 'ord-n', st.o.n));
     scrollEl.appendChild(h('div', 'opt-note', st.o.s));
     const ul = h('div', 'ord-list');
     st.rows.forEach(r => reqRow(ul, r, scrollRender));
     ul.appendChild(h('div', 'ord-r' + (st.info && st.info.hard && st.info.intact ? ' ok' : ''), (st.info && st.info.hard && st.info.intact ? '✅ ' : '⬜ ') + 'Застывший и целый (не ломай!)'));
     scrollEl.appendChild(ul);
-    const vk = vip ? 3 : 1;
-    scrollEl.appendChild(h('div', 'opt-note', 'Награда: ' + ORD_REWARD[st.o.d] * vk + ' кубиков и ' + st.o.d * 10 * vk + ' 🪙 · ' + '★'.repeat(st.o.d)));
+    const vk = vip ? VIP_K : 1;
+    scrollEl.appendChild(h('div', 'opt-note', 'Награда: ' + ORD_REWARD[st.o.d] * vk + ' кубиков и ' + ORD_COIN[st.o.d] * vk + ' 🪙 · ' + '★'.repeat(st.o.d)));
     const row = h('div', 'savebtns');
     const give = h('button', null, 'Сдать'); give.type = 'button'; give.disabled = !st.done;
     give.addEventListener('click', () => { orderHandIn(); setTimeout(scrollRender, 0); });
@@ -7832,7 +7860,7 @@ function renderQuest() {
   if (st) {
     const vip = !!(QS.order && QS.order.vip);
     const card = h('div', 'ord' + (fxOn('orders') ? ' gold' : '') + (vip ? ' vip' : ''));
-    if (vip) card.appendChild(h('div', 'vip-badge', '⭐ VIP-заказ · награда ×3'));
+    if (vip) card.appendChild(h('div', 'vip-badge', '⭐ VIP-заказ · награда ×' + VIP_K + ''));
     card.appendChild(h('div', 'ord-n', st.o.n));
     card.appendChild(h('div', 'opt-note', st.o.s));
     const ul = h('div', 'ord-list');
@@ -7840,8 +7868,8 @@ function renderQuest() {
     const fin = !!st.info;
     ul.appendChild(h('div', 'ord-r' + (st.info && st.info.hard && st.info.intact ? ' ok' : ''), (st.info && st.info.hard && st.info.intact ? '✅ ' : '⬜ ') + 'Застывший и целый (не ломай!)'));
     card.appendChild(ul);
-    const vk = vip ? 3 : 1;
-    card.appendChild(h('div', 'opt-note', 'Награда: ' + ORD_REWARD[st.o.d] * vk + ' кубиков на полку и ' + st.o.d * 10 * vk + ' 🪙 · сложность ' + '★'.repeat(st.o.d)));
+    const vk = vip ? VIP_K : 1;
+    card.appendChild(h('div', 'opt-note', 'Награда: ' + ORD_REWARD[st.o.d] * vk + ' кубиков на полку и ' + ORD_COIN[st.o.d] * vk + ' 🪙 · сложность ' + '★'.repeat(st.o.d)));
     const row = h('div', 'savebtns');
     const give = h('button', null, 'Сдать заказ'); give.type = 'button'; give.disabled = !st.done; give.id = 'ordGive';
     give.addEventListener('click', orderHandIn);
@@ -7860,7 +7888,7 @@ function renderQuest() {
     top.appendChild(h('span', 'ach-n', a.e + ' ' + a.n));
     const dots = h('span', 'ach-dots'); for (let i = 0; i < a.st.length; i++) dots.appendChild(h('i', i < s ? 'on' : '')); top.appendChild(dots);
     card.appendChild(top);
-    const rwd = { pours: '🌈 радужный воск', effects: '🌌 космический воск', drained: '🕳️ чёрная дыра вместо мусорки', kinds: '✨ золотой воск (предмет как золотая статуэтка)', shells: '🔨 золотой молоток', finds: '👑 редкие сюрпризы: корона и алмаз', tools: '💣 бомба и 🔦 лазер для ломания', orders: '🖼 золотая рамка и ⭐ VIP-заказы (награда ×3)' }[a.id];
+    const rwd = { pours: '🌈 радужный воск', effects: '🌌 космический воск', drained: '🕳️ чёрная дыра вместо мусорки', kinds: '✨ золотой воск (предмет как золотая статуэтка)', shells: '🔨 золотой молоток', finds: '👑 редкие сюрпризы: корона и алмаз', tools: '💣 бомба и 🔦 лазер для ломания', orders: '🖼 золотая рамка и ⭐ VIP-заказы (награда ×' + VIP_K + ')' }[a.id];
     if (rwd) card.appendChild(h('div', 'opt-note', '🎁 За последний этап: ' + rwd));
     card.appendChild(h('div', 'opt-note', a.d + ': ' + (last ? 'всё, ты легенда (' + v + ')' : v + ' / ' + nxt)));
     const bar = h('div', 'ach-bar'), fill = h('i'); fill.style.width = (last ? 100 : Math.min(100, (v - prevT) / (nxt - prevT) * 100)) + '%'; bar.appendChild(fill); card.appendChild(bar);
@@ -8404,11 +8432,12 @@ function sqPt(x, y, C) {
 }
 
 function sqElastic(x, y) {
-  const R = S * 0.32, D = S * 0.17 * SQ.k;
+  const R = S * 0.32, D = S * 0.17 * SQ.k * ((OBJECTS[G.kind] && OBJECTS[G.kind].sqk) || 1); // sqk: a stiffer squishy (jelly) dents less
   const dx = x - SQ.px, dy = y - SQ.py, d2 = dx * dx + dy * dy, w = Math.exp(-d2 / (R * R));
   let ox = SQ.dx * D * w, oy = SQ.dy * D * w;
   const d = Math.sqrt(d2) + 1e-3, wb = (d / R) * Math.exp(-d2 / (1.6 * R * R));
-  ox += dx / d * D * 0.5 * wb; oy += dy / d * D * 0.5 * wb;
+  const bl = SQ.plate ? 0.3 : 0.5; // on a plate the jelly may not spill over the rim
+  ox += dx / d * D * bl * wb; oy += dy / d * D * bl * wb;
   return [ox, oy];
 }
 
@@ -9466,7 +9495,7 @@ function chatDraw() {
   if (CHAT.err) box.appendChild(h('div', 'opt-note', '⚠️ ' + CHAT.err));
   else if (!CHAT.msgs.length) box.appendChild(h('div', 'opt-note', CHAT.busy || !CHAT.t ? 'Загружаю…' : 'Пока тихо. Напиши первой!'));
   CHAT.msgs.forEach(m => {
-    if (m.k === 'e') { box.appendChild(h('div', 'chat-ev', m.text)); return; }
+    if (m.k === 'e') { const ev = h('div', 'chat-ev'); ev.appendChild(h('span', 'chat-evx', m.text)); ev.appendChild(h('span', 'chat-et', new Date(m.ts).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }))); box.appendChild(ev); return; }
     const me = m.uid === ACC.uid, b = h('div', 'chat-m' + (me ? ' me' : ''));
     const hd = h('div', 'chat-h'); hd.appendChild(h('span', 'chat-n', m.nick)); hd.appendChild(h('span', 'chat-t', new Date(m.ts).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })));
     b.appendChild(hd); b.appendChild(h('div', 'chat-x', m.text)); box.appendChild(b);
@@ -9496,7 +9525,7 @@ function renderChat(el) {
   }
   const list = h('div', 'chat-list'); list.id = 'chatList'; el.appendChild(list); chatDraw();
   // a textarea, not an input: the phone offers saved logins and passwords for text inputs on a page that has password fields
-  const row = h('div', 'chat-in'), inp = h('textarea', 'acc-in'); inp.rows = 1; inp.maxLength = 200; inp.placeholder = 'Сообщение (до 200 символов)'; inp.value = CHAT.draft; inp.autocomplete = 'off'; inp.name = 'wax_chat_msg_' + Date.now(); inp.enterKeyHint = 'send'; inp.spellcheck = true;
+  const row = h('div', 'chat-in'), inp = h('textarea', 'acc-in'); inp.rows = 1; inp.maxLength = 200; inp.placeholder = 'Сообщение…'; inp.value = CHAT.draft; inp.autocomplete = 'off'; inp.name = 'wax_chat_msg_' + Date.now(); inp.enterKeyHint = 'send'; inp.spellcheck = true;
   inp.setAttribute('data-lpignore', 'true'); inp.setAttribute('data-1p-ignore', 'true'); inp.setAttribute('data-form-type', 'other'); inp.setAttribute('autocapitalize', 'sentences');
   inp.addEventListener('input', () => { if (/[\r\n]/.test(inp.value)) inp.value = inp.value.replace(/[\r\n]+/g, ' '); CHAT.draft = inp.value; }); inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); chatSend(); } });
   CHAT.inp = inp;
@@ -9531,23 +9560,25 @@ function tickRun() {
   if (sp.animate) { const a = sp.animate([{ transform: 'translateX(' + W + 'px)' }, { transform: 'translateX(' + (-w) + 'px)' }], { duration: dur, easing: 'linear' }); a.onfinish = done; a.oncancel = done; } else setTimeout(done, dur);
 }
 /* ----- events in the chat: milestones and overtaking, one line in the middle, made by the player's own phone ----- */
-const EV_DAY = { b: [50, 150, 300, 600, 1000], o: [3, 5, 10, 20, 30], c: [100, 300, 600, 1000, 2000, 5000] };
-const EV_ALL = { b: [250, 500, 1000, 2500, 5000, 10000, 25000], o: [10, 25, 50, 100, 150, 200, 300], c: [500, 1000, 2500, 5000, 10000, 25000, 50000] };
+const EV_DAY = { b: [20, 50, 100, 200, 400, 800], o: [3, 5, 10, 20, 30], c: [100, 300, 600, 1000, 2000, 5000] };
+const EV_ALL = { b: [100, 250, 500, 1000, 2500, 5000, 10000, 25000], o: [10, 25, 50, 100, 150, 200, 300], c: [500, 1000, 2500, 5000, 10000, 25000, 50000] };
 const EV_TXT = { b: ['сломано', 'кусочков'], o: ['выполнено', 'заказов'], c: ['заработано', 'монет'] };
 var EV = { t: 0, board: 0, post: 0, busy: false };
 function evLoad() { try { return JSON.parse(localStorage.getItem('waxAsmrEv_' + ACC.uid) || 'null'); } catch (e) { return null; } }
 function evSave(r) { try { localStorage.setItem('waxAsmrEv_' + ACC.uid, JSON.stringify(r)); } catch (e) { } }
-function evPassed(list, v) { let n = 0; list.forEach(t => { if (v >= t) n++; }); return n; }
+const EV_STEP = { b: 10000, o: 100, c: 25000 }; // all-time: after the last number the announcements go on in equal steps
+function evPassed(list, v, step) { let n = 0; list.forEach(t => { if (v >= t) n++; }); if (step && n === list.length && v > list[n - 1]) n += Math.floor((v - list[n - 1]) / step); return n; }
+function evThr(list, n, step) { return n <= list.length ? list[n - 1] : (step ? list[list.length - 1] + (n - list.length) * step : list[list.length - 1]); }
 function evFmt(n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ' '); }
 // which thresholds were crossed since the last look (the first look only remembers where things stand)
 function evMilestones() {
-  const pp = perSync(), cur = { dk: pp.dk, d: { b: evPassed(EV_DAY.b, pp.dB), o: evPassed(EV_DAY.o, pp.dO), c: evPassed(EV_DAY.c, pp.dC) }, a: { b: evPassed(EV_ALL.b, G.broken), o: evPassed(EV_ALL.o, QS.stats.orders), c: evPassed(EV_ALL.c, QS.earned) } };
+  const pp = perSync(), cur = { v: 2, dk: pp.dk, d: { b: evPassed(EV_DAY.b, pp.dB), o: evPassed(EV_DAY.o, pp.dO), c: evPassed(EV_DAY.c, pp.dC) }, a: { b: evPassed(EV_ALL.b, G.broken, EV_STEP.b), o: evPassed(EV_ALL.o, QS.stats.orders, EV_STEP.o), c: evPassed(EV_ALL.c, QS.earned, EV_STEP.c) } };
   const old = evLoad(), out = [];
-  if (old) {
+  if (old && old.v === 2) { // (a changed list of thresholds only re-measures where things stand, it announces nothing)
     const od = old.dk === cur.dk ? old.d : { b: 0, o: 0, c: 0 };
     for (const k of ['c', 'b', 'o']) {
       if (cur.d[k] > od[k]) out.push({ k, per: 'day', n: EV_DAY[k][cur.d[k] - 1] });
-      if (cur.a[k] > old.a[k]) out.push({ k, per: 'all', n: EV_ALL[k][cur.a[k] - 1] });
+      if (cur.a[k] > old.a[k]) out.push({ k, per: 'all', n: evThr(EV_ALL[k], cur.a[k], EV_STEP[k]) });
     }
   }
   evSave(cur); return out;
@@ -9567,6 +9598,7 @@ async function chatPostEvent(text) {
   const j = await fbFetch(FB_DOC + '/chat', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + tok }, body: JSON.stringify({ fields: { uid: fvS(ACC.uid), nick: fvS(ACC.nick), text: fvS(text.slice(0, 200)), ts: { integerValue: String(ts) }, k: fvS('e') } }) });
   chatMerge([{ id: String(j.name).split('/').pop(), uid: ACC.uid, nick: ACC.nick, text, ts, k: 'e' }]);
   if (CHAT.view === 'chat') { chatMarkSeen(); chatDraw(); }
+  tickPush([{ k: 'e', text }]); // what she did herself runs along the top line too
 }
 const EV_OVT = { broken: 'по сломанным', earned: 'по заработанным монетам', orders: 'по заказам' };
 async function evRun(force) {
@@ -9668,22 +9700,22 @@ setTimeout(() => {
    A key that has never been used starts with its starting amount, so old saves get a full supply. */
 var STK_READY;
 var STK_BRK = {
-  freeze: { n: 'Мороз', e: '❄️', start: 10, floor: 3, packs: [[10, 20], [30, 50]] },
-  heat: { n: 'Фен', e: '🔥', start: 10, floor: 3, packs: [[20, 20], [60, 50]] },
-  laser: { n: 'Лазер', e: '🔦', start: 10, floor: 0, packs: [[15, 30], [45, 75]] },
-  bomb: { n: 'Бомба', e: '💣', start: 10, floor: 0, packs: [[3, 30], [10, 85]] }
+  freeze: { n: 'Мороз', e: '❄️', start: 10, floor: 3, packs: [[6, 20], [15, 45]] },
+  heat: { n: 'Фен', e: '🔥', start: 10, floor: 3, packs: [[12, 20], [30, 45]] },
+  laser: { n: 'Лазер', e: '🔦', start: 10, floor: 0, packs: [[10, 30], [25, 65]] },
+  bomb: { n: 'Бомба', e: '💣', start: 10, floor: 0, packs: [[2, 30], [6, 80]] }
 };
 // price of ten uses of an add-in
 var STK_ADD_P = { glitter0: 12, glitter1: 12, glitter2: 12, glitter3: 12, glitter4: 12, glitter5: 12, pearl_blue: 15, pearl_white: 15, sugar: 12, confetti: 12, foil: 15, flake: 15, foam: 15, eyes: 20, oil: 15, gloss: 20, neon: 30, clear: 25 };
-var STK_CUBE_P = [[1, 5], [5, 20], [15, 50]], STK_CUBE_SP = [[1, 8], [5, 32], [15, 80]]; // [pieces, coins]; special colours cost more
-var STK_RAND = [10, 30];
+var STK_CUBE_P = [[1, 6], [4, 20], [10, 45]], STK_CUBE_SP = [[1, 10], [4, 36], [10, 80]]; // [pieces, coins]; special colours cost more
+var STK_RAND = [6, 16], STK_RAND_P = [26, 65]; // random cubes: how many, price
 function stkInfo(key) {
   if (!STK_READY) return null; // this file is loaded late: until then (while the game starts up) nothing is limited
   if (key.charAt(0) === 'b') return STK_BRK[key.slice(2)] || null;
   const t = TOOLS.find(x => 'a:' + x.id === key); if (!t || t.kind === 'stir') return null;
   if (t.kind === 'charm') { const c = CHARMS.find(q => q.id === t.ch); if (c && c.rare) return null; } // rare surprises are rewards, not consumables
   const p10 = t.kind === 'charm' ? 20 : (STK_ADD_P[t.id] || 15), sh = SHOP_BY_ID['tool:' + t.id];
-  return { n: t.n.replace(/ \(.*\)$/, ''), t, start: 10, floor: sh && sh.p === 0 ? 8 : 0, packs: [[10, p10], [30, Math.round(p10 * 2.5 / 5) * 5]] };
+  return { n: t.n.replace(/ \(.*\)$/, ''), t, start: 10, floor: sh && sh.p === 0 ? 8 : 0, packs: [[8, p10], [20, Math.round(p10 * 2 / 5) * 5]] };
 }
 function stkKeys() { return Object.keys(STK_BRK).map(k => 'b:' + k).concat(TOOLS.map(t => 'a:' + t.id).filter(k => stkInfo(k))); }
 function stkGet(key) {
@@ -9783,7 +9815,7 @@ function renderStockShop(root) {
   const sw = h('span', 'shop-ico'); const dot = h('i'); dot.style.cssText = 'background:' + STCOL[STK_COL] + ';width:26px;height:26px;border-radius:7px;display:block'; sw.appendChild(dot);
   stkRow(cb, sw, 'Этот цвет', ST.nbin[STK_COL], STSPEC[STCOL[STK_COL]] ? STK_CUBE_SP : STK_CUBE_P, (n, p) => stkBuyCubes(STK_COL, n, p), 'c:' + STK_COL);
   const rw = h('span', 'shop-ico'); rw.textContent = '🎲';
-  stkRow(cb, rw, 'Случайные цвета', cubesTotal(), [[STK_RAND[0], 30], [STK_RAND[1], 80]], (n, p) => stkBuyRandom(n, p), 'c:rand');
+  stkRow(cb, rw, 'Случайные цвета', cubesTotal(), [[STK_RAND[0], STK_RAND_P[0]], [STK_RAND[1], STK_RAND_P[1]]], (n, p) => stkBuyRandom(n, p), 'c:rand');
   // add-ins
   const ab = stkSec(box, '✨ Добавки', 'Расходники/Добавки', 'Показаны только открытые добавки.');
   TOOLS.forEach(t => { const k = 'a:' + t.id, i = stkInfo(k); if (!i || !isOpen('tool:' + t.id)) return; stkRow(ab, iconFor({ timg: t.img, pearl: t.kind === 'pearl', e: t.e }), i.n, stkGet(k), i.packs, (n, p) => stkBuy(k, n, p), k); });
@@ -9817,23 +9849,23 @@ try { stkBadges(); } catch (e) { }
    Each case rolls a rarity first (a small chance of a weak set, mostly sets worth about the price or more, a rare jackpot),
    then builds a set of that value from its pools. Prizes are only consumables, never coins. */
 var CASES = [
-  { id: 'cubes', n: 'Кубиковый кейс', e: '🧊', price: 60, pools: ['cube'], d: 'Наборы цветных кубиков, в редких есть особые цвета' },
-  { id: 'adds', n: 'Кейс добавок', e: '✨', price: 60, pools: ['add'], d: 'Наборы блёсток, шариков, капель и сюрпризов' },
-  { id: 'royal', n: 'Королевский кейс', e: '👑', price: 150, pools: ['cube', 'add', 'brk'], d: 'Всё сразу: кубики, добавки и заряды инструментов' }
+  { id: 'cubes', n: 'Кубиковый кейс', e: '🧊', price: 80, pools: ['cube'], d: 'Наборы цветных кубиков, в редких есть особые цвета' },
+  { id: 'adds', n: 'Кейс добавок', e: '✨', price: 80, pools: ['add'], d: 'Наборы блёсток, шариков, капель и сюрпризов' },
+  { id: 'royal', n: 'Королевский кейс', e: '👑', price: 200, pools: ['cube', 'add', 'brk'], d: 'Всё сразу: кубики, добавки и заряды инструментов' }
 ];
 // chance, how much the set is worth compared to the price, name, colour, how many kinds of things in it
 var CASE_TIERS = [
-  { id: 'weak', p: 0.12, m: 0.5, n: 'Скромный', c: '#8d8aa0', k: [1, 1] },
-  { id: 'even', p: 0.28, m: 1.0, n: 'Обычный', c: '#5aa2e0', k: [1, 2] },
-  { id: 'good', p: 0.40, m: 1.1, n: 'Хороший', c: '#a06be0', k: [2, 2] },
-  { id: 'rare', p: 0.17, m: 1.6, n: 'Редкий', c: '#e060a8', k: [2, 3] },
-  { id: 'jack', p: 0.03, m: 4.0, n: 'ДЖЕКПОТ', c: '#f2b632', k: [3, 4] }
+  { id: 'weak', p: 0.20, m: 0.5, n: 'Скромный', c: '#8d8aa0', k: [1, 1] },
+  { id: 'even', p: 0.33, m: 0.85, n: 'Обычный', c: '#5aa2e0', k: [1, 2] },
+  { id: 'good', p: 0.31, m: 1.0, n: 'Хороший', c: '#a06be0', k: [2, 2] },
+  { id: 'rare', p: 0.13, m: 1.35, n: 'Редкий', c: '#e060a8', k: [2, 3] },
+  { id: 'jack', p: 0.03, m: 3.5, n: 'ДЖЕКПОТ', c: '#f2b632', k: [3, 4] }
 ];
 var CASE_FIX = 1; // a small correction so the average prize is a little above the price (see the simulation test)
 var CASE_BUSY = false, CASE_LAST = {};
 // value of one piece in coins, counted at the cheapest (biggest pack) price
 function caseUnit(key) {
-  if (key.charAt(0) === 'c') return STSPEC[STCOL[+key.slice(2)]] ? 6 : 3.3;
+  if (key.charAt(0) === 'c') { const cp = (STSPEC[STCOL[+key.slice(2)]] ? STK_CUBE_SP : STK_CUBE_P)[2]; return cp[1] / cp[0]; }
   const i = stkInfo(key); if (!i) return 1;
   if (key.charAt(0) === 'b') return i.packs[1][1] / i.packs[1][0];
   return i.packs[1][1] / i.packs[1][0];
@@ -10386,10 +10418,16 @@ function drawPotBack() {
   }
 }
 
-function drawString() {
+// where the string is tied: the top of the picture, or for the banana the knot on its stem
+function hangPt() {
   const e = edgeThickness();
+  if (OBJECTS[G.kind] && OBJECTS[G.kind].toy === 'banana' && typeof bnHang === 'function') { const o = bnHang(), a = G.swing || 0, c = Math.cos(a), s = Math.sin(a); return { x: G.ox + o.x * c - o.y * s, y: G.oy + o.x * s + o.y * c - e }; }
+  return { x: G.ox, y: G.oy - e };
+}
+function drawString() {
+  const h = hangPt();
   g.strokeStyle = '#d9c8ec'; g.lineWidth = 2; g.lineCap = 'round';
-  g.beginPath(); g.moveTo(potCx, -4); g.lineTo(G.ox, G.oy - e); g.stroke();
+  g.beginPath(); g.moveTo(potCx, -4); g.lineTo(h.x, h.y); g.stroke();
 }
 
 // the live chunks are merged into one picture at whole pixels. Drawn one by one at fractional
@@ -10448,7 +10486,7 @@ function drawObject() {
   g.restore();
   // knot at the top
   g.fillStyle = '#efe3f8';
-  g.beginPath(); g.arc(G.ox, G.oy - edgeThickness(), 4, 0, 7); g.fill();
+  const hp = hangPt(); g.beginPath(); g.arc(hp.x, hp.y, 4, 0, 7); g.fill();
 }
 
 // googly eyes roll with the way the object moves and swings
