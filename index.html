@@ -201,6 +201,9 @@
   .savebtns { display: flex; gap: 6px; }
   .acc-in { width: 100%; box-sizing: border-box; margin: 6px 0 0; font: inherit; font-size: 15px; color: var(--fg); background: #2a2036; border: 1px solid var(--panel-line); border-radius: 10px; padding: 9px 10px; }
   .qtabs.sub { position: static; padding: 10px 0 6px; }
+  .qtabs .pcol { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+  .qtabs .pcol button { flex: none; }
+  .ptime { font-size: 10px; line-height: 12px; height: 12px; margin-bottom: 3px; text-align: center; color: #a99bc4; white-space: nowrap; }
   .top-list { display: flex; flex-direction: column; gap: 4px; }
   .top-r { display: grid; grid-template-columns: 30px 1fr auto; align-items: center; gap: 6px; padding: 7px 10px; border-radius: 10px; background: #3a2d49; font-size: 14px; }
   .top-r.me { border: 1px solid var(--accent); background: #4a3a5c; }
@@ -408,9 +411,9 @@
   .cs-last { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; }
   .cs-last .cs-card { flex: 0 0 auto; width: auto; height: auto; min-width: 84px; gap: 4px; }
   .case-r .stk-left { display: block; white-space: normal; margin-top: 2px; }
-  .chat-ev { align-self: center; display: flex; flex-direction: column; align-items: flex-end; max-width: 94%; padding: 2px 8px; color: #c9b3ff; opacity: .9; }
-  .chat-evx { font-size: 12px; line-height: 1.3; text-align: center; overflow-wrap: anywhere; }
-  .chat-et { font-size: 9.5px; line-height: 1; opacity: .65; margin-top: 1px; }
+  .chat-ev { position: relative; align-self: stretch; padding: 4px 46px; color: #c9b3ff; opacity: .9; }
+  .chat-evx { display: block; font-size: 12px; line-height: 1.3; text-align: center; overflow-wrap: anywhere; }
+  .chat-et { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); font-size: 10px; line-height: 1; opacity: .7; }
   #ticker { position: fixed; left: 0; right: 0; top: env(safe-area-inset-top, 0px); height: 15px; overflow: hidden; pointer-events: none; z-index: 30; font-size: 11px; line-height: 15px; color: rgba(214, 196, 255, 0.55); white-space: nowrap; -webkit-user-select: none; user-select: none; }
   #ticker span { display: inline-block; visibility: hidden; transform: translateX(-9999px); will-change: transform; }
   .chat-list { max-height: 42vh; min-height: 120px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; padding: 8px; border-radius: 12px; background: #2a2036; border: 1px solid var(--panel-line); }
@@ -595,7 +598,7 @@
       <div class="opt-note" id="saveNote" hidden></div>
       <div class="opt-note">Прогресс сохраняется сам. Файл нужен, чтобы перенести его на другой телефон или если браузер всё забывает. Если ты вошла в аккаунт, файл хранит и вход: при загрузке ты сразу в аккаунте, поэтому не отправляй его посторонним.</div>
       <div class="opt-note" id="vibeNote" hidden>На этом устройстве вибрация недоступна</div>
-      <div class="ver-tag" id="verTag">v167</div>
+      <div class="ver-tag" id="verTag">v169</div>
       <div id="setMore" hidden>↓ листай ниже, там ещё настройки</div>
     </div>
   </header>
@@ -4595,10 +4598,10 @@ function foodEnd(z) {
 /* ---------- Interactive banana: three strips of peel come off (pull them down) and go back on (pull them up) ---------- */
 // design coordinates 220 x 300; the three strips hang from the tip at the bottom, the stem is at the top
 var BN = { th: [0, 0, 0], tg: [0, 0, 0], vel: [0, 0, 0], k: -1, grab: null, snd: 0, poly: [[], [], []], wob: 0, wobv: 0, fell: [0, 0, 0], ver: 0 };
-var BN_T = { x: 122, y: 258 }; // the tip (where the strips are hinged)
-var BN_L = 252;
-var BN_OPEN = 0.55; // an opened strip is drawn this much shorter along its curl, so it stays inside the picture // length of the body
-var BN_MAX = 2.2;
+var BN_T = { x: 140, y: 236 }; // the tip (where the strips are hinged)
+var BN_L = 230;
+var BN_OPEN = 1; // an opened strip is drawn this much shorter along its curl, so it stays inside the picture // length of the body
+var BN_MAX = 1.8;
 function bnReset() { BN.th = [0, 0, 0]; BN.tg = [0, 0, 0]; BN.vel = [0, 0, 0]; BN.k = -1; BN.grab = null; BN.wob = BN.wobv = 0; BN.fell = [0, 0, 0]; BN.snd = 0; }
 // the centre line of the body: t = 0 at the tip, 1 at the stem
 function bnC(t) { return { x: BN_T.x + 28 * t - 36 * Math.sin(Math.PI * t) + BN.wob * 6 * Math.sin(Math.PI * t), y: BN_T.y - BN_L * t }; }
@@ -4615,7 +4618,7 @@ var BN_U = [[-1, -0.34], [-0.34, 0.34], [0.34, 1]]; // which part of the width e
 // a point of strip k (t along it, u across the body) in its present pose. Opening a strip curls it up like a ribbon
 // (so it stays near the tip instead of hanging a whole banana-length down): the centre line is integrated from the tip
 // with a turning angle that grows with the opening, and the point keeps its offset from the straight line, turned the same way
-var BN_CURL = [[-1, 0.2, 1.5], [-1, 0.15, 1.1], [1, 0.2, 1.5]]; // per strip: direction, tilt at the tip, how fast it curls
+var BN_CURL = [[-1, 0.2, 1.9], [-1, 0.15, 1.5], [1, 0.2, 1.9]]; // per strip: direction, tilt at the tip, how fast it curls
 function bnQ(k, t) { // centre line of the opened strip: [x, y, angle]
   const th = BN.th[k], c = BN_CURL[k], n = Math.max(1, Math.ceil(t * 24)), h = t / n, o = bnC(0);
   let x = o.x, y = o.y, al = 0;
@@ -4671,7 +4674,7 @@ function bnEnd(z) {
   const k = BN.grab.k; BN.grab = null; BN.k = -1;
   const t = BN.tg[k];
   if (t < 0.5) { BN.tg[k] = 0; }
-  else if (t > 1.25) { BN.tg[k] = 2.0; } // let go of a strip that is far open and it flops down
+  else if (t > 1.25) { BN.tg[k] = 1.65; } // let go of a strip that is far open and it flops down
 }
 function bananaStep(dt) {
   let moving = false;
@@ -4685,7 +4688,7 @@ function bananaStep(dt) {
     if (Math.abs(dv) > 0.0004 || Math.abs(BN.vel[k]) > 0.01 || Math.abs(BN.tg[k] - BN.th[k]) > 0.002) moving = true; else { BN.th[k] = BN.tg[k]; BN.vel[k] = 0; }
     // the sound of tearing while it moves, a plop when it falls open, a soft click when it is put back
     if (Math.abs(dv) / Math.max(dt, 0.001) > 0.9 && time - BN.snd > 0.075 && BN.th[k] > 0.03) { BN.snd = time; Snd.peelRip(pan(G.ox), Math.min(1, Math.abs(dv) / Math.max(dt, 0.001) / 5)); }
-    if (BN.th[k] > 2.0 && old <= 2.0 && !held) Snd.peelPlop(pan(G.ox));
+    if (BN.th[k] > 1.65 && old <= 1.65 && !held) Snd.peelPlop(pan(G.ox));
     if (BN.th[k] < 0.03 && old >= 0.03 && BN.tg[k] === 0) Snd.peelStick(pan(G.ox));
   }
   // the bare banana wobbles when it is poked
@@ -9141,6 +9144,20 @@ function drawDrainMain() {
   const lb = document.getElementById('lightBtn');
   lb.addEventListener('click', () => { Snd.init(); prefs.dark = !prefs.dark; applyPrefs(); savePrefs(); Snd.tick(0); });
 })();
+
+// Coming back after the phone had the game in the background for a while: instead of patching every glitch a sleeping page can have
+// (shrunk picture, vanished wax, wiped canvases) the page simply reloads itself. Everything that matters is saved first.
+var RELOAD = { away: 0, fn: () => location.reload() };
+function reloadFresh() {
+  if (REC.on || SAVEUI.wiped) return;
+  try { const last = +sessionStorage.getItem('waxAsmrReloaded') || 0; if (Date.now() - last < 15000) return; sessionStorage.setItem('waxAsmrReloaded', String(Date.now())); } catch (e) { }
+  saveNow(); RELOAD.fn();
+}
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) { RELOAD.away = Date.now(); return; }
+  const gone = RELOAD.away ? Date.now() - RELOAD.away : 0; RELOAD.away = 0;
+  if (gone > 20000) reloadFresh();
+});
 /* ---------- Online: nick + password account, cloud save, leaderboard (Firebase over plain REST) ---------- */
 // The game still works fully offline. Online only adds: an account, the progress kept in the cloud, and the top lists.
 const FBX = { key: 'AIzaSyBe_8BCRJRU52eDaP__mIUbSs5JaiM3Fvs', project: 'wax-asmr' };
@@ -9358,6 +9375,14 @@ async function accChangePass(oldPass, newPass) {
 /* ----- leaderboard ----- */
 const TOPK = [['broken', '💥 Сломано'], ['earned', '🪙 Заработано'], ['orders', '📋 Заказы'], ['hand', '👛 Баланс']];
 const TOPP = [['day', 'Сегодня'], ['week', 'Неделя'], ['all', 'Всё время']];
+// how long until the day / the week starts over (shown over its tab)
+function perLeftText(per) {
+  if (per !== 'day' && per !== 'week') return '';
+  const n = new Date(), end = per === 'day' ? new Date(n.getFullYear(), n.getMonth(), n.getDate() + 1) : new Date(n.getFullYear(), n.getMonth(), n.getDate() + 7 - ((n.getDay() + 6) % 7));
+  const m = Math.max(0, Math.floor((end - n) / 60000)), d = Math.floor(m / 1440), hr = Math.floor(m % 1440 / 60);
+  return d + ' дн. ' + hr + ' ч.';
+}
+setInterval(() => { document.querySelectorAll('.ptime[data-per]').forEach(e => { e.textContent = perLeftText(e.dataset.per); }); }, 30000);
 // which field of the player card holds the score: [all time, today, this week]
 const TOPF_ = { broken: ['broken', 'dB', 'wB'], earned: ['earned', 'dC', 'wC'], orders: ['orders', 'dO', 'wO'], hand: ['coins', null, null] };
 var TOPS = { k: 'broken', p: 'all', data: {}, loading: false, err: '' };
@@ -9560,30 +9585,42 @@ function tickRun() {
   if (sp.animate) { const a = sp.animate([{ transform: 'translateX(' + W + 'px)' }, { transform: 'translateX(' + (-w) + 'px)' }], { duration: dur, easing: 'linear' }); a.onfinish = done; a.oncancel = done; } else setTimeout(done, dur);
 }
 /* ----- events in the chat: milestones and overtaking, one line in the middle, made by the player's own phone ----- */
-const EV_DAY = { b: [20, 50, 100, 200, 400, 800], o: [3, 5, 10, 20, 30], c: [100, 300, 600, 1000, 2000, 5000] };
-const EV_ALL = { b: [100, 250, 500, 1000, 2500, 5000, 10000, 25000], o: [10, 25, 50, 100, 150, 200, 300], c: [500, 1000, 2500, 5000, 10000, 25000, 50000] };
-const EV_TXT = { b: ['сломано', 'кусочков'], o: ['выполнено', 'заказов'], c: ['заработано', 'монет'] };
+const EV_DAY = { b: [10, 25, 50, 100, 150, 250, 400], o: [5, 10, 20, 35, 50, 75, 100, 150, 200], c: [200, 500, 1000, 2000, 3500, 5000, 8000, 12000] };
+const EV_ALL = { b: [50, 100, 250, 500, 1000, 2000, 3000, 5000], o: [10, 25, 50, 100, 150, 200, 300], c: [500, 1000, 2500, 5000, 10000, 25000, 50000] };
+const EV_TXT = { b: ['сломано', 'предмет', 'предмета', 'предметов'], o: ['выполнено', 'заказ', 'заказа', 'заказов'], c: ['заработано', 'монета', 'монеты', 'монет'] };
+function ruPl(n, f) { const a = n % 100, b = n % 10; return a >= 11 && a <= 14 ? f[2] : b === 1 ? f[0] : b >= 2 && b <= 4 ? f[1] : f[2]; }
 var EV = { t: 0, board: 0, post: 0, busy: false };
 function evLoad() { try { return JSON.parse(localStorage.getItem('waxAsmrEv_' + ACC.uid) || 'null'); } catch (e) { return null; } }
 function evSave(r) { try { localStorage.setItem('waxAsmrEv_' + ACC.uid, JSON.stringify(r)); } catch (e) { } }
-const EV_STEP = { b: 10000, o: 100, c: 25000 }; // all-time: after the last number the announcements go on in equal steps
+const EV_STEP = { b: 1000, o: 100, c: 10000 }; // all-time: after the last number the announcements go on in equal steps
 function evPassed(list, v, step) { let n = 0; list.forEach(t => { if (v >= t) n++; }); if (step && n === list.length && v > list[n - 1]) n += Math.floor((v - list[n - 1]) / step); return n; }
 function evThr(list, n, step) { return n <= list.length ? list[n - 1] : (step ? list[list.length - 1] + (n - list.length) * step : list[list.length - 1]); }
 function evFmt(n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ' '); }
 // which thresholds were crossed since the last look (the first look only remembers where things stand)
 function evMilestones() {
-  const pp = perSync(), cur = { v: 2, dk: pp.dk, d: { b: evPassed(EV_DAY.b, pp.dB), o: evPassed(EV_DAY.o, pp.dO), c: evPassed(EV_DAY.c, pp.dC) }, a: { b: evPassed(EV_ALL.b, G.broken, EV_STEP.b), o: evPassed(EV_ALL.o, QS.stats.orders, EV_STEP.o), c: evPassed(EV_ALL.c, QS.earned, EV_STEP.c) } };
+  const pp = perSync(), cur = { v: 4, dk: pp.dk, d: { b: evPassed(EV_DAY.b, pp.dB), o: evPassed(EV_DAY.o, pp.dO), c: evPassed(EV_DAY.c, pp.dC) }, a: { b: evPassed(EV_ALL.b, G.broken, EV_STEP.b), o: evPassed(EV_ALL.o, QS.stats.orders, EV_STEP.o), c: evPassed(EV_ALL.c, QS.earned, EV_STEP.c) } };
   const old = evLoad(), out = [];
-  if (old && old.v === 2) { // (a changed list of thresholds only re-measures where things stand, it announces nothing)
+  if (old && old.v === 4) { // (a changed list of thresholds only re-measures where things stand, it announces nothing)
     const od = old.dk === cur.dk ? old.d : { b: 0, o: 0, c: 0 };
     for (const k of ['c', 'b', 'o']) {
       if (cur.d[k] > od[k]) out.push({ k, per: 'day', n: EV_DAY[k][cur.d[k] - 1] });
       if (cur.a[k] > old.a[k]) out.push({ k, per: 'all', n: evThr(EV_ALL[k], cur.a[k], EV_STEP[k]) });
     }
   }
-  evSave(cur); return out;
+  evSave(cur); return out.concat(evRecords(pp));
 }
-function evMsText(m) { const w = EV_TXT[m.k]; return (m.k === 'c' ? '🪙 ' : m.k === 'b' ? '💥 ' : '📋 ') + (m.per === 'day' ? 'за сегодня ' : 'всего ') + w[0] + ' ' + evFmt(m.n) + ' ' + w[1]; }
+function evMsText(m) { const w = EV_TXT[m.k]; if (m.per === 'rec') return '🏅 личный рекорд дня: ' + w[0] + ' ' + evFmt(m.n) + ' ' + ruPl(m.n, w.slice(1)); return (m.k === 'c' ? '🪙 ' : m.k === 'b' ? '💥 ' : '📋 ') + (m.per === 'day' ? 'за сегодня ' : 'всего ') + w[0] + ' ' + evFmt(m.n) + ' ' + ruPl(m.n, w.slice(1)); }
+// a personal record of the day: today beats the best day so far (said once a day per kind, and only when the old record was worth something)
+const EV_REC_MIN = { b: 20, o: 5, c: 200 };
+function evRecords(pp) {
+  const key = 'waxAsmrRec_' + ACC.uid; let r = null; try { r = JSON.parse(localStorage.getItem(key) || 'null'); } catch (e) { }
+  const cur = { b: pp.dB, o: pp.dO, c: pp.dC }, out = [];
+  if (!r || !r.best) r = { dk: pp.dk, best: { b: 0, o: 0, c: 0 }, cur, said: {} };
+  if (r.dk !== pp.dk) { for (const k of ['b', 'o', 'c']) r.best[k] = Math.max(r.best[k], r.cur ? r.cur[k] : 0); r.dk = pp.dk; r.said = {}; }
+  for (const k of ['c', 'b', 'o']) if (!r.said[k] && r.best[k] >= EV_REC_MIN[k] && cur[k] > r.best[k]) { r.said[k] = true; out.push({ k, per: 'rec', n: cur[k] }); }
+  r.cur = cur; try { localStorage.setItem(key, JSON.stringify(r)); } catch (e) { }
+  return out;
+}
 // who it has just overtaken on a board of all time (the board is a list of {uid,nick,v}, best first)
 function evOvertake(k0, rows) {
   const me = rows.find(r => r.uid === ACC.uid); if (!me) return [];
@@ -9656,7 +9693,8 @@ function renderTop(el) {
   el.appendChild(kt);
   if (TOPS.k !== 'hand') {
     const pt = h('div', 'qtabs sub per');
-    TOPP.forEach(t => { const b = h('button', null, t[1]); b.type = 'button'; b.setAttribute('aria-pressed', TOPS.p === t[0] ? 'true' : 'false'); b.addEventListener('click', () => { TOPS.p = t[0]; Snd.tick(0); renderQuest(); topLoad(TOPS.k, false); }); pt.appendChild(b); });
+    TOPP.forEach(t => { const col = h('div', 'pcol'), tm = h('div', 'ptime', perLeftText(t[0])); tm.dataset.per = t[0]; col.appendChild(tm);
+      const b = h('button', null, t[1]); b.type = 'button'; b.setAttribute('aria-pressed', TOPS.p === t[0] ? 'true' : 'false'); b.addEventListener('click', () => { TOPS.p = t[0]; Snd.tick(0); renderQuest(); topLoad(TOPS.k, false); }); col.appendChild(b); pt.appendChild(col); });
     el.appendChild(pt);
   }
   const d = TOPS.data[TOPS.k + ':' + (TOPS.k === 'hand' ? 'all' : TOPS.p)], list = h('div', 'top-list');
