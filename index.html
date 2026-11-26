@@ -33,7 +33,7 @@
   html, body { height: 100%; }
   /* installed app: the height stays the full screen even while the system bars slide in over it, so nothing jumps */
   @supports (height: 100lvh) {
-    @media (display-mode: fullscreen), (display-mode: standalone) { html, body { height: 100lvh; } }
+    @media (display-mode: fullscreen), (display-mode: standalone) { html, body { height: var(--appH, 100lvh); } }
   }
   body {
     margin: 0;
@@ -429,6 +429,7 @@
   .mystat .mh { font-size: 11px; color: var(--fg-dim); white-space: nowrap; }
   .mystat .ml { text-align: left; font-size: 13px; color: var(--fg-dim); padding-right: 4px; }
   .mystat .mv { font-weight: 600; font-size: 16px; padding: 5px 4px; border-radius: 8px; background: #3a2d49; }
+  .mystat .mv.rc { color: #ffd479; }
   .acc-line { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 6px; font-size: 12px; color: var(--fg-dim); }
   .acc-line .top-ref { width: auto; padding: 4px 12px; margin: 0; }
   .shop-r.flash { animation: stkflash .45s ease-in-out 5 alternate; }
@@ -598,7 +599,7 @@
       <div class="opt-note" id="saveNote" hidden></div>
       <div class="opt-note">Прогресс сохраняется сам. Файл нужен, чтобы перенести его на другой телефон или если браузер всё забывает. Если ты вошла в аккаунт, файл хранит и вход: при загрузке ты сразу в аккаунте, поэтому не отправляй его посторонним.</div>
       <div class="opt-note" id="vibeNote" hidden>На этом устройстве вибрация недоступна</div>
-      <div class="ver-tag" id="verTag">v169</div>
+      <div class="ver-tag" id="verTag">v170</div>
       <div id="setMore" hidden>↓ листай ниже, там ещё настройки</div>
     </div>
   </header>
@@ -1594,7 +1595,7 @@ function layerAlpha(l) { return l.type === 'glass' ? GLASS_ALPHA : 1 - (1 - GLAS
 const NG = 64;
 const MIX = {
   pd: new Float32Array(NG * NG * 3).map((v, i) => [226, 208, 236][i % 3]), pat: null,
-  avg: [226, 208, 236], gl: {}, sp: 0, charms: {}, ex: { sugar: 0, confetti: 0, foil: 0, flake: 0, foam: 0, eyes: 0 }, fz: 0.6, pearl: 0, ptint: [255, 255, 255], oil: 0, gloss: 0, neon: 0, clear: 0, pr: { ice: 0, lava: 0, soft: 0, glow: 0 }, url: '', urlDirty: true
+  avg: [226, 208, 236], gl: {}, sp: 0, charms: {}, ex: { sugar: 0, confetti: 0, foil: 0, flake: 0, foam: 0, eyes: 0, shroom: 0 }, fz: 0.6, pearl: 0, ptint: [255, 255, 255], oil: 0, gloss: 0, neon: 0, clear: 0, pr: { ice: 0, lava: 0, soft: 0, glow: 0 }, url: '', urlDirty: true
 };
 
 function mulberry32(a) {
@@ -2175,6 +2176,27 @@ function paintEye(c, x, y, r, px, py) {
   const pr = r * 0.52, ox = x + px * r * 0.75, oy = y + py * r * 0.75;
   c.fillStyle = '#17141c'; c.beginPath(); c.arc(ox, oy, pr, 0, 7); c.fill();
   c.fillStyle = 'rgba(255,255,255,0.75)'; c.beginPath(); c.ellipse(ox - pr * 0.35, oy - pr * 0.4, pr * 0.28, pr * 0.18, -0.5, 0, 7); c.fill();
+  c.restore();
+}
+// a little mushroom standing on (x, y); gr 0..1 is how far it has grown: the stem rises first, then the cap opens. v picks the kind
+function paintShroom(c, x, y, r, gr, v) {
+  const ez = t => { t = Math.max(0, Math.min(1, t)); return t * t * (3 - 2 * t); };
+  const hs = ez(gr / 0.6), cs = ez((gr - 0.3) / 0.7); if (hs <= 0.02) return;
+  const sh = r * 1.45 * hs, sw = r * 0.27 * (0.55 + 0.45 * hs), cap = [['#d8402f', '#fff3df'], ['#b87a4b', '#e9cfa6'], ['#d77fb0', '#fff0f6']][((v | 0) % 3 + 3) % 3];
+  c.save();
+  c.fillStyle = 'rgba(60,30,80,0.2)'; c.beginPath(); c.ellipse(x + r * 0.1, y + r * 0.1, r * 0.55 * hs + r * 0.1, r * 0.2, 0, 0, 7); c.fill();
+  const sg = c.createLinearGradient(x - sw, 0, x + sw, 0); sg.addColorStop(0, '#d9c3a0'); sg.addColorStop(0.45, '#fbf0dc'); sg.addColorStop(1, '#cdb48d');
+  c.fillStyle = sg; c.beginPath(); c.moveTo(x - sw * 1.15, y); c.quadraticCurveTo(x - sw * 0.8, y - sh * 0.5, x - sw * 0.7, y - sh); c.lineTo(x + sw * 0.7, y - sh); c.quadraticCurveTo(x + sw * 0.8, y - sh * 0.5, x + sw * 1.15, y); c.closePath(); c.fill();
+  if (cs > 0.02) {
+    const cx = x, cy = y - sh, rx = r * 1.0 * cs, ry = r * 0.78 * cs;
+    c.fillStyle = 'rgba(70,40,40,0.55)'; c.beginPath(); c.ellipse(cx, cy, rx * 0.96, ry * 0.22, 0, 0, Math.PI); c.fill();
+    const g2 = c.createRadialGradient(cx - rx * 0.3, cy - ry * 0.7, ry * 0.1, cx, cy, rx * 1.1); g2.addColorStop(0, cap[0]); g2.addColorStop(1, cap[0]);
+    c.fillStyle = cap[0]; c.beginPath(); c.moveTo(cx - rx, cy); c.bezierCurveTo(cx - rx, cy - ry * 1.45, cx + rx, cy - ry * 1.45, cx + rx, cy); c.quadraticCurveTo(cx, cy + ry * 0.28, cx - rx, cy); c.closePath(); c.fill();
+    c.fillStyle = 'rgba(255,255,255,0.28)'; c.beginPath(); c.ellipse(cx - rx * 0.38, cy - ry * 0.78, rx * 0.3, ry * 0.16, -0.5, 0, 7); c.fill();
+    c.fillStyle = cap[1];
+    const sp = v % 3 === 1 ? [] : [[-0.45, -0.45, 0.17], [0.1, -0.78, 0.2], [0.5, -0.4, 0.15]];
+    sp.forEach(q => { c.beginPath(); c.ellipse(cx + q[0] * rx, cy + q[1] * ry, q[2] * rx, q[2] * ry * 0.8, 0, 0, 7); c.fill(); });
+  }
   c.restore();
 }
 function buildHalo(shell) {
@@ -5030,10 +5052,29 @@ function pickEyes() {
   }
   for (const e of G.eyes) paintEye(g2, e.x, e.y, e.r, 0, 0.35);
 }
+// little mushrooms in the wax: only on solid wax, the same spots every rebuild, painted into the shell (broken pieces carry them)
+function pickShrooms() {
+  const n = Math.round(Math.max(0, ...G.layers.map(l => (l.ex && l.ex.shroom) || 0)) * 9);
+  if (n < 1 || !G.shell) return;
+  const C = G.shell.width, r = clamp(S * 0.036, 7, 13), g2 = G.shell.getContext('2d'), d = g2.getImageData(0, 0, C, C).data;
+  const rn = mulberry32(G.layers.reduce((a, l) => a + (l.seed || 1), 0) + 131);
+  const solid = (x, y) => x >= 0 && y >= 0 && x < C && y < C && d[((y | 0) * C + (x | 0)) * 4 + 3] > 200;
+  const got = [];
+  for (let t = 0; t < 1500 && got.length < n; t++) {
+    const x = Math.floor(rn() * C), y = Math.floor(rn() * C), v = (rn() * 3) | 0;
+    let ok = solid(x, y);
+    for (const q of [[-1, 0], [1, 0], [0, -1.6], [-0.9, -1.2], [0.9, -1.2], [0, 0.4]]) ok = ok && solid(x + q[0] * r, y + q[1] * r);
+    if (!ok || got.some(e => Math.hypot(e.x - x, e.y - y) < r * 2.4)) continue;
+    got.push({ x, y, v });
+  }
+  got.sort((a, b) => a.y - b.y); // the lower ones in front
+  for (const e of got) paintShroom(g2, e.x, e.y + r * 0.2, r, 1, e.v);
+}
 function rebuildShell() {
   if (G.layers.length) {
     G.shell = buildShell(G.sil, S, G.layers, G.bot);
     pickEyes();
+    pickShrooms();
     G.gloss = buildGloss(G.shell);
   } else { G.shell = null; G.gloss = null; G.eyes = []; }
   waxSoundSync();
@@ -5999,6 +6040,10 @@ TOOL_IMG.clear = svgUri('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40
 TOOL_IMG.neon = svgUri('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 70"><rect x="15" y="2" width="10" height="16" rx="4" fill="#2a2a3a"/>' +
   '<rect x="12" y="16" width="16" height="8" rx="2" fill="#3b3b52"/><path d="M8 30 Q8 24 14 24 H26 Q32 24 32 30 V62 Q32 68 26 68 H14 Q8 68 8 62Z" fill="#7dff5a" fill-opacity=".9" stroke="#c8ffb0" stroke-width="1.5"/>' +
   '<rect x="11" y="32" width="5" height="26" rx="2.5" fill="#fff" opacity=".7"/><path d="M24 40 l-4 8 h4 l-3 9 7 -11 h-4 l3 -6z" fill="#fffbb0"/></svg>');
+TOOL_IMG.shroom = svgUri('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 70"><rect x="15" y="3" width="30" height="11" rx="3" fill="#8a6a4a"/>' +
+  '<path d="M9 19 Q9 14 15 14 H45 Q51 14 51 19 V58 Q51 67 42 67 H18 Q9 67 9 58Z" fill="#fff" fill-opacity=".3" stroke="#cfd3e0" stroke-width="2"/>' +
+  '<g><rect x="19" y="50" width="5" height="13" rx="2" fill="#fbf0dc"/><path d="M12 51 Q21 36 31 51Z" fill="#d8402f"/><circle cx="18" cy="47" r="1.8" fill="#fff"/><circle cx="24" cy="46" r="1.5" fill="#fff"/>' +
+  '<rect x="37" y="52" width="4" height="11" rx="2" fill="#fbf0dc"/><path d="M31 53 Q39 40 47 53Z" fill="#b87a4b"/></g></svg>');
 TOOL_IMG.eyes = svgUri('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 70"><rect x="15" y="3" width="30" height="11" rx="3" fill="#cfd3e0"/>' +
   '<path d="M9 19 Q9 14 15 14 H45 Q51 14 51 19 V58 Q51 67 42 67 H18 Q9 67 9 58Z" fill="#fff" fill-opacity=".35" stroke="#cfd3e0" stroke-width="2"/>' +
   '<g stroke="#9a9db8" stroke-width="1.2"><circle cx="21" cy="52" r="8" fill="#fff"/><circle cx="40" cy="50" r="8" fill="#fff"/><circle cx="29" cy="34" r="8" fill="#fff"/></g>' +
@@ -6033,6 +6078,7 @@ const TOOLS = [
   { id: 'flake', kind: 'ex', ex: 'flake', img: 'flake', n: 'Хлопья воска', short: 'Хлопья' },
   { id: 'foam', kind: 'ex', ex: 'foam', img: 'foam', n: 'Пенопластовые шарики', short: 'Пенопласт' },
   { id: 'eyes', kind: 'ex', ex: 'eyes', img: 'eyes', n: 'Глазки-бегунки', short: 'Глазки' },
+  { id: 'shroom', kind: 'ex', ex: 'shroom', img: 'shroom', n: 'Грибные споры', short: 'Грибы' },
   ...CHARMS.map(c => ({ id: 'ch_' + c.id, kind: 'charm', ch: c.id, img: 'ch_' + c.id, n: c.n + ' (сюрприз)', short: c.n })),
   { id: 'oil', kind: 'oil', img: 'oil', n: 'Ароматические капли', short: 'Аромат' },
   { id: 'gloss', kind: 'gloss', img: 'gloss', n: 'Глянцевый усилитель', short: 'Глянец' },
@@ -6167,7 +6213,7 @@ function stMergeMix(f, snap) {
   for (let k = 0; k < NN * 3; k++) MIX.pd[k] += (snap.pd[k] - MIX.pd[k]) * t;
   MIX.sp += (snap.sp - MIX.sp) * t;
   { const f0 = MIX.ex.foam || 0, f1 = snap.ex.foam || 0; if (f0 + f1 > 0.001) MIX.fz += ((snap.fz == null ? 0.6 : snap.fz) - MIX.fz) * (f1 * t) / Math.max(0.001, f0 * (1 - t) + f1 * t); }
-  for (const k of ['sugar', 'confetti', 'foil', 'flake', 'foam', 'eyes']) MIX.ex[k] += ((snap.ex[k] || 0) - (MIX.ex[k] || 0)) * t;
+  for (const k of ['sugar', 'confetti', 'foil', 'flake', 'foam', 'eyes', 'shroom']) MIX.ex[k] += ((snap.ex[k] || 0) - (MIX.ex[k] || 0)) * t;
   const pw0 = MIX.pearl, pw1 = snap.pearl;
   MIX.pearl += (snap.pearl - MIX.pearl) * t;
   if (pw0 + pw1 > 0.001) MIX.ptint = mixRgb(MIX.ptint, snap.ptint, (pw1 * t) / Math.max(0.001, pw0 * (1 - t) + pw1 * t));
@@ -6467,7 +6513,7 @@ function stUpdate(dt) {
     const inside = stInside(ST.ptr.x, ST.ptr.y + 20, 1.05);
     if (inside && ST.parts.length < 1500) {
       ST.sprUse = (ST.sprUse || 0) + dt; if (ST.sprUse > 1.1) { ST.sprUse = 0; if (!stkTake('a:' + tool.id)) ST.down.mode = 'none'; } // one charge lasts about a second of sprinkling
-      const rate = tool.kind === 'pearl' ? 120 : tool.ex === 'sugar' ? 18 : tool.ex === 'flake' ? 9 : tool.ex === 'foam' ? 5 : tool.ex === 'eyes' ? 6 : tool.kind === 'ex' ? 34 : 55;
+      const rate = tool.kind === 'pearl' ? 120 : tool.ex === 'sugar' ? 18 : tool.ex === 'flake' ? 9 : tool.ex === 'foam' ? 5 : tool.ex === 'eyes' ? 6 : tool.ex === 'shroom' ? 1.6 : tool.kind === 'ex' ? 34 : 55;
       let n = rate * dt + (ST.sprAcc || 0); const cnt = Math.floor(n); ST.sprAcc = n - cnt;
       const u = stTo(ST.ptr.x, ST.ptr.y + 14);
       for (let q = 0; q < cnt; q++) {
@@ -6475,6 +6521,7 @@ function stUpdate(dt) {
         const col = tool.kind === 'glit' ? tool.cols[(Math.random() * tool.cols.length) | 0] : null;
         if (tool.kind === 'ex') {
           if (tool.ex === 'eyes') { ST.parts.push({ x: u[0] + Math.cos(a) * rr, y: u[1] + Math.sin(a) * rr * 0.8, z: rnd(0.8, 1.2), ex: 'eyes', sz: rnd(5.6, 7), pu: [0, 0.35], pv: [0, 0], lx: null, ly: 0, ph: Math.random() * 6.28, sp: 1 }); continue; }
+          if (tool.ex === 'shroom') { ST.parts.push({ x: u[0] + Math.cos(a) * rr, y: u[1] + Math.sin(a) * rr * 0.8, z: rnd(0.8, 1.2), ex: 'shroom', sz: rnd(6.5, 9), g: 0, v: (Math.random() * 3) | 0, ph: Math.random() * 6.28, sp: 1 }); continue; }
           if (tool.ex === 'foam') { ST.parts.push({ x: u[0] + Math.cos(a) * rr, y: u[1] + Math.sin(a) * rr * 0.8, z: rnd(0.8, 1.2), ex: 'foam', c: '#fbfbff', sz: FOAM_SZ * rnd(0.9, 1.08), lv: 0, rot: Math.random() * 6.28, ph: Math.random() * 6.28, sp: 1, vx: 0, vy: 0, jag: [0, 1, 2, 3, 4, 5, 6, 7].map(() => rnd(0.88, 1.1)) }); continue; }
           const pal = tool.ex === 'sugar' ? SUGAR_COLS : tool.ex === 'confetti' ? CONF_COLS : tool.ex === 'flake' ? FLAKE_COLS : FOIL_COLS;
           ST.parts.push({
@@ -6496,6 +6543,7 @@ function stUpdate(dt) {
   for (let i = ST.parts.length - 1; i >= 0; i--) {
     const p = ST.parts[i];
     if (p.z > 0) { p.z -= dt * 2.4; if (p.z <= 0 && FA[stCell(p.x, p.y)] > 0.15) stWaveAt(p.x, p.y, p.ex === 'eyes' || p.ex === 'foam' ? 0.08 : p.ex === 'sugar' || p.ex === 'flake' ? 0.035 : 0.022, 0.05); continue; }
+    if (p.ex === 'shroom' && p.g < 1) p.g = Math.min(1, p.g + dt / 3.4); // grows for a few seconds, then stays
     if (p.vx || p.vy) { p.x += p.vx * dt; p.y += p.vy * dt; const dm = Math.exp(-dt * 6); p.vx *= dm; p.vy *= dm; if (Math.abs(p.vx) + Math.abs(p.vy) < 0.01) p.vx = p.vy = 0; }
     const k = stCell(p.x, p.y);
     if (FA[k] > 0.12) {
@@ -6673,7 +6721,7 @@ function stStartPour() {
   stFillPattern(pd, avg);
   const vf = Math.max(0.12, ST.V / PLATE_FULL);
   const gl = {}; let glN = 0, prN = 0, tint = [0, 0, 0];
-  const exN = { sugar: 0, confetti: 0, foil: 0, flake: 0, foam: 0, eyes: 0 }; let fzSum = 0;
+  const exN = { sugar: 0, confetti: 0, foil: 0, flake: 0, foam: 0, eyes: 0, shroom: 0 }; let fzSum = 0;
   for (const p of ST.parts) {
     if (p.ch) continue;
     if (p.ex === 'foam') { const m = (p.sz / FOAM_SZ) ** 2; exN.foam += m; fzSum += m * clamp(p.sz / FOAM_SZ, 0.2, 1); }
@@ -6684,7 +6732,7 @@ function stStartPour() {
   Object.keys(gl).forEach(c => { gl[c] = Math.min(1, gl[c] / (vf * 220)); });
   const sp = Math.min(1, glN / (vf * 220));
   ST.snap = {
-    V0: ST.V, pd, avg, gl, sp, ex: { sugar: Math.min(1, exN.sugar / (vf * 50)), confetti: Math.min(1, exN.confetti / (vf * 110)), foil: Math.min(1, exN.foil / (vf * 110)), flake: Math.min(1, exN.flake / (vf * 90)), foam: Math.min(1, exN.foam / (vf * 14)), eyes: Math.min(1, exN.eyes / (Math.max(vf, 0.3) * 24)) }, fz: exN.foam > 0 ? fzSum / exN.foam : 0.6, gloss: ST.gloss, neon: ST.neon, clear: ST.clear, pr: stSpecShare(), pearl: Math.min(1, prN / (vf * 420)),
+    V0: ST.V, pd, avg, gl, sp, ex: { sugar: Math.min(1, exN.sugar / (vf * 50)), confetti: Math.min(1, exN.confetti / (vf * 110)), foil: Math.min(1, exN.foil / (vf * 110)), flake: Math.min(1, exN.flake / (vf * 90)), foam: Math.min(1, exN.foam / (vf * 14)), eyes: Math.min(1, exN.eyes / (Math.max(vf, 0.3) * 24)), shroom: Math.min(1, exN.shroom / (Math.max(vf, 0.3) * 10)) }, fz: exN.foam > 0 ? fzSum / exN.foam : 0.6, gloss: ST.gloss, neon: ST.neon, clear: ST.clear, pr: stSpecShare(), pearl: Math.min(1, prN / (vf * 420)),
     ptint: prN ? [tint[0] / prN, tint[1] / prN, tint[2] / prN] : [255, 255, 255], oil: ST.oil
   };
   ST.pouring = true; ST.patT = 0; Snd.pour(true);
@@ -6953,6 +7001,8 @@ function stDraw() {
       sg.restore();
     } else if (p.ex === 'eyes') {
       paintEye(sg, s[0], y, p.sz, p.pu[0], p.pu[1]);
+    } else if (p.ex === 'shroom') {
+      paintShroom(sg, s[0], y + p.sz * 0.35, p.sz, p.g, p.v);
     } else if (p.ex === 'foam') {
       const r = p.sz;
       sg.fillStyle = 'rgba(20,10,30,0.2)'; sg.beginPath(); sg.ellipse(s[0] + 1.5, s[1] + r * 0.55, r * 0.95, r * 0.45, 0, 0, 7); sg.fill();
@@ -7472,11 +7522,11 @@ const Q = {
     const L = G.layers[G.layers.length - 1]; if (!L) return;
     for (const f of layerFx(L)) if (!QS.effects.includes(f)) QS.effects.push(f);
   },
-  save() { perSync(); return { earned: QS.earned, per: QS.per, stock: QS.stock, gift: QS.gift, rr: QS.rr, stats: QS.stats, kinds: QS.kinds, tools: QS.tools, effects: QS.effects, ach: QS.ach, order: QS.order, recent: QS.recent, coins: QS.coins, owned: QS.owned, bg: QS.bg, skin: QS.skin, snd: QS.snd, bfx: QS.bfx, plate: QS.plate, shelf: QS.shelf }; },
+  save() { perSync(); return { earned: QS.earned, per: QS.per, stock: QS.stock, gift: QS.gift, rr: QS.rr, stats: QS.stats, kinds: QS.kinds, tools: QS.tools, effects: QS.effects, ach: QS.ach, order: QS.order, recent: QS.recent, coins: QS.coins, owned: QS.owned, bg: QS.bg, skin: QS.skin, snd: QS.snd, bfx: QS.bfx, plate: QS.plate, shelf: QS.shelf, rec: QS.rec }; },
   load(d) {
     if (!d) return;
     Object.assign(QS.stats, d.stats || {}); QS.kinds = d.kinds || []; QS.tools = d.tools || []; QS.effects = d.effects || [];
-    QS.ach = d.ach || {}; QS.order = d.order || null; QS.recent = d.recent || []; QS.coins = d.coins || 0; QS.owned = d.owned || {}; QS.earned = d.earned != null ? d.earned | 0 : earnedGuess(); QS.per = d.per || null; QS.stock = d.stock || null; QS.gift = d.gift || ''; QS.rr = d.rr || null; if (typeof stkBadges === 'function') try { stkBadges(); } catch (e) { } QS.bg = d.bg || 'night'; QS.skin = d.skin || 'plain'; QS.snd = d.snd || 'classic'; QS.bfx = d.bfx || 'none'; QS.plate = d.plate || 'plain'; QS.shelf = d.shelf || [];
+    QS.ach = d.ach || {}; QS.order = d.order || null; QS.recent = d.recent || []; QS.coins = d.coins || 0; QS.owned = d.owned || {}; QS.earned = d.earned != null ? d.earned | 0 : earnedGuess(); QS.per = d.per || null; QS.stock = d.stock || null; QS.gift = d.gift || ''; QS.rr = d.rr || null; if (typeof stkBadges === 'function') try { stkBadges(); } catch (e) { } QS.bg = d.bg || 'night'; QS.skin = d.skin || 'plain'; QS.snd = d.snd || 'classic'; QS.bfx = d.bfx || 'none'; QS.plate = d.plate || 'plain'; QS.shelf = d.shelf || []; QS.rec = d.rec && typeof d.rec === 'object' ? { b: d.rec.b | 0, c: d.rec.c | 0, o: d.rec.o | 0 } : null;
   }
 };
 
@@ -7494,10 +7544,15 @@ function perTotals() { return { b: G.broken | 0, c: QS.earned | 0, o: QS.stats.o
 function perSync() {
   const dk = dayKey(), wk = weekKey(), t = perTotals();
   let p = QS.per; if (!p || typeof p !== 'object') p = QS.per = { dk, wk, d: Object.assign({}, t), w: Object.assign({}, t) };
-  if (p.dk !== dk || !p.d) { p.dk = dk; p.d = Object.assign({}, t); }
-  if (p.wk !== wk || !p.w) { p.wk = wk; p.w = Object.assign({}, t); }
+  // when the day (week) turns, what was done in the finished one is kept: the results in the chat are made from it
+  if (p.dk !== dk || !p.d) { if (p.d && p.dk) p.pd = { dk: p.dk, b: Math.max(0, t.b - p.d.b), c: Math.max(0, t.c - p.d.c), o: Math.max(0, t.o - p.d.o) }; p.dk = dk; p.d = Object.assign({}, t); }
+  if (p.wk !== wk || !p.w) { if (p.w && p.wk) p.pw = { wk: p.wk, b: Math.max(0, t.b - p.w.b), c: Math.max(0, t.c - p.w.c), o: Math.max(0, t.o - p.w.o) }; p.wk = wk; p.w = Object.assign({}, t); }
   for (const k of ['d', 'w']) for (const q of ['b', 'c', 'o']) if (t[q] < p[k][q]) p[k][q] = t[q]; // totals dropped (progress erased or a smaller cloud save): start over
-  return { dk, wk, dB: t.b - p.d.b, dC: t.c - p.d.c, dO: t.o - p.d.o, wB: t.b - p.w.b, wC: t.c - p.w.c, wO: t.o - p.w.o };
+  const r = { dk, wk, dB: t.b - p.d.b, dC: t.c - p.d.c, dO: t.o - p.d.o, wB: t.b - p.w.b, wC: t.c - p.w.c, wO: t.o - p.w.o, pd: p.pd || null, pw: p.pw || null };
+  // the best day ever, each column on its own
+  const R = QS.rec && typeof QS.rec === 'object' ? QS.rec : (QS.rec = { b: 0, c: 0, o: 0 });
+  R.b = Math.max(R.b | 0, r.dB); R.c = Math.max(R.c | 0, r.dC); R.o = Math.max(R.o | 0, r.dO);
+  return r;
 }
 
 /* ----- what is the object on the string like right now ----- */
@@ -7512,7 +7567,7 @@ var SPEC_TAG = 0.2; // a special colour counts for an order from a fifth of the 
 function layerFx(L) {
   const f = [];
   if (L.sp > 0.15) f.push('glitter');
-  if (L.ex) { if (L.ex.foil > 0.1) f.push('foil'); if (L.ex.sugar > 0.1) f.push('sugar'); if (L.ex.confetti > 0.1) f.push('confetti'); if (L.ex.flake > 0.1) f.push('flake'); if (L.ex.foam > 0.1) f.push('foam'); if (L.ex.eyes > 0.1) f.push('eyes'); }
+  if (L.ex) { if (L.ex.foil > 0.1) f.push('foil'); if (L.ex.sugar > 0.1) f.push('sugar'); if (L.ex.confetti > 0.1) f.push('confetti'); if (L.ex.flake > 0.1) f.push('flake'); if (L.ex.foam > 0.1) f.push('foam'); if (L.ex.eyes > 0.1) f.push('eyes'); if (L.ex.shroom > 0.1) f.push('shroom'); }
   if (L.pearl > 0.1) f.push('pearl'); if (L.gloss > 0.1) f.push('gloss'); if (L.neon > 0.1) f.push('neon'); if (L.clear > 0.3 && L.type !== 'glass') { f.push('clear'); f.push('glass'); } if (L.pr) SPEC.forEach(sp => { if (layerPr(L, sp.id) >= SPEC_TAG) f.push(sp.id); }); if (L.oil > 0.2) f.push('scent'); if (L.charm) f.push('charm');
   if (L.type === 'glass') f.push('glass'); if (L.type === 'grad') f.push('grad'); if (L.type === 'rainbow') f.push('rainbow'); if (L.type === 'cosmos') f.push('cosmos'); if (L.type === 'gold') f.push('gold');
   return f;
@@ -7680,7 +7735,7 @@ const ORD_COIN = { 1: 8, 2: 16, 3: 24 }; // coins per order
 const VIP_K = 2, VIP_CHANCE = 0.10; // a VIP order pays double, and comes up less often
 function orderById(id) { return ORDERS.find(o => o.id === id); }
 // in the shop mode an order must be doable with what is already open (objects and add-ins)
-const FX_SRC = { foil: ['foil'], sugar: ['sugar'], confetti: ['confetti'], flake: ['flake'], foam: ['foam'], eyes: ['eyes'], pearl: ['pearl_blue', 'pearl_white'], gloss: ['gloss'], neon: ['neon'], clear: ['clear'], scent: ['oil'], charm: ['ch_coin', 'ch_star', 'ch_heart', 'ch_pearl', 'ch_gem'] };
+const FX_SRC = { foil: ['foil'], sugar: ['sugar'], confetti: ['confetti'], flake: ['flake'], foam: ['foam'], eyes: ['eyes'], shroom: ['shroom'], pearl: ['pearl_blue', 'pearl_white'], gloss: ['gloss'], neon: ['neon'], clear: ['clear'], scent: ['oil'], charm: ['ch_coin', 'ch_star', 'ch_heart', 'ch_pearl', 'ch_gem'] };
 // special colours come from the third shelf page (shop pack), the three fancy wax types are achievement rewards
 const FX_GATE = { ice: () => isOpen('cols:4'), lava: () => isOpen('cols:4'), soft: () => isOpen('cols:4'), glow: () => isOpen('cols:4'), rainbow: () => rewardOn('pours'), cosmos: () => rewardOn('effects'), gold: () => rewardOn('kinds') };
 function reqOpen(r) {
@@ -7953,12 +8008,14 @@ function equipItem(eq, val) {
 }
 const SHOP = [];
 const SHOP_BY_ID = {};
-function shopAdd(it) { SHOP.push(it); SHOP_BY_ID[it.id] = it; }
+// every price of the shop goes up a bit, the cheap ones most (a free item stays free)
+function priceUp(p) { if (!p) return 0; const k = p <= 30 ? 1.8 : p <= 50 ? 1.5 : p <= 80 ? 1.3 : p <= 120 ? 1.2 : 1.12; return Math.round(p * k / 5) * 5; }
+function shopAdd(it) { it.p = priceUp(it.p); SHOP.push(it); SHOP_BY_ID[it.id] = it; }
 (function buildCatalog() {
   const objP = [0, 0, 0, 0, 40, 40, 60, 60, 80, 80, 100, 100, 150, 200, 150, 150, 50, 50, 60, 60, 80, 80, 0, 200, 120, 100, 100, 100, 120, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100];
   OBJ_ORDER.forEach(i => { const o = OBJECTS[i]; shopAdd({ id: 'obj:' + i, g: 'Предметы', sub: (o.toy || o.rag) ? 'Интерактив' : o.sq ? 'Сквиши' : 'Обычные', n: o.n, e: o.e, img: o.img, p: objP[i] || 0 }); });
   const toolP = { finger: 0, stick: 0, spoon: 0, whisk: 40, fork: 30, comb: 30, funnel: 50, brush: 40, glitter0: 0, glitter1: 0, glitter2: 20, glitter3: 20, glitter4: 20, glitter5: 20, pearl_blue: 40, pearl_white: 40,
-    sugar: 30, confetti: 30, foil: 50, flake: 50, foam: 60, eyes: 80, oil: 50, gloss: 70, neon: 120, clear: 90 };
+    sugar: 30, confetti: 30, foil: 50, flake: 50, foam: 60, eyes: 80, shroom: 90, oil: 50, gloss: 70, neon: 120, clear: 90 };
   TOOLS.forEach(t => {
     if (t.kind === 'charm' && CHARMS.find(c => c.id === t.ch).rare) return; // rare surprises are a reward, not for sale
     const p = t.kind === 'charm' ? 40 : (toolP[t.id] == null ? 40 : toolP[t.id]);
@@ -9018,7 +9075,7 @@ function applySnapshot(d) {
   const m = d.MIX, px = b64dec(m.pd);
   if (px.length === NN * 3) for (let i = 0; i < px.length; i++) MIX.pd[i] = px[i];
   MIX.avg = m.avg; MIX.gl = m.gl || {}; MIX.sp = m.sp || 0; MIX.charms = m.charms || {}; MIX.pearl = m.pearl || 0; MIX.ptint = m.ptint || [255, 255, 255]; MIX.oil = m.oil || 0; MIX.gloss = m.gloss || 0; MIX.neon = m.neon || 0; MIX.clear = m.clear || 0; MIX.pr = Object.assign(specPr0(), m.pr || {}); MIX.fz = m.fz == null ? 0.6 : m.fz;
-  MIX.ex = Object.assign({ sugar: 0, confetti: 0, foil: 0, flake: 0, foam: 0, eyes: 0 }, m.ex);
+  MIX.ex = Object.assign({ sugar: 0, confetti: 0, foil: 0, flake: 0, foam: 0, eyes: 0, shroom: 0 }, m.ex);
   mixPatRefresh();
   STORE.pot = d.lv.pot; STORE.mix = d.lv.mix;
   Q.load(d.Q);
@@ -9103,7 +9160,7 @@ function drainStep(dt) {
   if (lvl(DRAIN.src) <= 0.002) {
     setLvl(DRAIN.src, 0); DRAIN.on = false; Q.stat('drained'); Snd.pour(false); if (holeOn()) Snd.hole(0); else { Snd.blub(0); Snd.squish(0.5); }
     if (DRAIN.src === 'mix') {
-      MIX.charms = {}; MIX.pearl = 0; MIX.gloss = 0; MIX.neon = 0; MIX.clear = 0; MIX.pr = specPr0(); MIX.oil = 0; MIX.sp = 0; MIX.gl = {}; MIX.ex = { sugar: 0, confetti: 0, foil: 0, flake: 0, foam: 0, eyes: 0 };
+      MIX.charms = {}; MIX.pearl = 0; MIX.gloss = 0; MIX.neon = 0; MIX.clear = 0; MIX.pr = specPr0(); MIX.oil = 0; MIX.sp = 0; MIX.gl = {}; MIX.ex = { sugar: 0, confetti: 0, foil: 0, flake: 0, foam: 0, eyes: 0, shroom: 0 };
       for (let k = 0; k < NN * 3; k++) MIX.pd[k] = [226, 208, 236][k % 3];
       MIX.avg = [226, 208, 236]; mixPatRefresh();
     }
@@ -9158,6 +9215,18 @@ document.addEventListener('visibilitychange', () => {
   const gone = RELOAD.away ? Date.now() - RELOAD.away : 0; RELOAD.away = 0;
   if (gone > 20000) reloadFresh();
 });
+
+/* ----- the installed app: the height is the real height of the window, measured again a few times after the page starts or the app comes back.
+   (100lvh alone is taken once; if it is read while the phone is still waking up, the bottom of the game ends up under the system buttons) ----- */
+(function () {
+  let mq = null; try { mq = matchMedia('(display-mode: standalone), (display-mode: fullscreen)'); } catch (e) { }
+  if (!mq) return; let tm = 0;
+  function fit() { if (!mq.matches) return; const h = Math.round(window.innerHeight); if (h > 200) document.documentElement.style.setProperty('--appH', h + 'px'); }
+  function soon() { clearTimeout(tm); tm = setTimeout(fit, 200); }
+  fit(); [300, 1000, 2500].forEach(d => setTimeout(fit, d));
+  window.addEventListener('resize', soon); window.addEventListener('pageshow', soon); window.addEventListener('orientationchange', soon);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) { soon(); setTimeout(fit, 1200); } });
+})();
 /* ---------- Online: nick + password account, cloud save, leaderboard (Firebase over plain REST) ---------- */
 // The game still works fully offline. Online only adds: an account, the progress kept in the cloud, and the top lists.
 const FBX = { key: 'AIzaSyBe_8BCRJRU52eDaP__mIUbSs5JaiM3Fvs', project: 'wax-asmr' };
@@ -9263,12 +9332,24 @@ async function accPush(force) {
     if (!ONL.oldRules) { // the new fields need the new Firestore rules; if they are not pasted yet, fall back to the old card so the cloud save still works
       const pp = perSync();
       const full = Object.assign({}, card, { earned: fvI(QS.earned), dk: fvS(pp.dk), dB: fvI(pp.dB), dC: fvI(pp.dC), dO: fvI(pp.dO), wk: fvS(pp.wk), wB: fvI(pp.wB), wC: fvI(pp.wC), wO: fvI(pp.wO) });
-      try { await fsPatch('players/' + ACC.uid, full); }
-      catch (e) { if (e && e.http === 403) { ONL.oldRules = true; await fsPatch('players/' + ACC.uid, card); } else throw e; }
+      // what was done in the finished day / week (for the results in the chat); needs the newest rules, without them it is left out
+      const ext = Object.assign({}, full);
+      if (!ONL.noPrev) {
+        if (pp.pd) Object.assign(ext, { pdk: fvS(pp.pd.dk), pB: fvI(pp.pd.b), pC: fvI(pp.pd.c), pO: fvI(pp.pd.o) });
+        if (pp.pw) Object.assign(ext, { pwk: fvS(pp.pw.wk), qB: fvI(pp.pw.b), qC: fvI(pp.pw.c), qO: fvI(pp.pw.o) });
+      }
+      let wrote = false;
+      try { await fsPatch('players/' + ACC.uid, ext); wrote = true; }
+      catch (e) { if (!(e && e.http === 403)) throw e; }
+      if (!wrote && ext !== full && Object.keys(ext).length > Object.keys(full).length) { // the newest rules are not pasted yet: the card without the finished-period fields
+        ONL.noPrev = true;
+        try { await fsPatch('players/' + ACC.uid, full); wrote = true; } catch (e) { if (!(e && e.http === 403)) throw e; }
+      }
+      if (!wrote) { ONL.oldRules = true; await fsPatch('players/' + ACC.uid, card); }
     } else await fsPatch('players/' + ACC.uid, card);
     await fsPatch('saves/' + ACC.uid, { ts: fvI(ts), enc: fvS(pk.enc), z: fvS(pk.z) });
     ACC.lastTs = ts; ACC.pushed = ts; ONL.sig = sig; ACC.sig = sig; ONL.err = ''; accStore(); ONL.last = ts;
-    setTimeout(() => evRun(false), 300); // milestones and overtaking become a line in the chat
+    setTimeout(() => { evRun(false); sumRun(); }, 300); // milestones and overtaking become a line in the chat; at a turn of the day / week the results
     return true;
   } catch (e) { ONL.err = fbErrText(e); return false; } finally { ONL.busy = false; }
 }
@@ -9508,7 +9589,10 @@ async function chatLoad() {
     const fresh = chatMerge(rows), add = fresh.length; CHAT.err = '';
     // the running line at the top: the newest ones from other players (on the very first load only the last few, and not the old ones)
     const chatOpen = !questEl.hidden && QTAB === 'top' && CHAT.view === 'chat';
-    if (!chatOpen) tickPush(fresh.filter(m => m.uid !== ACC.uid && Date.now() - m.ts < (first ? 3 * 3600e3 : 6 * 3600e3)).slice(first ? -3 : -6));
+    // what has already run along the top is remembered (a reload of the page must not run it again); only the newest one and only if it is under an hour old
+    const tkKey = 'waxAsmrTick_' + ACC.uid; let seen = 0; try { seen = +localStorage.getItem(tkKey) || 0; } catch (e) { }
+    if (!chatOpen) tickPush(fresh.filter(m => m.uid !== ACC.uid && m.ts > seen && Date.now() - m.ts < 3600e3).slice(first ? -1 : -4));
+    const top = fresh.reduce((x, m) => Math.max(x, m.ts || 0), seen); if (top > seen) try { localStorage.setItem(tkKey, String(top)); } catch (e) { }
     if (CHAT.view === 'chat') { chatMarkSeen(); if (add || first) chatDraw(); } else if (add && chatUnread()) renderTopSoon();
   } catch (e) { CHAT.err = (e && /PERMISSION_DENIED|Missing or insufficient/.test(String(e.message))) ? 'Чат ещё не включён: нужно вставить новые правила базы (см. firestore-rules.txt)' : fbErrText(e); if (CHAT.view === 'chat') chatDraw(); }
   CHAT.busy = false;
@@ -9618,6 +9702,7 @@ function evRecords(pp) {
   if (!r || !r.best) r = { dk: pp.dk, best: { b: 0, o: 0, c: 0 }, cur, said: {} };
   if (r.dk !== pp.dk) { for (const k of ['b', 'o', 'c']) r.best[k] = Math.max(r.best[k], r.cur ? r.cur[k] : 0); r.dk = pp.dk; r.said = {}; }
   for (const k of ['c', 'b', 'o']) if (!r.said[k] && r.best[k] >= EV_REC_MIN[k] && cur[k] > r.best[k]) { r.said[k] = true; out.push({ k, per: 'rec', n: cur[k] }); }
+  if (QS.rec) for (const k of ['b', 'o', 'c']) QS.rec[k] = Math.max(QS.rec[k] | 0, r.best[k] | 0); // an older save knows no record yet: the best day seen on this phone counts
   r.cur = cur; try { localStorage.setItem(key, JSON.stringify(r)); } catch (e) { }
   return out;
 }
@@ -9630,12 +9715,69 @@ function evOvertake(k0, rows) {
   try { localStorage.setItem(key, JSON.stringify({ v: me.v, above })); } catch (e) { }
   return passed;
 }
-async function chatPostEvent(text) {
+async function chatPostEvent(text, id) {
   const tok = await accToken(), ts = Date.now();
-  const j = await fbFetch(FB_DOC + '/chat', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + tok }, body: JSON.stringify({ fields: { uid: fvS(ACC.uid), nick: fvS(ACC.nick), text: fvS(text.slice(0, 200)), ts: { integerValue: String(ts) }, k: fvS('e') } }) });
+  const j = await fbFetch(FB_DOC + '/chat' + (id ? '?documentId=' + encodeURIComponent(id) : ''), { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + tok }, body: JSON.stringify({ fields: { uid: fvS(ACC.uid), nick: fvS(ACC.nick), text: fvS(text.slice(0, 200)), ts: { integerValue: String(ts) }, k: fvS('e') } }) });
   chatMerge([{ id: String(j.name).split('/').pop(), uid: ACC.uid, nick: ACC.nick, text, ts, k: 'e' }]);
   if (CHAT.view === 'chat') { chatMarkSeen(); chatDraw(); }
   tickPush([{ k: 'e', text }]); // what she did herself runs along the top line too
+}
+/* ----- results of the finished day / week: the first phone that notices the turn writes one line.
+   The line has a fixed id (a chat line cannot be changed or written twice), so the others get "already exists" and stay silent ----- */
+var SUM = { busy: false, next: 0 };
+function sumMark() { try { return JSON.parse(localStorage.getItem('waxAsmrSum_' + ACC.uid) || 'null'); } catch (e) { return null; } }
+function sumSetMark(m) { try { localStorage.setItem('waxAsmrSum_' + ACC.uid, JSON.stringify(m)); } catch (e) { } }
+function sumKeys() { // the finished day (yesterday) and the finished week (the Monday of the last one)
+  const d = new Date(), y = new Date(d.getFullYear(), d.getMonth(), d.getDate() - 1, 12), w = new Date(d.getFullYear(), d.getMonth(), d.getDate() - ((d.getDay() + 6) % 7) - 7, 12);
+  return { d: dayKey(y.getTime()), w: dayKey(w.getTime()), wEnd: dayKey(w.getTime() + 6 * 86400000) };
+}
+function sumFmt(k) { const a = k.split('-'); return a[2] + '.' + a[1]; }
+async function sumPlayers() {
+  const tok = await accToken();
+  const j = await fbFetch(FB_DOC + ':runQuery', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + tok }, body: JSON.stringify({ structuredQuery: { from: [{ collectionId: 'players' }], orderBy: [{ field: { fieldPath: 'ts' }, direction: 'DESCENDING' }], limit: 60 } }) });
+  return (j || []).filter(r => r.document).map(r => { const f = r.document.fields || {}; return { nick: fgS(f, 'nick') || '???', dk: fgS(f, 'dk'), d: [fgI(f, 'dB'), fgI(f, 'dC'), fgI(f, 'dO')], pdk: fgS(f, 'pdk'), pd: [fgI(f, 'pB'), fgI(f, 'pC'), fgI(f, 'pO')], wk: fgS(f, 'wk'), w: [fgI(f, 'wB'), fgI(f, 'wC'), fgI(f, 'wO')], pwk: fgS(f, 'pwk'), pw: [fgI(f, 'qB'), fgI(f, 'qC'), fgI(f, 'qO')] }; });
+}
+// who did what in the period with this key: {nick, b, c, o}; the finished period is either still the current one on the card (not played since) or already moved to the "previous" fields
+function sumRows(pl, per, key) {
+  const rows = [];
+  pl.forEach(p => { const v = per === 'd' ? (p.dk === key ? p.d : p.pdk === key ? p.pd : null) : (p.wk === key ? p.w : p.pwk === key ? p.pw : null); if (v) rows.push({ nick: p.nick, b: v[0] | 0, c: v[1] | 0, o: v[2] | 0 }); });
+  return rows.filter(r => r.b + r.c + r.o > 0);
+}
+function sumTexts(rows, per, key, keyEnd) {
+  if (!rows.length) return null;
+  const title = per === 'd' ? '🏁 Итоги дня ' + sumFmt(key) : '🏁 Итоги недели ' + sumFmt(key) + '–' + sumFmt(keyEnd);
+  const num = r => evFmt(r);
+  if (rows.length === 1) { const r = rows[0]; return [title + ': играл(а) только ' + r.nick + ' — 💥 ' + num(r.b) + ' · 📋 ' + num(r.o) + ' · 🪙 ' + num(r.c)]; }
+  const best = f => { let m = null; rows.forEach(r => { if (r[f] > 0 && (!m || r[f] > m[f])) m = r; }); return m; };
+  const wb = best('b'), wo = best('o'), wc = best('c'), wins = new Map();
+  [wb, wo, wc].forEach(m => { if (m) wins.set(m, (wins.get(m) || 0) + 1); });
+  let top = null; wins.forEach((n, m) => { if (!top || n > wins.get(top) || (n === wins.get(top) && m.c > top.c)) top = m; });
+  const seg = [];
+  if (wb) seg.push('💥 ' + wb.nick + ' ' + num(wb.b)); if (wo) seg.push('📋 ' + wo.nick + ' ' + num(wo.o)); if (wc) seg.push('🪙 ' + wc.nick + ' ' + num(wc.c));
+  const out = [(title + ': ' + seg.join(' · ') + (top ? '  ·  🏆 самый активный: ' + top.nick : '')).slice(0, 200)];
+  let all = 'Кто сколько:', n = 0; // everybody in one more line, the busiest first
+  rows.slice().sort((x, y) => (y.b + y.o * 3) - (x.b + x.o * 3)).forEach(r => { const t = ' ' + r.nick + ' 💥' + num(r.b) + ' 📋' + num(r.o) + ' 🪙' + num(r.c) + ';'; if (all.length + t.length <= 198) { all += t; n++; } });
+  if (n) out.push(all.replace(/;$/, ''));
+  return out;
+}
+async function sumPost(per, key, keyEnd, pl) {
+  const texts = sumTexts(sumRows(pl, per, key), per, key, keyEnd); if (!texts) return;
+  for (let i = 0; i < texts.length; i++) {
+    try { await chatPostEvent(texts[i], 'sum_' + per + '_' + key + (i ? '_' + i : '')); }
+    catch (e) { if (e && (e.http === 409 || e.http === 403)) return; throw e; } // somebody has already written it (a second line only follows when the first one was ours)
+  }
+}
+async function sumRun() {
+  if (!ACC.uid || SUM.busy || Date.now() < SUM.next) return; SUM.busy = true;
+  try {
+    const today = dayKey(), wkNow = weekKey(), M = sumMark();
+    if (!M) { sumSetMark({ d: today, w: wkNow }); return; } // the first look only remembers where we are
+    const needD = M.d !== today, needW = M.w !== wkNow; if (!needD && !needW) return;
+    const K = sumKeys(), pl = await sumPlayers();
+    if (needD) await sumPost('d', K.d, K.d, pl);
+    if (needW) await sumPost('w', K.w, K.wEnd, pl);
+    sumSetMark({ d: today, w: wkNow });
+  } catch (e) { SUM.next = Date.now() + 10 * 60000; /* the results are a bonus: next time */ } finally { SUM.busy = false; }
 }
 const EV_OVT = { broken: 'по сломанным', earned: 'по заработанным монетам', orders: 'по заказам' };
 async function evRun(force) {
@@ -9677,6 +9819,8 @@ function renderTop(el) {
   cell('Всего', 'ml'); cell(String(G.broken | 0), 'mv'); cell(String(QS.earned | 0), 'mv'); cell(String(QS.stats.orders | 0), 'mv');
   cell('Сегодня', 'ml'); cell(String(pp.dB), 'mv'); cell(String(pp.dC), 'mv'); cell(String(pp.dO), 'mv');
   cell('Неделя', 'ml'); cell(String(pp.wB), 'mv'); cell(String(pp.wC), 'mv'); cell(String(pp.wO), 'mv');
+  const RC = QS.rec || { b: 0, c: 0, o: 0 }; // the best day ever, each column its own
+  cell('Рекорд дня', 'ml'); cell(String(RC.b | 0), 'mv rc'); cell(String(RC.c | 0), 'mv rc'); cell(String(RC.o | 0), 'mv rc');
   st.appendChild(g);
   st.appendChild(h('div', 'opt-note', 'На руках сейчас: ' + QS.coins + ' 🪙'));
   if (ACC.uid) {
@@ -9744,7 +9888,7 @@ var STK_BRK = {
   bomb: { n: 'Бомба', e: '💣', start: 10, floor: 0, packs: [[2, 30], [6, 80]] }
 };
 // price of ten uses of an add-in
-var STK_ADD_P = { glitter0: 12, glitter1: 12, glitter2: 12, glitter3: 12, glitter4: 12, glitter5: 12, pearl_blue: 15, pearl_white: 15, sugar: 12, confetti: 12, foil: 15, flake: 15, foam: 15, eyes: 20, oil: 15, gloss: 20, neon: 30, clear: 25 };
+var STK_ADD_P = { glitter0: 12, glitter1: 12, glitter2: 12, glitter3: 12, glitter4: 12, glitter5: 12, pearl_blue: 15, pearl_white: 15, sugar: 12, confetti: 12, foil: 15, flake: 15, foam: 15, eyes: 20, shroom: 20, oil: 15, gloss: 20, neon: 30, clear: 25 };
 var STK_CUBE_P = [[1, 6], [4, 20], [10, 45]], STK_CUBE_SP = [[1, 10], [4, 36], [10, 80]]; // [pieces, coins]; special colours cost more
 var STK_RAND = [6, 16], STK_RAND_P = [26, 65]; // random cubes: how many, price
 function stkInfo(key) {
@@ -10356,13 +10500,14 @@ function potAddins() {
   if (G.src !== 'mix') return addinCache.pool = [];
   const ex = MIX.ex || {};
   const cnt = k => { const v = ex[k] || 0; return v > 0.05 ? Math.min(4, Math.ceil(v * 4)) : 0; };
-  const sig = Object.keys(MIX.charms).sort().map(k => k + Math.min(MIX.charms[k], 3)).join(',') + '|' + ['sugar', 'confetti', 'foil', 'flake', 'eyes'].map(cnt).join('') + (MIX.sp > 0.15 ? 'g' : '');
+  const sig = Object.keys(MIX.charms).sort().map(k => k + Math.min(MIX.charms[k], 3)).join(',') + '|' + ['sugar', 'confetti', 'foil', 'flake', 'eyes', 'shroom'].map(cnt).join('') + (MIX.sp > 0.15 ? 'g' : '');
   if (sig === addinCache.sig) return addinCache.pool;
   let seed = 7; for (let i = 0; i < sig.length; i++) seed = (seed * 31 + sig.charCodeAt(i)) | 0;
   const rn = mulberry32(seed), groups = [];
   Object.keys(MIX.charms).forEach(k => { const a = []; for (let i = 0; i < Math.min(MIX.charms[k], 3); i++) a.push({ t: 'charm', k }); if (a.length) groups.push(a); });
   [['sugar', SUGAR_COLS], ['confetti', CONF_COLS], ['foil', FOIL_COLS], ['flake', FLAKE_COLS]].forEach(([k, pal]) => { const a = []; for (let i = 0; i < cnt(k); i++) a.push({ t: 'ex', k, c: pal[(rn() * pal.length) | 0] }); if (a.length) groups.push(a); });
   { const a = []; for (let i = 0; i < cnt('eyes'); i++) a.push({ t: 'eyes' }); if (a.length) groups.push(a); }
+  { const a = []; for (let i = 0; i < cnt('shroom'); i++) a.push({ t: 'shroom' }); if (a.length) groups.push(a); }
   if (MIX.sp > 0.15) groups.push([{ t: 'glit' }, { t: 'glit' }, { t: 'glit' }]);
   // round-robin over the kinds (shuffled), so the first slots hold one of each kind
   for (let i = groups.length - 1; i > 0; i--) { const j = (rn() * (i + 1)) | 0; [groups[i], groups[j]] = [groups[j], groups[i]]; }
@@ -10386,6 +10531,7 @@ function addinSlot(sl) {
 function paintAddin(it, x, y, s) {
   g.save();
   if (it.t === 'charm') drawCharm(g, it.k, x, y, s * 1.6);
+  else if (it.t === 'shroom') paintShroom(g, x, y + s * 0.5, s * 0.8, 1, (it.ph * 7) | 0);
   else if (it.t === 'eyes') paintEye(g, x, y, s * 0.8, Math.sin(time * 0.9 + it.ph) * 0.35, Math.cos(time * 0.7 + it.ph) * 0.3);
   else if (it.t === 'glit') {
     const tw = 0.55 + 0.45 * Math.sin(time * 3 + it.ph);
@@ -10850,11 +10996,17 @@ function drawPotFront() {
   g.clip();
   if (SKN && SKN.glass) {
     // through the glass you see the wax column inside
-    if (G.dispLevel > 0.02) { g.fillStyle = css(potWax, 0.62); g.fillRect(potCx - rx, waxY, rx * 2, bot - waxY); }
+    // the surface of the liquid is an ellipse seen from the same height as the rim (not a flat line)
+    const sfR = rx - (rx - bx) * Math.max(0, Math.min(1, (waxY - rimY) / Math.max(1, bot - rimY))), sfRy = potRy;
+    if (G.dispLevel > 0.02) {
+      g.fillStyle = css(potWax, 0.62); g.beginPath(); g.rect(potCx - rx, waxY, rx * 2, bot - waxY); g.moveTo(potCx + sfR, waxY); g.ellipse(potCx, waxY, sfR, sfRy, 0, 0, Math.PI * 2); g.fill();
+      g.fillStyle = 'rgba(255,255,255,0.1)'; g.beginPath(); g.ellipse(potCx, waxY, sfR, sfRy, 0, 0, Math.PI * 2); g.fill();
+    }
     drawAddinsDeep(rx, bot);
     if (G.dispLevel > 0.02) {
       // light line where the wax surface meets the glass, bubbles drifting up inside, the bottom showing through
-      g.fillStyle = 'rgba(255,255,255,0.5)'; g.fillRect(potCx - rx, waxY - 1, rx * 2, 2.2);
+      g.lineWidth = 2; g.strokeStyle = 'rgba(255,255,255,0.55)'; g.beginPath(); g.ellipse(potCx, waxY, sfR, sfRy, 0, 0, Math.PI); g.stroke();
+      g.lineWidth = 1.5; g.strokeStyle = 'rgba(255,255,255,0.25)'; g.beginPath(); g.ellipse(potCx, waxY, sfR, sfRy, 0, Math.PI, Math.PI * 2); g.stroke();
       const colH = bot - waxY;
       if (colH > 40) {
         g.strokeStyle = 'rgba(255,255,255,0.4)'; g.fillStyle = 'rgba(255,255,255,0.1)'; g.lineWidth = 1;
