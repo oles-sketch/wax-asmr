@@ -599,7 +599,7 @@
       <div class="opt-note" id="saveNote" hidden></div>
       <div class="opt-note">Прогресс сохраняется сам. Файл нужен, чтобы перенести его на другой телефон или если браузер всё забывает. Если ты вошла в аккаунт, файл хранит и вход: при загрузке ты сразу в аккаунте, поэтому не отправляй его посторонним.</div>
       <div class="opt-note" id="vibeNote" hidden>На этом устройстве вибрация недоступна</div>
-      <div class="ver-tag" id="verTag">v173</div>
+      <div class="ver-tag" id="verTag">v174</div>
       <div id="setMore" hidden>↓ листай ниже, там ещё настройки</div>
     </div>
   </header>
@@ -1560,7 +1560,7 @@ const OBJECTS = [
   { e: '🍲', toy: 'soup', n: 'Суп', zoom: 1.5 },
   { e: '🥒', toy: 'pickles', n: 'Банка огурцов', zoom: 1.5 },
   { img: 'holodets', n: 'Холодец', zoom: 1.7, sq: true, sqk: 0.5, parts: ['holodetsp', 'holodetsj'] },
-  { e: '🍌', toy: 'banana', n: 'Банан', zoom: 1.5 }
+  { e: '🍌', toy: 'banana', n: 'Банан', zoom: 1.9 }
 ];
 // order of the object chips: the four free ones, then the beer (also free), then the rest
 const BEER_IDX = OBJECTS.findIndex(o => o.img === 'beerobj');
@@ -4621,7 +4621,7 @@ function foodEnd(z) {
 /* ---------- Interactive banana: three strips of peel come off (pull them down) and go back on (pull them up) ---------- */
 // design coordinates 220 x 300; the three strips hang from the tip at the bottom, the stem is at the top
 var BN = { th: [0, 0, 0], tg: [0, 0, 0], vel: [0, 0, 0], k: -1, grab: null, snd: 0, poly: [[], [], []], wob: 0, wobv: 0, fell: [0, 0, 0], ver: 0 };
-var BN_T = { x: 140, y: 236 }; // the tip (where the strips are hinged)
+var BN_T = { x: 210, y: 236 }; // the tip (where the strips are hinged)
 var BN_L = 230;
 var BN_OPEN = 1; // an opened strip is drawn this much shorter along its curl, so it stays inside the picture // length of the body
 var BN_MAX = 1.8;
@@ -4727,8 +4727,6 @@ function bananaRender(c) {
   const S2 = c.width, L = toyLayout(S2, { toy: 'banana' }), g = c.getContext('2d');
   g.clearRect(0, 0, S2, S2); g.imageSmoothingQuality = 'high';
   g.save(); g.translate(L.ox, 0); g.scale(L.k, L.k); g.lineJoin = g.lineCap = 'round';
-  // shadow
-  g.fillStyle = 'rgba(40,25,60,0.22)'; g.beginPath(); g.ellipse(BN_T.x - 4, BN_T.y + 6, 78, 9, 0, 0, 7); g.fill();
   // the bare banana
   const body = []; const N = 18;
   for (let i = 0; i <= N; i++) body.push(bnP(i / N, -0.97)); for (let i = N; i >= 0; i--) body.push(bnP(i / N, 0.97));
@@ -4774,7 +4772,7 @@ function bananaRender(c) {
   g.restore();
 }
 function bnStrip1(k, t, u) { return bnPt(k, t, u); }
-TOYDEF.banana = { W: 300, H: 300, render: bananaRender, hit: bananaHit };
+TOYDEF.banana = { W: 380, H: 300, render: bananaRender, hit: bananaHit };
 
 // where the string meets the banana (the knot on the stem), in the object's own picture coordinates
 function bnHang() { const L = toyLayout(S, { toy: 'banana' }), c = bnC(1); return { x: L.ox + c.x * L.k - S / 2, y: c.y * L.k }; }
