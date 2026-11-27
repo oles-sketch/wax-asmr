@@ -599,7 +599,7 @@
       <div class="opt-note" id="saveNote" hidden></div>
       <div class="opt-note">Прогресс сохраняется сам. Файл нужен, чтобы перенести его на другой телефон или если браузер всё забывает. Если ты вошла в аккаунт, файл хранит и вход: при загрузке ты сразу в аккаунте, поэтому не отправляй его посторонним.</div>
       <div class="opt-note" id="vibeNote" hidden>На этом устройстве вибрация недоступна</div>
-      <div class="ver-tag" id="verTag">v170</div>
+      <div class="ver-tag" id="verTag">v173</div>
       <div id="setMore" hidden>↓ листай ниже, там ещё настройки</div>
     </div>
   </header>
@@ -674,7 +674,8 @@ const Snd = (() => {
   }
 
   function init() {
-    if (ctx) { if (ctx.state === 'suspended') ctx.resume(); return; }
+    if (ctx && ctx.state === 'closed') ctx = null; // the phone may close the audio while the app sleeps: make a new one
+    if (ctx) { if (ctx.state !== 'running') { try { const r = ctx.resume(); if (r && r.catch) r.catch(() => { }); } catch (e) { } } return; }
     const AC = window.AudioContext || window.webkitAudioContext;
     if (!AC) return;
     ctx = new AC();
@@ -9205,15 +9206,22 @@ function drawDrainMain() {
 // Coming back after the phone had the game in the background for a while: instead of patching every glitch a sleeping page can have
 // (shrunk picture, vanished wax, wiped canvases) the page simply reloads itself. Everything that matters is saved first.
 var RELOAD = { away: 0, fn: () => location.reload() };
-function reloadFresh() {
+// the workshop (or goo still lying on the plate) is not saved: never reload under it, wait until it is free
+function reloadBusy() { try { return !!(ST.on || ST.cubes.length || ST.V > 0.02); } catch (e) { return false; } }
+var reloadWait = 0;
+function reloadFresh(goneSec) {
+  if (reloadBusy()) { // try again later, as soon as the workshop is empty and closed
+    if (!reloadWait) reloadWait = setInterval(() => { if (!reloadBusy() && !document.hidden) { clearInterval(reloadWait); reloadWait = 0; reloadFresh(); } }, 3000);
+    return;
+  }
   if (REC.on || SAVEUI.wiped) return;
   try { const last = +sessionStorage.getItem('waxAsmrReloaded') || 0; if (Date.now() - last < 15000) return; sessionStorage.setItem('waxAsmrReloaded', String(Date.now())); } catch (e) { }
-  saveNow(); RELOAD.fn();
+  saveNow(); try { localStorage.setItem('waxAsmrWhy', JSON.stringify({ t: Date.now(), gone: goneSec | 0, st: ST.on ? 'в мастерской' : 'на главном' })); } catch (e) { } RELOAD.fn();
 }
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) { RELOAD.away = Date.now(); return; }
   const gone = RELOAD.away ? Date.now() - RELOAD.away : 0; RELOAD.away = 0;
-  if (gone > 20000) reloadFresh();
+  if (gone > 20000) reloadFresh(Math.round(gone / 1000));
 });
 
 /* ----- the installed app: the height is the real height of the window, measured again a few times after the page starts or the app comes back.
@@ -9226,6 +9234,22 @@ document.addEventListener('visibilitychange', () => {
   fit(); [300, 1000, 2500].forEach(d => setTimeout(fit, d));
   window.addEventListener('resize', soon); window.addEventListener('pageshow', soon); window.addEventListener('orientationchange', soon);
   document.addEventListener('visibilitychange', () => { if (!document.hidden) { soon(); setTimeout(fit, 1200); } });
+})();
+
+/* ----- why did the page start anew? A short log, shown when the version number in Settings is tapped (to find out what resets the game by itself) ----- */
+(function () {
+  const K = 'waxAsmrBoots', ls = (k, v) => { try { if (v === undefined) return JSON.parse(localStorage.getItem(k) || 'null'); if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, JSON.stringify(v)); } catch (e) { } return null; };
+  let log = ls(K) || [], nav = ''; try { nav = (performance.getEntriesByType('navigation')[0] || {}).type || ''; } catch (e) { }
+  const why = ls('waxAsmrWhy'), prev = ls('waxAsmrAlive'), now = Date.now(); ls('waxAsmrWhy', null);
+  let r;
+  if (why && now - why.t < 30000) r = 'игра сама перезагрузилась: вернулась из фона после ' + why.gone + ' с (' + why.st + ')';
+  else if (prev && now - prev.t < 60000) r = 'страницу перезапустил телефон или приложение; игра работала ' + Math.round((now - prev.t) / 1000) + ' с назад (' + (prev.st || '?') + '), тип: ' + nav;
+  else r = 'обычный запуск (' + nav + ')';
+  log.push({ t: now, r }); log = log.slice(-8); ls(K, log);
+  setInterval(() => { if (!document.hidden) ls('waxAsmrAlive', { t: Date.now(), st: ST.on ? 'в мастерской' : 'на главном' }); }, 3000);
+  const tag = document.getElementById('verTag'); if (!tag) return;
+  const box = document.createElement('div'); box.style.cssText = 'display:none;font-size:11px;line-height:1.35;opacity:.7;padding:6px 10px;text-align:left;white-space:normal'; tag.after(box);
+  tag.addEventListener('click', () => { box.style.display = box.style.display === 'none' ? 'block' : 'none'; box.innerHTML = (ls(K) || []).slice().reverse().map(e => { const d = new Date(e.t); return d.toLocaleDateString('ru', { day: '2-digit', month: '2-digit' }) + ' ' + d.toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit' }) + ' — ' + e.r; }).join('<br>'); });
 })();
 /* ---------- Online: nick + password account, cloud save, leaderboard (Firebase over plain REST) ---------- */
 // The game still works fully offline. Online only adds: an account, the progress kept in the cloud, and the top lists.
@@ -9380,6 +9404,7 @@ function sigOf(obj) { const c = JSON.parse(JSON.stringify(obj)); c.t = 0; const 
 // on start / return to the app: did another device save newer progress?
 async function accCheckNewer() {
   if (!ACC.uid || document.hidden || !askToast.hidden) return;
+  if (typeof reloadBusy === 'function' && reloadBusy()) return; // taking the cloud copy empties the plate: not while she is mixing
   try {
     const c = await accCloudInfo();
     if (!c || c.ts <= ACC.lastTs + 2000) { ONL.hold = false; return; }
@@ -11271,7 +11296,7 @@ function onResize() { layout(); if (ST.on) { stLayout(); stDraw(); } else draw()
 if (window.ResizeObserver) new ResizeObserver(onResize).observe(stage);
 else window.addEventListener('resize', onResize);
 // coming back to the app (it was only minimised, not closed): measure the field again a few times while the system finishes its window animation
-function relayoutSoon() { for (const ms of [0, 150, 450, 1000]) setTimeout(() => { try { layoutForce = true; onResize(); } catch (e) { } }, ms); }
+function relayoutSoon() { for (const ms of [0, 150, 450, 1000]) setTimeout(() => { try { window.scrollTo(0, 0); document.documentElement.scrollTop = 0; document.body.scrollTop = 0; layoutForce = true; onResize(); } catch (e) { } }, ms); }
 document.addEventListener('visibilitychange', () => { if (!document.hidden) relayoutSoon(); });
 window.addEventListener('pageshow', relayoutSoon); window.addEventListener('focus', relayoutSoon); window.addEventListener('orientationchange', relayoutSoon);
 
@@ -11286,6 +11311,16 @@ function frame(now) {
   if (REC.on) REC.frame();
 }
 requestAnimationFrame(frame);
+/* ----- a sound or a vibration that fails (the phone took the audio away while the app slept) must never break the tap that asked for it:
+   without this the handler stopped halfway (the cube vanished without crumbling, the press stayed "held") ----- */
+(function () {
+  for (const o of [Snd, typeof Hap !== 'undefined' ? Hap : null]) {
+    if (!o) continue;
+    for (const k of Object.keys(o)) { const f = o[k]; if (typeof f === 'function' && !f.__safe) { const w = function () { try { return f.apply(this, arguments); } catch (e) { return undefined; } }; w.__safe = true; o[k] = w; } }
+  }
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) { try { Snd.init(); } catch (e) { } } });
+})();
+
 </script>
 
 <script>
