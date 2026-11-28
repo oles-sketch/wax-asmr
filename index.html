@@ -95,7 +95,7 @@
   }
   button:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
   header { position: relative; }
-  #setBtn, #ordBtn, #lightBtn, #shelfBtn {
+  #setBtn, #ordBtn, #lightBtn, #shelfBtn, #nyBtn {
     font-family: var(--font-display);
     font-size: 16px; line-height: 1;
     background: var(--panel);
@@ -104,11 +104,11 @@
     padding: 5px 9px;
     color: var(--fg);
   }
-  #shelfBtn[hidden] { display: none; }
+  #shelfBtn[hidden], #nyBtn[hidden] { display: none; }
   #ordBtn { position: relative; }
   #ordBtn .dot { position: absolute; top: -3px; right: -3px; width: 10px; height: 10px; border-radius: 50%; background: #ff6b8b; border: 2px solid var(--bg, #2b2236); }
   #ordBtn .dot[hidden] { display: none; }
-  #ordBtn[aria-expanded="true"], #setBtn[aria-expanded="true"], #shelfBtn[aria-expanded="true"] { border-color: var(--accent); background: #4a3a5c; box-shadow: 0 0 0 1px var(--accent), 0 0 12px 1px var(--accent); }
+  #ordBtn[aria-expanded="true"], #setBtn[aria-expanded="true"], #shelfBtn[aria-expanded="true"], #nyBtn[aria-expanded="true"] { border-color: var(--accent); background: #4a3a5c; box-shadow: 0 0 0 1px var(--accent), 0 0 12px 1px var(--accent); }
   .settings {
     position: absolute; right: 0; top: calc(100% + 8px); z-index: 7; min-width: 220px;
     background: var(--panel); border: 1px solid var(--panel-line); border-radius: 18px;
@@ -144,6 +144,40 @@
   .opt-note { font-size: 12px; color: var(--fg-dim); }
   .ver-tag { font-size: 11px; color: var(--fg-dim); opacity: .45; text-align: right; margin-top: 2px; }
   #optFree[hidden], #freeNote[hidden] { display: none !important; }
+  /* ---- New Year tree ---- */
+  .qtabs.six { gap: 3px; }
+  .qtabs.six button { flex: 1 1 0; min-width: 0; font-size: 10.5px; line-height: 1.2; padding: 6px 0; white-space: pre-line; }
+  @media (max-width: 350px) { .qtabs.six button { font-size: 9.5px; } }
+  .ny-wrap { position: relative; padding: 10px; border-radius: 16px; border: 1px solid rgba(200,230,255,0.4); background: linear-gradient(180deg, rgba(120,170,230,0.16), rgba(255,255,255,0.05)); box-shadow: inset 0 0 22px rgba(200,230,255,0.22); }
+  .ny-scene { position: relative; border-radius: 12px; overflow: hidden; }
+  canvas.ny-cv { position: static; inset: auto; display: block; width: 100%; height: auto; border-radius: 12px; touch-action: pan-y; }
+  .ny-pops { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+  .ny-pop { position: absolute; bottom: 34%; padding: 4px 10px; border-radius: 999px; background: rgba(255,255,255,0.92); color: #20305a; font-size: 13px; font-weight: 700; white-space: nowrap; box-shadow: 0 2px 10px rgba(0,0,0,0.3); animation: nyPop 3.4s ease-out forwards; }
+  @keyframes nyPop { 0% { transform: translateY(14px) scale(0.8); opacity: 0; } 12% { transform: translateY(0) scale(1); opacity: 1; } 80% { opacity: 1; } 100% { transform: translateY(-110px) scale(1); opacity: 0; } }
+  .ny-bar { position: relative; height: 16px; margin: 10px 2px 4px; border-radius: 999px; background: rgba(255,255,255,0.14); border: 1px solid rgba(255,255,255,0.28); overflow: hidden; }
+  .ny-bar i { position: absolute; left: 0; top: 0; bottom: 0; background: linear-gradient(90deg, #4be38a, #ffd24a, #ff8ad8); border-radius: 999px; transition: width 0.8s ease; }
+  .ny-bar b { position: absolute; top: 0; bottom: 0; width: 2px; background: rgba(255,255,255,0.55); }
+  .ny-pct { text-align: center; font-size: 15px; font-weight: 700; color: #fff; margin: 2px 0 6px; }
+  .ny-done { text-align: center; margin: 6px 0; padding: 8px; border-radius: 10px; background: rgba(255,214,90,0.2); color: #ffe48a; font-weight: 600; }
+  .ny-mine { margin: 8px 2px 2px; font-size: 14px; font-weight: 600; color: #fff; }
+  .ny-note { margin: 5px 0; padding: 7px 10px; border-radius: 10px; border-left: 4px solid #7fb6ff; background: rgba(255,255,255,0.08); font-size: 13px; line-height: 1.4; color: #fff; }
+  .ny-note.ok { border-left-color: #ffd24a; }
+  .ny-pre { margin: 0 0 8px; padding: 7px 10px; border-radius: 10px; border-left: 4px solid #ff9ec4; background: rgba(255,170,200,0.14); font-size: 12.5px; line-height: 1.4; color: #fff; }
+  .ny-btns { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 2px; }
+  .ny-btns button { flex: 1 1 22%; min-width: 64px; font: inherit; font-size: 13px; font-weight: 600; padding: 9px 4px; border-radius: 12px; border: 1px solid #ffd24a; background: rgba(255,210,74,0.16); color: #fff; cursor: pointer; }
+  .ny-btns button:active { background: rgba(255,210,74,0.4); }
+  .ny-btns button:disabled { opacity: 0.4; cursor: default; }
+  .ny-btns.test button { flex: 1 1 28%; font-size: 12px; font-weight: 500; border-color: rgba(255,255,255,0.35); background: rgba(255,255,255,0.08); }
+  .ny-small { margin: 8px 2px 2px; font-size: 12px; color: var(--fg-dim); line-height: 1.4; }
+  .ny-top { margin: 4px 0; }
+  .ny-row { display: flex; gap: 8px; align-items: center; padding: 5px 8px; border-radius: 8px; font-size: 14px; color: #fff; }
+  .ny-row:nth-child(odd) { background: rgba(255,255,255,0.06); }
+  .ny-row.me { background: rgba(255,210,74,0.2); }
+  .ny-row .ny-i { width: 26px; text-align: center; flex: none; }
+  .ny-row .ny-n { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ny-row .ny-c { flex: none; font-weight: 600; }
+  #optNy[hidden], #nyArch[hidden] { display: none !important; }
+
   .secret { display: flex; gap: 6px; }
   .secret[hidden] { display: none; }
   .secret input { flex: 1; min-width: 0; font-family: var(--font-display); font-size: 14px; color: var(--fg); background: #2a2036; border: 1px solid var(--panel-line); border-radius: 10px; padding: 8px 10px; }
@@ -525,6 +559,7 @@
   #mixoPeek .mgo:active { background: rgba(255,170,200,0.4); }
   #mixoPeek .mmore { display: none; padding: 6px 6px 3px; font-size: 12px; line-height: 1.4; opacity: .92; }
   #mixoPeek.open .mmore { display: block; }
+  #mixoPeek.open { top: auto; bottom: 8px; max-height: calc(100% - 16px); overflow-y: auto; overscroll-behavior: contain; }
   #mixoPeek .mmore b { color: #ffd479; font-weight: 600; }
   .mx-k { margin: 7px 0; padding: 7px 10px; border-radius: 10px; border-left: 4px solid var(--mxc); background: rgba(255,255,255,0.08); font-size: 14px; line-height: 1.4; color: #fff; }
   .mx-k b { color: var(--mxc); font-weight: 700; }
@@ -594,7 +629,7 @@
     .row { gap: 6px; }
     h1 { font-size: 16px; }
     .stats { gap: 4px; }
-    #setBtn, #ordBtn, #lightBtn, #shelfBtn, #viewBtn { padding: 5px 7px; }
+    #setBtn, #ordBtn, #lightBtn, #shelfBtn, #viewBtn, #nyBtn { padding: 5px 7px; }
     #waxPct { min-width: 3.1ch; }
   }
   @media (prefers-reduced-motion: reduce) {
@@ -609,6 +644,7 @@
     <h1 id="title">Воск ASMR</h1>
     <div class="stats">
       <button id="viewBtn" class="smallbtn" type="button" aria-label="Мастерская"><span class="vi">🧪</span><span class="vl"> Мастерская</span></button>
+      <button id="nyBtn" type="button" aria-label="Новогодняя ёлка" aria-expanded="false" hidden>🎄</button>
       <button id="shelfBtn" type="button" aria-label="Полка творений" hidden>🗄️</button>
       <button id="lightBtn" type="button" aria-label="Выключить свет (неон светится в темноте)" aria-pressed="false">💡</button>
       <button id="ordBtn" type="button" aria-label="Заказы, магазин, полка" aria-expanded="false"><span id="ordIco">🛒</span><i class="dot" id="ordDot" hidden></i></button>
@@ -624,6 +660,8 @@
       <button type="button" class="opt" id="optFx" role="switch" aria-checked="true"><span>🏆 Эффекты наград (все сразу)</span><i class="sw"></i></button>
       <button type="button" class="opt sub" id="optFxMore" aria-expanded="false"><span>🎛️ Эффекты наград по отдельности</span><i class="chev">▾</i></button>
       <div id="fxAdv" hidden></div>
+      <button type="button" class="opt" id="optNy" role="switch" aria-checked="true" hidden><span>🎄 Новогодняя гирлянда</span><i class="sw"></i></button>
+      <button type="button" class="opt sub" id="nyArch" hidden><span>🗃️ Архив: ёлка, Новый год 2026</span><i class="chev">›</i></button>
       <button type="button" class="opt" id="optFree" role="switch" aria-checked="true"><span>🔓 Всё открыто (без магазина)</span><i class="sw"></i></button>
       <div class="opt-note" id="freeNote">Выключи, чтобы предметы, добавки и цвета открывались за монеты</div>
       <div class="secret" id="secretRow" hidden><input type="password" id="secretIn" placeholder="пароль" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="40"><button type="button" id="secretOk">OK</button></div>
@@ -636,7 +674,7 @@
       <div class="opt-note" id="saveNote" hidden></div>
       <div class="opt-note">Прогресс сохраняется сам. Файл нужен, чтобы перенести его на другой телефон или если браузер всё забывает. Если ты вошла в аккаунт, файл хранит и вход: при загрузке ты сразу в аккаунте, поэтому не отправляй его посторонним.</div>
       <div class="opt-note" id="vibeNote" hidden>На этом устройстве вибрация недоступна</div>
-      <div class="ver-tag" id="verTag">v180</div>
+      <div class="ver-tag" id="verTag">v183</div>
       <div id="setMore" hidden>↓ листай ниже, там ещё настройки</div>
     </div>
   </header>
@@ -5198,6 +5236,7 @@ function applyPrefs() {
   if (typeof syncFxRows === 'function') syncFxRows();
   const of = document.getElementById('optFree'); if (of) of.setAttribute('aria-checked', prefs.free ? 'true' : 'false');
   { const fn = document.getElementById('freeNote'); if (of) of.hidden = !prefs.free; if (fn) fn.hidden = !prefs.free; }
+  if (typeof NYS !== 'undefined') nySync(); // the tree button follows the "all open" switch
   const lb = document.getElementById('lightBtn'); if (lb) { lb.setAttribute('aria-pressed', prefs.dark ? 'true' : 'false'); lb.textContent = prefs.dark ? '🌙' : '💡'; }
 }
 if (!navigator.vibrate) { optVibe.disabled = true; optVibe.style.opacity = 0.5; document.getElementById('vibeNote').hidden = false; }
@@ -7099,10 +7138,12 @@ function stDraw() {
   }
   // plate lip in front
   sg.strokeStyle = '#c9bce0'; sg.lineWidth = 2; stEll(ST.cx, ST.cy, ST.ix + 3, ST.iy + 2); sg.stroke();
+  if (typeof nyGarland === 'function') nyGarland(sg, ST.cx, ST.cy, ST.ix + 3, ST.iy + 2, ST.time, 2.8);
 
   stSpecDraw();
   drawDrainStudio();
   stDark();
+  if (typeof nyGlow === 'function') nyGlow(sg, ST.cx, ST.cy, ST.ix + 3, ST.iy + 2, ST.time, 2.8);
   // pouring stream
   if (ST.pouring && ST.snap) {
     const col = css(mixAvgNow());
@@ -7568,11 +7609,11 @@ const Q = {
     const L = G.layers[G.layers.length - 1]; if (!L) return;
     for (const f of layerFx(L)) if (!QS.effects.includes(f)) QS.effects.push(f);
   },
-  save() { perSync(); return { earned: QS.earned, per: QS.per, stock: QS.stock, gift: QS.gift, rr: QS.rr, stats: QS.stats, kinds: QS.kinds, tools: QS.tools, effects: QS.effects, ach: QS.ach, order: QS.order, recent: QS.recent, coins: QS.coins, owned: QS.owned, bg: QS.bg, skin: QS.skin, snd: QS.snd, bfx: QS.bfx, plate: QS.plate, shelf: QS.shelf, rec: QS.rec, mixo: QS.mixo, mr: QS.mr }; },
+  save() { perSync(); return { earned: QS.earned, per: QS.per, stock: QS.stock, gift: QS.gift, rr: QS.rr, stats: QS.stats, kinds: QS.kinds, tools: QS.tools, effects: QS.effects, ach: QS.ach, order: QS.order, recent: QS.recent, coins: QS.coins, owned: QS.owned, bg: QS.bg, skin: QS.skin, snd: QS.snd, bfx: QS.bfx, plate: QS.plate, shelf: QS.shelf, rec: QS.rec, mixo: QS.mixo, mr: QS.mr, ny: QS.ny }; },
   load(d) {
     if (!d) return;
     Object.assign(QS.stats, d.stats || {}); QS.kinds = d.kinds || []; QS.tools = d.tools || []; QS.effects = d.effects || [];
-    QS.ach = d.ach || {}; QS.order = d.order || null; QS.recent = d.recent || []; QS.coins = d.coins || 0; QS.owned = d.owned || {}; QS.earned = d.earned != null ? d.earned | 0 : earnedGuess(); QS.per = d.per || null; QS.stock = d.stock || null; QS.gift = d.gift || ''; QS.rr = d.rr || null; if (typeof stkBadges === 'function') try { stkBadges(); } catch (e) { } QS.bg = d.bg || 'night'; QS.skin = d.skin || 'plain'; QS.snd = d.snd || 'classic'; QS.bfx = d.bfx || 'none'; QS.plate = d.plate || 'plain'; QS.shelf = d.shelf || []; QS.mixo = d.mixo && d.mixo.id ? { id: d.mixo.id, h: Array.isArray(d.mixo.h) ? d.mixo.h.slice(-4) : [] } : null; QS.mr = d.mr && d.mr.dk ? { dk: String(d.mr.dk) } : null; QS.rec = d.rec && typeof d.rec === 'object' ? { b: d.rec.b | 0, c: d.rec.c | 0, o: d.rec.o | 0 } : null;
+    QS.ach = d.ach || {}; QS.order = d.order || null; QS.recent = d.recent || []; QS.coins = d.coins || 0; QS.owned = d.owned || {}; QS.earned = d.earned != null ? d.earned | 0 : earnedGuess(); QS.per = d.per || null; QS.stock = d.stock || null; QS.gift = d.gift || ''; QS.rr = d.rr || null; if (typeof stkBadges === 'function') try { stkBadges(); } catch (e) { } QS.bg = d.bg || 'night'; QS.skin = d.skin || 'plain'; QS.snd = d.snd || 'classic'; QS.bfx = d.bfx || 'none'; QS.plate = d.plate || 'plain'; QS.shelf = d.shelf || []; QS.mixo = d.mixo && d.mixo.id ? { id: d.mixo.id, h: Array.isArray(d.mixo.h) ? d.mixo.h.slice(-4) : [] } : null; QS.mr = d.mr && d.mr.dk ? { dk: String(d.mr.dk) } : null; QS.ny = d.ny && typeof d.ny === 'object' ? d.ny : null; QS.rec = d.rec && typeof d.rec === 'object' ? { b: d.rec.b | 0, c: d.rec.c | 0, o: d.rec.o | 0 } : null;
   }
 };
 
@@ -7931,7 +7972,7 @@ function syncQuestBtns() {
 function closeQuest() { questEl.hidden = true; syncQuestBtns(); if (sheetEl.hidden && settingsEl.hidden) backdropEl.hidden = true; }
 var QTAB = 'shop', QBTN = 'shop'; // the one button at the top opens the tab used last (the shop at the very first start); the trophy on the bucket opens the leaders without changing that
 try { const t = localStorage.getItem('waxAsmrTab'); if (['orders', 'ach', 'shop', 'shelf', 'top'].includes(t)) QTAB = QBTN = t; } catch (e) { }
-const QICO = { orders: '📋', ach: '🏆', shop: '🛒', shelf: '🗄️', top: '🥇' }, QNAME = { orders: 'Заказ', ach: 'Этапы', shop: 'Магазин', shelf: 'Полка', top: 'Лидеры' };
+const QICO = { orders: '📋', ach: '🏆', shop: '🛒', shelf: '🗄️', top: '🥇', ny: '🎄' }, QNAME = { orders: 'Заказ', ach: 'Этапы', shop: 'Магазин', shelf: 'Полка', top: 'Лидеры', ny: 'Ёлка' };
 syncQuestBtns();
 function openQuest(tab, viaTrophy) {
   closeSheet(); closeSettings(); if (typeof scrollSet === 'function' && scrollOpen) scrollSet(false);
@@ -7948,16 +7989,19 @@ function h(tag, cls, txt) { const e = document.createElement(tag); if (cls) e.cl
 function renderQuest() {
   if (questEl.hidden) return;
   const keep = questEl.scrollTop; questEl.textContent = '';
+  if (QTAB === 'ny' && !(typeof nyVisible === 'function' && nyVisible())) QTAB = QBTN = 'shop';
   const tabs = h('div', 'qtabs');
-  [['orders', '📋 Заказ'], ['ach', '🏆 Этапы'], ['shop', '🛒 Магазин'], ['shelf', '🗄️ Полка'], ['top', '🥇 Лидеры']].forEach(t => {
+  const tabList = [['orders', '📋 Заказ'], ['ach', '🏆 Этапы'], ['shop', '🛒 Магазин'], ['shelf', '🗄️ Полка'], ['top', '🥇 Лидеры']];
+  tabList.forEach(t => {
     const b = h('button', null, t[1]); b.type = 'button'; b.setAttribute('aria-pressed', QTAB === t[0] ? 'true' : 'false');
     b.addEventListener('click', () => { QTAB = QBTN = t[0]; syncQuestBtns(); Snd.tick(0); renderQuest(); questEl.scrollTop = 0; });
     tabs.appendChild(b);
   });
-  questEl.appendChild(tabs);
+  if (QTAB !== 'ny') questEl.appendChild(tabs); // the tree has its own button at the top and no tab row
   if (QTAB === 'shop') { renderShop(questEl); questEl.scrollTop = keep; return; }
   if (QTAB === 'shelf') { renderShelf(questEl); questEl.scrollTop = keep; return; }
   if (QTAB === 'top') { renderTop(questEl); questEl.scrollTop = keep; return; }
+  if (QTAB === 'ny') { renderNy(questEl); questEl.scrollTop = keep; return; }
   const st = orderStatus();
   if (QTAB === 'orders') {
   questEl.appendChild(h('div', 'sheet-title', 'Заказ'));
@@ -10265,8 +10309,9 @@ function renderCases(root) {
 const MIXO_SRC = Object.assign({ glitter: GLIT.map(j => j.id) }, FX_SRC);
 const MIXO_ADD = { glitter: { n: 'Блёстки' }, pearl: { n: 'Перламутр' }, sugar: { n: 'Сахарные шарики' }, confetti: { n: 'Конфетти' }, foil: { n: 'Фольга' }, flake: { n: 'Хлопья воска' }, foam: { n: 'Пенопласт' }, eyes: { n: 'Глазки' }, shroom: { n: 'Грибы' }, neon: { n: 'Неон' }, gloss: { n: 'Глянец' }, clear: { n: 'Прозрачность' }, scent: { n: 'Аромат' } };
 const MIXO_NEED = 0.3;      // how much of an add-in counts as "there is some" (a share of a full dose)
+const MIXO_CUBE_PCT = 50;  // from this match the cubes come back too
 const MIXO_MIN = 0.3;       // below this match the order is not accepted
-const MIXO_COVER = 0.5;     // how much of the plate must be covered with liquid
+const MIXO_COVER = 0.4;     // how much of the plate must be covered with liquid
 const MIXO_ADD_K = 0.35;    // every add-in makes the pay this much bigger
 const MIXO = [
   // ★1: one flat colour (two of them have to be mixed first), some with an add-in
@@ -10386,26 +10431,50 @@ function mixoAmts() {
 }
 function mixoAddState(o) { const am = mixoAmts(); return (o.add || []).map(k => ({ k, n: MIXO_ADD[k].n, r: Math.min(1, (am[k] || 0) / MIXO_NEED), ok: (am[k] || 0) >= MIXO_NEED })); }
 // 0..100, how far the plate is filled, and the add-ins
+// the plate and the picture are compared a little blurred (a 3x3 soft look over the 16x16 grid) and the picture may sit a bit off centre:
+// nobody pours the moon exactly in the middle, so a near miss must not cost much
+function mixoSmooth(get, n) { // get(gi) -> [lab, weight] or null; returns the same for every cell, mixed with the neighbours
+  const out = new Array(256);
+  for (let gi = 0; gi < 256; gi++) {
+    const cx = gi % 16, cy = (gi / 16) | 0; let L = 0, A = 0, B = 0, W = 0;
+    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+      const x = cx + dx, y = cy + dy; if (x < 0 || y < 0 || x > 15 || y > 15) continue;
+      const v = get(y * 16 + x); if (!v) continue; const k = (dx ? 1 : 2) * (dy ? 1 : 2) * v[1];
+      L += v[0][0] * k; A += v[0][1] * k; B += v[0][2] * k; W += k;
+    }
+    out[gi] = W > 0 ? [L / W, A / W, B / W] : null;
+  }
+  return out;
+}
+function mixoTarget(o, th, ox, oy, cache) { // the colour the order wants at every place of the 16x16 grid (cached: the places never change)
+  const key = o.id + ':' + Math.round(th * 100) + ':' + ox + ':' + oy; if (cache && MIXO_TL[key]) return MIXO_TL[key];
+  const raw = []; for (let gi = 0; gi < 256; gi++) raw.push([mixoLab(mixoAt(o, ((gi % 16) + 0.5) / 8 - 1 + ox, (Math.floor(gi / 16) + 0.5) / 8 - 1 + oy, th)), 1]);
+  if (cache) MIXO_TL[key] = raw; return raw;
+}
 function mixoScore(o) {
   const adds = mixoAddState(o), cc = mixoCells(), res = { pct: 0, cover: cc.cover, adds, addsOk: adds.every(a => a.ok) };
   if (cc.cells.length < 4) return res;
-  const err = (th, cache) => {
-    const key = o.id + ':' + Math.round(th * 100); let tl = cache && MIXO_TL[key];
-    if (!tl) { // the target colour at every place of the 16x16 grid (cached: the places never change)
-      tl = []; for (let gi = 0; gi < 256; gi++) tl.push(mixoLab(mixoAt(o, ((gi % 16) + 0.5) / 8 - 1, (Math.floor(gi / 16) + 0.5) / 8 - 1, th)));
-      if (cache) MIXO_TL[key] = tl;
-    }
-    let s = 0, w = 0; for (const c of cc.cells) { const t = tl[c.gi]; s += c.w * Math.hypot(t[0] - c.lab[0], t[1] - c.lab[1], t[2] - c.lab[2]); w += c.w; } return s / w;
+  const byGi = {}; cc.cells.forEach(c => { byGi[c.gi] = c; });
+  const pl = mixoSmooth(gi => { const c = byGi[gi]; return c ? [c.lab, c.w] : null; });
+  const err = (th, ox, oy) => {
+    const raw = mixoTarget(o, th, ox, oy, Math.abs(ox) < 0.3 && Math.abs(oy) < 0.3), tl = mixoSmooth(gi => byGi[gi] ? raw[gi] : null); let s = 0, w = 0; // the target is blurred only over the places the plate has liquid in, the same way the plate is
+    for (const c of cc.cells) { const p = pl[c.gi], t = tl[c.gi]; if (!p || !t) continue; s += c.w * Math.hypot(t[0] - p[0], t[1] - p[1], t[2] - p[2]); w += c.w; }
+    return w ? s / w : 99;
   };
-  let best = err(0, true);
-  if (mixoRot(o)) { // the direction does not matter: 24 turns, then a finer look around the best one
-    let bt = 0; for (let i = 0; i < 24; i++) { const e = err(Math.round(i * Math.PI / 12 * 100) / 100, true); if (e < best || i === 0) { best = e; bt = Math.round(i * Math.PI / 12 * 100) / 100; } }
-    for (let i = -6; i <= 6; i++) if (i) best = Math.min(best, err(bt + i * 0.0218));
+  let best = err(0, 0, 0), bt = 0, bx = 0, by = 0;
+  const fine = () => { const c0 = bt; for (let i = -6; i <= 6; i++) if (i) { const th = c0 + i * 0.0218, e = err(th, bx, by); if (e < best) { best = e; bt = th; } } }; // a finer look around the best direction
+  if (mixoRot(o)) { // the direction does not matter: 24 turns, then a finer look
+    for (let i = 0; i < 24; i++) { const th = Math.round(i * Math.PI / 12 * 100) / 100, e = err(th, 0, 0); if (e < best || i === 0) { best = e; bt = th; } }
+    fine();
   }
-  res.pct = Math.round(100 * Math.exp(-best / 22)); return res;
+  if (o.t !== 'solid') { // a little off centre is fine (up to two cells)
+    for (let j = -2; j <= 2; j++) for (let i = -2; i <= 2; i++) if (i || j) { const e = err(bt, i * 0.125, j * 0.125); if (e < best) { best = e; bx = i * 0.125; by = j * 0.125; } }
+    if (mixoRot(o) && (bx || by)) fine();
+  }
+  res.pct = Math.round(100 * Math.exp(-best / 28)); return res;
 }
 var MIXO_TL = {};
-function mixoReward(o, pct) { const k = 1 + MIXO_ADD_K * (o.add ? o.add.length : 0); return { coins: Math.round(ORD_COIN[o.d] * 1.5 * k * Math.pow(pct / 100, 1.5)), cubes: pct >= 60 ? ORD_REWARD[o.d] : 0 }; }
+function mixoReward(o, pct) { const k = 1 + MIXO_ADD_K * (o.add ? o.add.length : 0); return { coins: Math.round(ORD_COIN[o.d] * 2 * k * Math.pow(pct / 100, 1.5)), cubes: pct >= MIXO_CUBE_PCT ? ORD_REWARD[o.d] : 0 }; }
 // the picture of the order (a round plate)
 function mixoDraw(cv, o, size) {
   cv.width = cv.height = size; const g = cv.getContext('2d'), im = g.createImageData(size, size);
@@ -10466,7 +10535,7 @@ function mixoPeekLive() {
   el.classList.toggle('open', MIXO_OPEN);
   if (MIXO_OPEN) el.querySelector('.mmore').innerHTML = o.s + '<br>Совпадение: <b>' + sc.pct + '%</b> (принимаем от ' + Math.round(MIXO_MIN * 100) + '%)<br>Жижа закрывает <b>' + Math.round(sc.cover * 100) + '%</b> тарелки (нужно от ' + Math.round(MIXO_COVER * 100) + '%)' +
     (sc.adds.length ? '<br>Добавки: ' + sc.adds.map(a => '<b>' + a.n + '</b> ' + (a.ok ? '✓' : 'ещё мало')).join(', ') : '') +
-    '<br>Монеты: <b>' + rw.coins + ' 🪙</b>, максимум ' + mixoReward(o, 100).coins + '<br>Кубики на полку: ' + (sc.pct >= 60 ? '<b>+' + rw.cubes + '</b>' : 'от 60% совпадения (+' + ORD_REWARD[o.d] + ')') + '<br><span style="opacity:.7">Тарелка после сдачи опустеет. Тапни по рамке, чтобы свернуть</span>';
+    '<br>Монеты: <b>' + rw.coins + ' 🪙</b>, максимум ' + mixoReward(o, 100).coins + '<br>Кубики на полку: ' + (sc.pct >= MIXO_CUBE_PCT ? '<b>+' + rw.cubes + '</b>' : 'от ' + MIXO_CUBE_PCT + '% совпадения (+' + ORD_REWARD[o.d] + ')') + '<br><span style="opacity:.7">Тарелка после сдачи опустеет. Тапни по рамке, чтобы свернуть</span>';
 }
 setInterval(() => { if (appEl.dataset.view === 'studio' && !document.hidden) mixoPeekLive(); }, 700);
 {
@@ -10492,13 +10561,365 @@ function mixoCard(parent) {
   const key = (cls, label, html) => { const d = h('div', 'mx-k ' + cls); d.innerHTML = '<b>' + label + '</b> ' + html; card.appendChild(d); };
   key('cub', 'Из кубиков:', o.st.map(i => '<span style="color:' + STCOL[i] + '">●●</span>').join(' ') + (o.t === 'solid' && o.st.length > 1 ? ' смешай до одного цвета' : ''));
   if (o.add) key('add', 'Добавка:', o.add.map(k => MIXO_ADD[k].n).join(', ') + '. Насыпь на жижу и дождись, пока осядет. Награда ×' + (1 + MIXO_ADD_K * o.add.length).toFixed(2).replace(/0$/, ''));
-  key('rew', 'Награда:', 'до ' + rw.coins + ' 🪙 за процент совпадения и ' + rw.cubes + ' кубиков на полку от 60% · ' + '★'.repeat(o.d));
+  key('rew', 'Награда:', 'до ' + rw.coins + ' 🪙 за процент совпадения и ' + rw.cubes + ' кубиков на полку от ' + MIXO_CUBE_PCT + '% · ' + '★'.repeat(o.d));
   if (miss.length) key('bad', '⚠️ Закончилось:', miss.join(', ') + '. Поменяй заказ бесплатно или пополни запас в магазине.');
   card.appendChild(h('div', 'opt-note', 'Намешай в мастерской: рядом с тарелкой висит рамка с образцом и живым процентом, в ней же кнопка «Сдать». Тапни по рамке, чтобы увидеть подробности.'));
   const row = h('div', 'savebtns'), sw = h('button', null, mixoSwapLabel()); sw.type = 'button';
   sw.addEventListener('click', () => { if (!mixoSwap()) return; Snd.tick(0); if (typeof renderQuest === 'function') renderQuest(); });
   row.appendChild(sw); card.appendChild(row); parent.appendChild(card);
 }
+/* ---------- New Year event: one big tree for everybody. Everyone drops coins in, four buckets fill by quarters, donors get a glowing garland ---------- */
+// Dates: the event opens on 1 December for everybody and takes coins until 1 January. Before that only the "everything is open" switch shows it, as a preview
+// that lives on this phone alone (nothing is spent, nothing goes online).
+var NY_GOAL = 200000, NY_MIN = 100;
+var NY_START = new Date(2026, 11, 1).getTime(), NY_END = new Date(2027, 0, 16).getTime(); // taking coins until the end of 15 January
+var NY_YEAR = 'ny26';
+var NY = { tot: 0, goal: NY_GOAL, my: 0, rows: [], t: 0, cfgT: 0, busy: false, don: false, err: '', prev: null, q: [], disp: 0, cv: null, raf: 0, last: 0, snow: null, coins: [], sig: '', frost: null };
+var NYS = { on: false, k: 0 }; // what the main screen needs to know: is there a garland, how much of it is lit
+function nyS() { if (!QS.ny) QS.ny = {}; return QS.ny; }
+function nyPhase() { const n = Date.now(); if (n < NY_START) return !prefs.free ? 'off' : (nyS().sim ? 'end' : 'pre'); return n >= NY_END ? 'end' : 'on'; } // 'sim': in the preview the end can be faked to look at the archive
+function nyVisible() { return nyPhase() !== 'off'; }
+function nyPre() { return Date.now() < NY_START && !!prefs.free; }
+function nyPreD() { const s = nyS(); if (!s.pre) s.pre = { tot: 0, my: 0, rows: [] }; return s.pre; }
+function nyFmt(n) { return Math.round(n || 0).toLocaleString('ru-RU'); }
+// the numbers the screen shows: the preview's own, or the shared ones
+function nyData() {
+  if (nyPre()) { const p = nyPreD(); return { tot: p.tot, goal: NY_GOAL, my: p.my, rows: p.rows.map(r => ({ nick: r.n, c: r.c, me: r.n === 'Ты' })).sort((a, b) => b.c - a.c), pre: true }; }
+  const s = nyS(), live = NY.t > 0;
+  return { tot: live ? NY.tot : (s.tot | 0), goal: NY.goal, my: Math.max(NY.my, s.my | 0), rows: NY.rows.map(r => ({ nick: r.nick, c: r.c, me: r.uid === ACC.uid })), pre: false };
+}
+function nyPct(d) { return d.goal > 0 ? Math.max(0, Math.min(1, d.tot / d.goal)) : 0; }
+function nySync() {
+  const d = nyData(), s = nyS(), ph = nyPhase();
+  const nb = document.getElementById('nyBtn'), ar = document.getElementById('nyArch'), o0 = document.getElementById('optNy');
+  if (nb) nb.hidden = !(ph === 'pre' || ph === 'on'); // while it runs: a button next to the workshop; when it is over: the archive in Settings
+  if (ar) ar.hidden = ph !== 'end';
+  if (o0) o0.hidden = ph === 'off';
+  if (ph === 'off') { NYS.on = false; NYS.k = 0; return; }
+  const k = nyPct(d);
+  if (!d.pre) { if (NY.t > 0) { s.tot = NY.tot; s.k = k; } if (d.my >= NY_MIN && k >= 1) s.gar = true; }
+  // the garland is the reward for the full tree: it appears when the tree is 100% and the player has put in at least NY_MIN (and then stays)
+  const full = k >= 1 || (!d.pre && !!s.gar);
+  NYS.k = full ? 1 : (d.pre ? k : (NY.t > 0 ? k : (s.k || 0)));
+  NYS.on = prefs.nyDeco !== false && full && (d.my >= NY_MIN || (!d.pre && !!s.gar));
+  if (o0) o0.setAttribute('aria-checked', prefs.nyDeco !== false ? 'true' : 'false');
+}
+setInterval(nySync, 30000);
+
+/* ----- the shared numbers (Firestore: ny/{uid} = {nick, c: all coins this player put in, ts, ld: the last drop}) ----- */
+async function nyLoad() {
+  if (NY.busy || !ACC.uid || nyPhase() === 'off' || nyPre()) return; NY.busy = true;
+  try {
+    const tok = await accToken(), hd = { 'Content-Type': 'application/json', Authorization: 'Bearer ' + tok };
+    const j = await fbFetch(FB_DOC + ':runQuery', { method: 'POST', headers: hd, body: JSON.stringify({ structuredQuery: { from: [{ collectionId: 'ny' }], limit: 500 } }) });
+    const rows = (j || []).filter(r => r.document).map(r => { const f = r.document.fields || {}; return { uid: String(r.document.name).split('/').pop(), nick: fgS(f, 'nick') || '???', c: fgI(f, 'c'), ts: fgI(f, 'ts'), ld: fgI(f, 'ld') }; }).filter(r => r.c > 0).sort((a, b) => b.c - a.c);
+    if (Date.now() - NY.cfgT > 600000) { // the goal can be changed by hand in the console: ny_cfg/main {goal}
+      NY.cfgT = Date.now();
+      try { const c = await fsGet('ny_cfg/main'); const gl = c ? fgI(c.fields, 'goal') : 0; NY.goal = gl >= 1000 ? gl : NY_GOAL; } catch (e) { }
+    }
+    // who has dropped something since the last look: their names float up
+    const prev = NY.prev, now = {}; rows.forEach(r => { now[r.uid] = r.c; });
+    if (prev) rows.forEach(r => { const d = r.c - (prev[r.uid] || 0); if (d > 0 && r.uid !== ACC.uid) NY.q.push({ nick: r.nick, n: d }); });
+    else rows.filter(r => r.ld > 0 && Date.now() - r.ts < 86400000 && r.uid !== ACC.uid).sort((a, b) => b.ts - a.ts).slice(0, 3).forEach(r => NY.q.push({ nick: r.nick, n: r.ld }));
+    NY.prev = now; NY.rows = rows; NY.tot = rows.reduce((a, r) => a + r.c, 0); NY.t = Date.now(); NY.err = '';
+    const me = rows.find(r => r.uid === ACC.uid); NY.my = me ? me.c : 0; if (me) nyS().my = me.c;
+    nySync(); nyMilestones();
+  } catch (e) { NY.err = e && e.http === 403 ? 'rules' : (e && e.net ? 'net' : 'err'); }
+  finally { NY.busy = false; nyRedraw(); }
+}
+async function nyMilestones() {
+  if (!ACC.uid || nyPhase() !== 'on') return;
+  const s = nyS(), k = NY.tot / NY.goal; s.said = s.said || {};
+  // only the highest quarter reached is announced (the lower ones were somebody else's to announce); the text names the quarter, not the current total
+  let top = 0; for (const q of [25, 50, 75, 100]) if (k * 100 >= q) top = q;
+  if (!top || s.said[top]) return;
+  for (const q of [25, 50, 75, 100]) if (q <= top) s.said[q] = 1;
+  const txt = top === 100 ? '🎄✨ Ёлка собрана полностью! Гирлянды зажглись у всех, кто вложился' : '🎄 Ёлка собрана на ' + top + '%: больше ' + nyFmt(NY.goal * top / 100) + ' из ' + nyFmt(NY.goal) + ' 🪙. Спасибо всем, кто кидал!';
+  try { await chatPostEvent(txt, NY_YEAR + '_' + top); } catch (e) { if (!(e && (e.http === 409 || e.http === 403))) s.said[top] = 0; }
+}
+var nySigOld = '';
+function nyRedraw() {
+  if (questEl.hidden || QTAB !== 'ny') return;
+  const d = nyData(), sig = d.tot + '|' + d.my + '|' + d.rows.length + '|' + NY.err + '|' + NY.don + '|' + QS.coins + '|' + nyPhase() + '|' + (d.rows[0] ? d.rows[0].c : 0);
+  if (sig === nySigOld) return; nySigOld = sig; renderQuest();
+}
+setInterval(() => {
+  if (!ACC.uid || document.hidden || !nyVisible()) return;
+  const open = !questEl.hidden && QTAB === 'ny';
+  if (Date.now() - NY.t > (open ? 15000 : 240000)) nyLoad();
+}, 5000);
+setTimeout(() => { nySync(); if (ACC.uid && nyVisible() && !nyPre()) nyLoad(); }, 3000);
+
+/* ----- dropping coins ----- */
+function nyPop(nick, n) { NY.q.push({ nick, n }); }
+async function nyDonate(n) {
+  const ph = nyPhase();
+  if (ph === 'pre') { const p = nyPreD(); p.tot += n; p.my += n; nyPreRow('Ты', n); nyPop('Ты', n); NY.coins.push(...nyCoinBurst(n)); saveNow(); nySync(); nyRedraw(); return; }
+  if (ph !== 'on') { showInfo('Сбор монет закончился', 2500); return; }
+  if (!ACC.uid) { showInfo('Чтобы кидать монеты, войди в аккаунт (⚙️ → Аккаунт и облако)', 3500); return; }
+  if (NY.don || QS.coins < n) return;
+  NY.don = true; nySigOld = ''; nyRedraw();
+  try {
+    const cur = await fsGet('ny/' + ACC.uid), base = cur ? fgI(cur.fields, 'c') : 0, nc = base + n;
+    await fsPatch('ny/' + ACC.uid, { nick: fvS(ACC.nick), c: fvI(nc), ts: fvI(Date.now()), ld: fvI(n) }); // first it is written, only then the coins leave the pocket
+    QS.coins -= n; saveNow();
+    NY.my = nc; nyS().my = nc; NY.tot += n; if (!NY.t) NY.t = Date.now();
+    const r = NY.rows.find(x => x.uid === ACC.uid); if (r) { r.c = nc; r.nick = ACC.nick; } else NY.rows.push({ uid: ACC.uid, nick: ACC.nick, c: nc, ts: Date.now(), ld: n });
+    NY.rows.sort((a, b) => b.c - a.c); if (NY.prev) NY.prev[ACC.uid] = nc;
+    nyPop('Ты', n); NY.coins.push(...nyCoinBurst(n)); Snd.init(); Snd.chime(); nySync(); nyMilestones();
+    setTimeout(nyLoad, 1500);
+  } catch (e) {
+    NY.err = e && e.http === 403 ? 'rules' : (e && e.net ? 'net' : 'err');
+    showInfo(NY.err === 'rules' ? 'Правила базы ещё без ёлки (нужно вставить новые)' : 'Не вышло, монеты на месте. Проверь интернет', 3500);
+  } finally { NY.don = false; nySigOld = ''; nyRedraw(); }
+}
+function nyPreRow(nick, n) { const p = nyPreD(), r = p.rows.find(x => x.n === nick); if (r) r.c += n; else p.rows.push({ n: nick, c: n }); }
+function nyCoinBurst(n) { const m = Math.max(4, Math.min(14, Math.round(Math.sqrt(n) / 3))), out = []; for (let i = 0; i < m; i++) out.push({ x: 60 + Math.random() * 200, y: -10 - Math.random() * 60, v: 90 + Math.random() * 80, tx: 0, ty: 0 }); return out; }
+
+/* ----- garland: a string of bulbs round the rim. It is drawn on the main pot and on the workshop plate, and glows in the dark ----- */
+var NY_COL = ['#ff4b5c', '#ffd24a', '#4be38a', '#4bb8ff', '#ff8ad8', '#ffa14a'];
+function nyBulbs(cx, cy, rx, ry, n) {
+  const out = [];
+  for (let i = 0; i < n; i++) { const a = Math.PI * (0.07 + 0.86 * (i + 0.5) / n); out.push({ x: cx + Math.cos(a) * rx, y: cy + Math.sin(a) * ry + 4 + Math.sin(a) * 2, i, rank: (i * 7) % n, col: NY_COL[i % NY_COL.length] }); }
+  return out;
+}
+function nyBright(b, n, tm) { const lit = b.rank < NYS.k * n; return lit ? (NYS.k >= 0.999 ? 0.8 + 0.2 * Math.sin(tm * 3.2 + b.i * 1.7) : 0.85 + 0.15 * Math.sin(tm * 2 + b.i * 2.3)) : 0; }
+function nyGarland(c, cx, cy, rx, ry, tm, r) {
+  if (!NYS.on || prefs.nyDeco === false) return;
+  const n = 15, bl = nyBulbs(cx, cy, rx, ry, n);
+  c.save();
+  c.lineWidth = 1.6; c.strokeStyle = 'rgba(18,42,28,0.95)'; c.lineCap = 'round'; c.beginPath();
+  bl.forEach((b, i) => { if (i) c.lineTo(b.x, b.y - 1.5); else c.moveTo(b.x, b.y - 1.5); }); c.stroke();
+  bl.forEach(b => {
+    const br = nyBright(b, n, tm);
+    c.beginPath(); c.arc(b.x, b.y + 1.5, r, 0, 7);
+    c.fillStyle = br > 0 ? b.col : 'rgba(90,100,112,0.95)'; c.fill();
+    if (br > 0) { c.fillStyle = 'rgba(255,255,255,' + (0.55 * br) + ')'; c.beginPath(); c.arc(b.x - r * 0.3, b.y + 1.5 - r * 0.3, r * 0.42, 0, 7); c.fill(); }
+    c.fillStyle = '#2a3a2c'; c.fillRect(b.x - 1.2, b.y - 1.6, 2.4, 2.4);
+  });
+  c.restore();
+}
+function nyGlow(c, cx, cy, rx, ry, tm, r) {
+  if (!NYS.on || prefs.nyDeco === false) return;
+  const n = 15, bl = nyBulbs(cx, cy, rx, ry, n), dk = typeof DARKK === 'number' ? DARKK : 0;
+  c.save(); c.globalCompositeOperation = 'lighter';
+  bl.forEach(b => {
+    const br = nyBright(b, n, tm); if (br <= 0) return;
+    const rad = r * (4 + 3.5 * dk), al = (0.16 + 0.6 * dk) * br, gr = c.createRadialGradient(b.x, b.y + 1.5, 0, b.x, b.y + 1.5, rad);
+    gr.addColorStop(0, nyRgba(b.col, al)); gr.addColorStop(1, nyRgba(b.col, 0));
+    c.fillStyle = gr; c.fillRect(b.x - rad, b.y + 1.5 - rad, rad * 2, rad * 2);
+  });
+  c.restore();
+}
+function nyRgba(hex, a) { const v = parseInt(hex.slice(1), 16); return 'rgba(' + (v >> 16) + ',' + ((v >> 8) & 255) + ',' + (v & 255) + ',' + a + ')'; }
+function nyGarlandMain(c) { if (NYS.on) nyGarland(c, potCx, rimY, potRx * 0.99, potRy, time, 3.4); }
+function nyGlowMain(c) { if (NYS.on) nyGlow(c, potCx, rimY, potRx * 0.99, potRy, time, 3.4); }
+
+/* ----- the tab ----- */
+function renderNy(el) {
+  nySync();
+  const d = nyData(), pct = nyPct(d), ph = nyPhase();
+  el.appendChild(h('div', 'sheet-title', ph === 'end' ? '🗃️ Архив · Новогодняя ёлка 2026' : '❄️ Новогодняя ёлка ❄️'));
+  const wrap = h('div', 'ny-wrap');
+  if (d.pre) wrap.appendChild(h('div', 'ny-pre', '🧪 Предпросмотр (включён режим «Всё открыто»). Цифры только у тебя на телефоне, монеты не тратятся и в сеть ничего не уходит. Настоящий сбор для всех начнётся 1 декабря.'));
+  const sc = h('div', 'ny-scene'), cv = document.createElement('canvas'); cv.className = 'ny-cv'; sc.appendChild(cv);
+  const pops = h('div', 'ny-pops'); sc.appendChild(pops); wrap.appendChild(sc);
+  NY.cv = cv; NY.pops = pops;
+  // the bar
+  const bar = h('div', 'ny-bar'), fill = h('i'); fill.style.width = (pct * 100).toFixed(1) + '%'; bar.appendChild(fill);
+  [25, 50, 75].forEach(q => { const t = h('b'); t.style.left = q + '%'; bar.appendChild(t); });
+  wrap.appendChild(bar);
+  const pt = pct <= 0 ? '0%' : pct < 0.01 ? '<1%' : Math.floor(pct * 100) + '%';
+  wrap.appendChild(h('div', 'ny-pct', pt + ' · ' + nyFmt(d.tot) + ' из ' + nyFmt(d.goal) + ' 🪙'));
+  if (pct >= 1) wrap.appendChild(h('div', 'ny-done', '🎉 Ёлка собрана! Спасибо всем, кто кидал монеты'));
+  if (ph === 'end') wrap.appendChild(h('div', 'ny-note ok', 'Событие закончилось. Всего вложили ' + nyFmt(d.tot) + ' 🪙, участников: ' + d.rows.length + (pct >= 1 ? '. Ёлка собрана полностью!' : '. До полной ёлки не хватило.')));
+  if (!d.pre && !ACC.uid) wrap.appendChild(h('div', 'ny-note', 'Чтобы видеть общий сбор и кидать монеты, войди в аккаунт: ⚙️ → «Аккаунт и облако».'));
+  else if (NY.err === 'rules') wrap.appendChild(h('div', 'ny-note', 'Ёлка ещё не включена в базе: нужно вставить новые правила Firestore (файл firestore-rules.txt).'));
+  else if (NY.err === 'net') wrap.appendChild(h('div', 'ny-note', 'Нет связи, показываю последние известные цифры.'));
+  // my part and the garland
+  const my = d.my, got = NYS.on || (my >= NY_MIN && pct >= 1), put = my >= NY_MIN;
+  wrap.appendChild(h('div', 'ny-mine', '🎁 Мой вклад: ' + nyFmt(my) + ' 🪙'));
+  wrap.appendChild(h('div', 'ny-note' + (got || put ? ' ok' : ''), got
+    ? '✨ Гирлянда у тебя есть: она на ведре и в мастерской и светится в темноте. Выключить её можно в Настройках.'
+    : ph === 'end' ? (put ? 'Ты вложил(а) ' + nyFmt(my) + ' 🪙. Спасибо!' : 'В этот раз ты не участвовал(а).')
+    : put ? '✅ Ты уже вложил(а). Когда соберём ёлку на 100%, гирлянда станет твоей: она появится на ведре и в мастерской и будет светиться в темноте.'
+      : 'Вложи от ' + NY_MIN + ' 🪙 — и когда ёлка соберётся на 100%, получишь светящуюся гирлянду на ведро и в мастерскую.'));
+  // drop buttons
+  if (ph === 'end') wrap.appendChild(h('div', 'ny-note', 'Сбор закончился. Спасибо!'));
+  else {
+    const row = h('div', 'ny-btns');
+    [100, 500, 1000, 5000].forEach(n => {
+      const b = h('button', null, '+' + nyFmt(n) + ' 🪙'); b.type = 'button';
+      if (!d.pre && (QS.coins < n || NY.don)) b.disabled = true;
+      b.addEventListener('click', () => {
+        if (n >= 1000 && !d.pre) askConfirm('Положить ' + nyFmt(n) + ' 🪙 в ёлку? Обратно их не вернуть.', () => nyDonate(n)); else nyDonate(n);
+      });
+      row.appendChild(b);
+    });
+    wrap.appendChild(row);
+    if (!d.pre) wrap.appendChild(h('div', 'ny-small', 'В кармане: ' + nyFmt(QS.coins) + ' 🪙'));
+  }
+  if (d.pre) { // test buttons: only in the preview
+    wrap.appendChild(h('div', 'ny-small', '🧪 Проверка'));
+    const t = h('div', 'ny-btns test');
+    [['+10 000', () => { const p = nyPreD(); p.tot += 10000; p.my += 10000; nyPreRow('Ты', 10000); nyPop('Ты', 10000); NY.coins.push(...nyCoinBurst(10000)); }],
+    ['25%', () => nyPreSet(0.25)], ['50%', () => nyPreSet(0.5)], ['75%', () => nyPreSet(0.75)], ['100%', () => nyPreSet(1)],
+    ['👥 Кто-то скинул', () => { const names = ['Папа', 'Братик', 'Подруга', 'Маша', 'Кисюля'], amt = [100, 250, 500, 1000, 2500], nm = names[(Math.random() * names.length) | 0], a = amt[(Math.random() * amt.length) | 0]; const p = nyPreD(); p.tot += a; nyPreRow(nm, a); nyPop(nm, a); NY.coins.push(...nyCoinBurst(a)); }],
+    ['↺ Сброс', () => { QS.ny.pre = { tot: 0, my: 0, rows: [] }; NY.disp = 0; }],
+    [nyS().sim ? '▶ Вернуть сбор' : '⏰ Сымитировать конец', () => { const s = nyS(); s.sim = !s.sim; if (s.sim) { closeQuest(); showInfo('Событие «закончилось»: кнопка 🎄 пропала, ёлка теперь в ⚙️ → Архив', 4500); } }]].forEach(a => {
+      const b = h('button', null, a[0]); b.type = 'button'; b.addEventListener('click', () => { a[1](); saveNow(); nySync(); nySigOld = ''; renderQuest(); }); t.appendChild(b);
+    });
+    wrap.appendChild(t);
+  }
+  // who has put the most
+  if (d.rows.length) {
+    wrap.appendChild(h('div', 'ny-small', '🏅 Кто сколько положил'));
+    const ls = h('div', 'ny-top');
+    d.rows.slice(0, 8).forEach((r, i) => {
+      const row = h('div', 'ny-row' + (r.me ? ' me' : ''));
+      row.appendChild(h('span', 'ny-i', ['🥇', '🥈', '🥉'][i] || (i + 1) + '.')); row.appendChild(h('span', 'ny-n', r.nick)); row.appendChild(h('span', 'ny-c', nyFmt(r.c) + ' 🪙'));
+      ls.appendChild(row);
+    });
+    wrap.appendChild(ls);
+  }
+  wrap.appendChild(h('div', 'ny-small', 'Сбор идёт с 1 декабря по 15 января. Цель — ' + nyFmt(d.goal) + ' 🪙 на всех. Ведра наполняются по четвертям: 25%, 50%, 75%, 100%.'));
+  el.appendChild(wrap);
+  nyStart();
+}
+
+/* ----- the scene: tree, four buckets, snow, frost ----- */
+const NYW = 320, NYH = 292;
+function nyStart() {
+  const cv = NY.cv; if (!cv) return;
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  cv.style.width = '100%'; cv.style.aspectRatio = NYW + ' / ' + NYH; cv.width = Math.round(NYW * Math.max(1, dpr)); cv.height = Math.round(NYH * Math.max(1, dpr)); NY.sc = cv.width / NYW;
+  if (!NY.snow) { NY.snow = []; for (let i = 0; i < 64; i++) NY.snow.push({ x: Math.random() * NYW, y: Math.random() * NYH, r: 0.8 + Math.random() * 1.8, v: 14 + Math.random() * 26, ph: Math.random() * 6, f: i < 12 }); }
+  if (!NY.raf) { NY.last = 0; NY.raf = requestAnimationFrame(nyLoop); }
+}
+function nyLoop(ts) {
+  if (!NY.cv || !NY.cv.isConnected || questEl.hidden || QTAB !== 'ny') { NY.raf = 0; return; }
+  const dt = NY.last ? Math.min(0.05, (ts - NY.last) / 1000) : 0.016; NY.last = ts;
+  nyScene(dt, ts / 1000); NY.raf = requestAnimationFrame(nyLoop);
+}
+function nyRng(seed) { let s = seed >>> 0; return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; }
+function nyFrostLayer(sc) {
+  if (NY.frost && NY.frost.sc === sc) return NY.frost.cv;
+  const c = document.createElement('canvas'); c.width = Math.round(NYW * sc); c.height = Math.round(NYH * sc); const x = c.getContext('2d'); x.scale(sc, sc);
+  const rnd = nyRng(7);
+  [[0, 0], [NYW, 0], [0, NYH * 0.9], [NYW, NYH * 0.9]].forEach(p => { const gr = x.createRadialGradient(p[0], p[1], 0, p[0], p[1], 90); gr.addColorStop(0, 'rgba(225,244,255,0.62)'); gr.addColorStop(0.5, 'rgba(200,230,255,0.2)'); gr.addColorStop(1, 'rgba(200,230,255,0)'); x.fillStyle = gr; x.fillRect(p[0] - 90, p[1] - 90, 180, 180); });
+  x.strokeStyle = 'rgba(235,248,255,0.7)'; x.lineCap = 'round';
+  const br = (px, py, a, len, d) => { if (d > 3 || len < 3) return; const ex = px + Math.cos(a) * len, ey = py + Math.sin(a) * len; x.lineWidth = 0.4 + (3 - d) * 0.4; x.beginPath(); x.moveTo(px, py); x.lineTo(ex, ey); x.stroke(); br(ex, ey, a - 0.6, len * 0.55, d + 1); br(ex, ey, a + 0.6, len * 0.55, d + 1); br(ex, ey, a, len * 0.6, d + 1); };
+  [[0, 0, 0.78], [NYW, 0, 2.36], [0, NYH * 0.9, -0.78], [NYW, NYH * 0.9, -2.36]].forEach(p => { for (let i = 0; i < 5; i++) br(p[0], p[1], p[2] + (rnd() - 0.5) * 1.3, 22 + rnd() * 26, 0); });
+  NY.frost = { sc, cv: c }; return c;
+}
+function nyStar(x, cx, cy, r, ir) { x.beginPath(); for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, rr = i % 2 ? ir : r; x.lineTo(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr); } x.closePath(); }
+function nyBucket(x, cx, base, f, label, tm, bi) {
+  const top = base - 30, wt = 19, wb = 15, full = f >= 0.999;
+  if (full) { const gr = x.createRadialGradient(cx, top, 2, cx, top, 34); gr.addColorStop(0, 'rgba(255,220,110,' + (0.35 + 0.15 * Math.sin(tm * 3 + bi)) + ')'); gr.addColorStop(1, 'rgba(255,220,110,0)'); x.fillStyle = gr; x.fillRect(cx - 40, top - 36, 80, 80); }
+  // body
+  const bodyPath = () => { x.beginPath(); x.moveTo(cx - wt, top); x.lineTo(cx + wt, top); x.lineTo(cx + wb, base); x.lineTo(cx - wb, base); x.closePath(); };
+  const bg = x.createLinearGradient(cx - wt, 0, cx + wt, 0); bg.addColorStop(0, '#5a6f93'); bg.addColorStop(0.45, '#8aa0c4'); bg.addColorStop(1, '#3f506e');
+  x.fillStyle = '#241b12'; x.beginPath(); x.ellipse(cx, top, wt, 5, 0, 0, 7); x.fill();
+  // coins inside
+  x.save(); bodyPath(); x.clip();
+  if (f > 0) {
+    const lv = base - 1 - f * 27, hw = wb + (wt - wb) * (base - lv) / 30;
+    const cg = x.createLinearGradient(0, lv, 0, base); cg.addColorStop(0, '#ffd75a'); cg.addColorStop(1, '#c78a1c'); x.fillStyle = cg; x.fillRect(cx - wt, lv, wt * 2, base - lv + 1);
+    x.fillStyle = '#ffe48a'; x.beginPath(); x.ellipse(cx, lv, hw, 4, 0, 0, 7); x.fill();
+    x.fillStyle = 'rgba(160,100,10,0.55)'; for (let i = 0; i < 5; i++) { x.beginPath(); x.ellipse(cx + (i - 2) * 6, lv + 6 + (i % 2) * 7, 3.4, 1.3, 0, 0, 7); x.fill(); }
+  }
+  x.restore();
+  // the front half of the bucket wall is see-through at the top: draw it as a thin shade so the coins show
+  x.save(); bodyPath(); x.clip(); x.fillStyle = bg; x.globalAlpha = f > 0 ? 0.34 : 1; x.fillRect(cx - wt, top, wt * 2, 30); x.restore();
+  x.strokeStyle = 'rgba(210,225,250,0.65)'; x.lineWidth = 1.2; bodyPath(); x.stroke();
+  x.strokeStyle = '#b8c8e4'; x.lineWidth = 1.6; x.beginPath(); x.ellipse(cx, top, wt, 5, 0, 0, Math.PI); x.stroke();
+  x.fillStyle = 'rgba(255,255,255,0.18)'; x.fillRect(cx - wt * 0.62, top + 4, 3, 22);
+  // a heap above the rim when it is full
+  if (full) {
+    x.fillStyle = '#ffd75a'; x.beginPath(); x.ellipse(cx, top - 1, wt - 3, 7, 0, Math.PI, 0); x.fill(); x.fillStyle = '#ffe48a'; x.beginPath(); x.ellipse(cx, top - 3, wt - 8, 4, 0, Math.PI, 0); x.fill();
+    for (let i = 0; i < 5; i++) { x.fillStyle = '#d99a22'; x.beginPath(); x.ellipse(cx - 10 + i * 5, top - 3 - (i % 2) * 2, 3, 1.4, 0.2, 0, 7); x.fill(); }
+    const sp = (tm * 1.3 + bi * 0.37) % 1; x.fillStyle = 'rgba(255,255,255,' + (1 - sp) + ')'; nyStar(x, cx - 10 + bi * 5 % 20, top - 6 - sp * 12, 3, 1); x.fill();
+  }
+  // the label
+  x.fillStyle = full ? '#a8620a' : '#27407a'; x.font = '700 11px Fredoka, system-ui, sans-serif'; x.textAlign = 'center'; x.fillText(label + (full ? ' ✓' : ''), cx, base + 14);
+}
+function nyScene(dt, tm) {
+  const cv = NY.cv, x = cv.getContext('2d'), sc = NY.sc || 1, d = nyData(), pct = nyPct(d);
+  NY.disp += (pct - NY.disp) * Math.min(1, dt * 2.2); if (Math.abs(pct - NY.disp) < 0.0004) NY.disp = pct;
+  const k = NY.disp;
+  x.setTransform(sc, 0, 0, sc, 0, 0); x.clearRect(0, 0, NYW, NYH);
+  // night sky
+  const sk = x.createLinearGradient(0, 0, 0, NYH); sk.addColorStop(0, '#0e1838'); sk.addColorStop(0.65, '#27407a'); sk.addColorStop(1, '#4a6aa8'); x.fillStyle = sk; x.fillRect(0, 0, NYW, NYH);
+  const rs = nyRng(3); for (let i = 0; i < 26; i++) { const sx = rs() * NYW, sy = rs() * 150, tw = 0.45 + 0.55 * Math.abs(Math.sin(tm * 1.4 + i)); x.fillStyle = 'rgba(255,255,255,' + 0.55 * tw + ')'; x.fillRect(sx, sy, 1.4, 1.4); }
+  // snowy ground
+  const gg = x.createLinearGradient(0, 240, 0, NYH); gg.addColorStop(0, '#eef6ff'); gg.addColorStop(1, '#b9d0ee'); x.fillStyle = gg;
+  x.beginPath(); x.moveTo(0, 262); x.quadraticCurveTo(80, 236, 160, 248); x.quadraticCurveTo(250, 238, NYW, 258); x.lineTo(NYW, NYH); x.lineTo(0, NYH); x.closePath(); x.fill();
+  // the tree
+  const tiers = [[48, 112, 42], [84, 152, 56], [122, 196, 70], [160, 238, 84]];
+  x.fillStyle = '#5b3a22'; x.fillRect(152, 232, 16, 26);
+  tiers.forEach((t, j) => {
+    const gr = x.createLinearGradient(0, t[0], 0, t[1]); gr.addColorStop(0, '#2f9e5e'); gr.addColorStop(1, '#14603a'); x.fillStyle = gr;
+    x.beginPath(); x.moveTo(160, t[0]); x.quadraticCurveTo(160 + t[2] * 0.7, t[1] - 18, 160 + t[2], t[1]); x.quadraticCurveTo(160, t[1] + 8, 160 - t[2], t[1]); x.quadraticCurveTo(160 - t[2] * 0.7, t[1] - 18, 160, t[0]); x.closePath(); x.fill();
+    x.fillStyle = 'rgba(255,255,255,0.7)'; x.beginPath(); x.ellipse(160 - t[2] * 0.55, t[1] - 3, 9, 3, -0.2, 0, 7); x.fill(); x.beginPath(); x.ellipse(160 + t[2] * 0.6, t[1] - 4, 8, 2.6, 0.2, 0, 7); x.fill(); // snow on the branches
+    x.strokeStyle = 'rgba(225,190,90,0.85)'; x.lineWidth = 1.2; x.beginPath(); x.moveTo(160 - t[2] * 0.82, t[1] - 5); x.quadraticCurveTo(160, t[1] + 12, 160 + t[2] * 0.82, t[1] - 5); x.stroke();
+  });
+  // bulbs on the tree: as many as the percent
+  const lights = []; tiers.forEach((t, j) => { for (let m = 0; m < 7; m++) { const yy = t[1] - (t[1] - t[0]) * (0.1 + 0.62 * (m + 0.5) / 7), hw = t[2] * (yy - t[0]) / (t[1] - t[0]); lights.push({ x: 160 + hw * (((m * 5 + j * 3) % 7) / 3 - 1) * 0.82, y: yy + 2 }); } });
+  const nl = lights.length;
+  lights.forEach((p, i) => {
+    const rank = (i * 11) % nl, lit = rank < k * nl, col = NY_COL[i % NY_COL.length];
+    if (lit) { const tw = 0.7 + 0.3 * Math.sin(tm * 3 + i * 1.9); x.save(); x.globalCompositeOperation = 'lighter'; const gr = x.createRadialGradient(p.x, p.y, 0, p.x, p.y, 9); gr.addColorStop(0, nyRgba(col, 0.7 * tw)); gr.addColorStop(1, nyRgba(col, 0)); x.fillStyle = gr; x.fillRect(p.x - 9, p.y - 9, 18, 18); x.restore(); x.fillStyle = col; }
+    else x.fillStyle = 'rgba(70,90,80,0.9)';
+    x.beginPath(); x.arc(p.x, p.y, 2.6, 0, 7); x.fill();
+  });
+  // a few balls
+  [[140, 122, '#e8404f'], [182, 160, '#4b8ae8'], [130, 190, '#ffcf4a'], [190, 215, '#e8404f'], [148, 226, '#4b8ae8']].forEach(b => { x.fillStyle = b[2]; x.beginPath(); x.arc(b[0], b[1], 4.2, 0, 7); x.fill(); x.fillStyle = 'rgba(255,255,255,0.6)'; x.beginPath(); x.arc(b[0] - 1.4, b[1] - 1.4, 1.2, 0, 7); x.fill(); });
+  // the star
+  const sa = 0.35 + 0.65 * k, spk = 1 + 0.08 * Math.sin(tm * 2.5);
+  x.save(); x.globalCompositeOperation = 'lighter'; const sgr = x.createRadialGradient(160, 40, 0, 160, 40, 30 * spk); sgr.addColorStop(0, 'rgba(255,230,120,' + (0.7 * sa) + ')'); sgr.addColorStop(1, 'rgba(255,230,120,0)'); x.fillStyle = sgr; x.fillRect(120, 0, 80, 80); x.restore();
+  x.fillStyle = k >= 0.999 ? '#fff3a8' : '#ffd24a'; nyStar(x, 160, 40, 12 * spk, 5.2); x.fill();
+  // the string of bulbs across the top
+  for (let i = 0; i < 16; i++) {
+    const u = (i + 0.5) / 16, bx = 6 + u * (NYW - 12), by = 5 + Math.sin(u * Math.PI) * 16, rank = (i * 7) % 16, lit = rank < k * 16, col = NY_COL[i % NY_COL.length];
+    if (i === 0) { x.strokeStyle = 'rgba(15,30,20,0.9)'; x.lineWidth = 1.3; x.beginPath(); for (let j = 0; j <= 40; j++) { const v = j / 40; x[j ? 'lineTo' : 'moveTo'](6 + v * (NYW - 12), 4 + Math.sin(v * Math.PI) * 16); } x.stroke(); }
+    if (lit) { x.save(); x.globalCompositeOperation = 'lighter'; const tw = 0.75 + 0.25 * Math.sin(tm * 2.6 + i * 1.7), gr = x.createRadialGradient(bx, by + 3, 0, bx, by + 3, 11); gr.addColorStop(0, nyRgba(col, 0.6 * tw)); gr.addColorStop(1, nyRgba(col, 0)); x.fillStyle = gr; x.fillRect(bx - 11, by - 8, 22, 22); x.restore(); x.fillStyle = col; } else x.fillStyle = 'rgba(95,105,120,0.95)';
+    x.beginPath(); x.arc(bx, by + 3, 3, 0, 7); x.fill();
+  }
+  // four buckets: the first two on the left, the other two on the right; each fills in its own quarter
+  [[36, 0], [80, 1], [240, 2], [284, 3]].forEach(b => nyBucket(x, b[0], 268, Math.max(0, Math.min(1, k * 4 - b[1])), (25 * (b[1] + 1)) + '%', tm, b[1]));
+  // coins that fall into the current bucket after a drop
+  const ab = Math.min(3, Math.floor(k * 4 - 1e-6)), bxs = [36, 80, 240, 284];
+  for (let i = NY.coins.length - 1; i >= 0; i--) {
+    const c = NY.coins[i]; if (!c.tx) { c.tx = bxs[Math.max(0, ab)] + (Math.random() - 0.5) * 14; c.x = c.tx + (Math.random() - 0.5) * 60; c.ty = 236; }
+    c.y += c.v * dt; c.x += (c.tx - c.x) * Math.min(1, dt * 3);
+    x.fillStyle = '#ffd75a'; x.strokeStyle = '#b8801a'; x.lineWidth = 1; x.beginPath(); x.ellipse(c.x, c.y, 3.4, 3.4 * Math.abs(Math.cos(tm * 8 + i)) + 0.6, 0, 0, 7); x.fill(); x.stroke();
+    if (c.y > c.ty) NY.coins.splice(i, 1);
+  }
+  // snow
+  NY.snow.forEach(s => {
+    s.y += s.v * dt; s.x += Math.sin(tm * 0.8 + s.ph) * 10 * dt; if (s.y > NYH + 6) { s.y = -6; s.x = Math.random() * NYW; } if (s.x < -6) s.x = NYW + 4; else if (s.x > NYW + 6) s.x = -4;
+    if (s.f) { x.fillStyle = 'rgba(255,255,255,0.85)'; x.font = (9 + s.r * 3) + 'px system-ui'; x.textAlign = 'center'; x.fillText('❄', s.x, s.y); }
+    else { x.fillStyle = 'rgba(255,255,255,' + (0.5 + s.r * 0.2) + ')'; x.beginPath(); x.arc(s.x, s.y, s.r, 0, 7); x.fill(); }
+  });
+  // frost in the corners
+  x.drawImage(nyFrostLayer(sc), 0, 0, NYW, NYH);
+}
+// names floating up: one every moment
+setInterval(() => {
+  if (!NY.pops || !NY.pops.isConnected || questEl.hidden || QTAB !== 'ny') { if (NY.q.length > 12) NY.q.length = 0; return; }
+  const p = NY.q.shift(); if (!p) return;
+  const e = h('div', 'ny-pop', (p.nick === 'Ты' ? '🎁 Ты' : '🎅 ' + p.nick) + ' +' + nyFmt(p.n) + ' 🪙');
+  e.style.left = (8 + Math.random() * 46) + '%'; e.addEventListener('animationend', () => e.remove()); NY.pops.appendChild(e);
+}, 800);
+function nyPreSet(q) { const p = nyPreD(), t = Math.round(NY_GOAL * q); p.tot = t; const others = Math.max(0, t - p.my); p.rows = p.rows.filter(r => r.n !== 'Друзья'); if (others > 0) p.rows.push({ n: 'Друзья', c: others }); }
+(function nyInit() {
+  const o = document.getElementById('optNy'), nb = document.getElementById('nyBtn'), ar = document.getElementById('nyArch');
+  if (o) o.addEventListener('click', () => { prefs.nyDeco = !(prefs.nyDeco !== false); savePrefs(); nySync(); Snd.tick(0); });
+  const openNy = () => { Snd.init(); Snd.tick(0); if (!questEl.hidden && QTAB === 'ny') { closeQuest(); return; } openQuest('ny', true); if (nyPhase() === 'on' && ACC.uid) nyLoad(); };
+  if (nb) nb.addEventListener('click', openNy);
+  if (ar) ar.addEventListener('click', () => { closeSettings(); openNy(); });
+  nySync();
+})();
 /* ---------- Ragdoll ---------- */
 // joint: spring stiffness, damping, how far it may swing outward / inward, and which side it sits on
 const RAG_JOINTS = {
@@ -11581,6 +12002,7 @@ function drawDark() {
   }
   drawNeonGlow();
   drawToyGlow();
+  nyGlowMain(g);
 }
 
 function draw() {
@@ -11599,6 +12021,7 @@ function draw() {
   drawWaxFront();
   drawSurfaceFx();
   drawPotFront();
+  nyGarlandMain(g);
   drawPan();
   drawHoleMain();
   drawDrainMain();
