@@ -416,6 +416,23 @@
   .chat-et { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); font-size: 10px; line-height: 1; opacity: .7; }
   #ticker { position: fixed; left: 0; right: 0; top: env(safe-area-inset-top, 0px); height: 15px; overflow: hidden; pointer-events: none; z-index: 30; font-size: 11px; line-height: 15px; color: rgba(214, 196, 255, 0.55); white-space: nowrap; -webkit-user-select: none; user-select: none; }
   #ticker span { display: inline-block; visibility: hidden; transform: translateX(-9999px); will-change: transform; }
+  .chat-ev.sum { padding: 4px 6px; flex: none; text-align: left; }
+  .sm-card { position: relative; text-align: left; background: #34274a; border: 1px solid rgba(201,179,255,0.35); border-radius: 12px; padding: 7px 10px 8px; color: #eadfff; opacity: 1; }
+  .sm-card .chat-et { top: 9px; transform: none; right: 10px; }
+  .sm-t { font-size: 13px; font-weight: 700; margin: 0 40px 5px 0; }
+  .sm-t.dim { font-weight: 600; opacity: .8; font-size: 12px; }
+  .sm-r { display: flex; align-items: baseline; gap: 8px; font-size: 13px; line-height: 1.5; padding: 1px 0; border-top: 1px solid rgba(255,255,255,0.07); }
+  .sm-r:first-of-type { border-top: 0; }
+  .sm-k { flex: none; min-width: 5.6em; opacity: .85; }
+  .sm-w { flex: 1; min-width: 0; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .sm-v { font-variant-numeric: tabular-nums; text-align: right; font-weight: 600; }
+  .sm-r .sm-v { flex: none; color: #ffd479; }
+  .sm-r.note, .sm-r.top { display: block; margin-top: 3px; padding-top: 3px; font-size: 12px; opacity: .9; }
+  .sm-r.top { color: #ffd479; font-weight: 700; opacity: 1; }
+  .sm-tab { display: grid; grid-template-columns: minmax(0,1fr) auto auto auto; gap: 2px 12px; font-size: 13px; line-height: 1.5; align-items: baseline; }
+  .sm-h { text-align: right; font-size: 12px; opacity: .8; }
+  .sm-nm { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .sm-tab .sm-v { font-weight: 500; }
   .chat-list { max-height: 42vh; min-height: 120px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; padding: 8px; border-radius: 12px; background: #2a2036; border: 1px solid var(--panel-line); }
   .chat-m { align-self: flex-start; max-width: 86%; background: #3a2d49; border-radius: 12px 12px 12px 3px; padding: 6px 10px; }
   .chat-m.me { align-self: flex-end; background: #4a3a5c; border: 1px solid var(--accent); border-radius: 12px 12px 3px 12px; }
@@ -496,6 +513,26 @@
     background: var(--panel); border: 2px solid var(--panel-line); color: var(--fg-dim);
   }
   .tab[aria-pressed="true"] { border-color: var(--accent); background: #4a3a5c; color: var(--fg); }
+  #mixoPeek { display: none; position: absolute; left: 8px; top: 62%; z-index: 3; flex-direction: column; padding: 4px; border-radius: 14px; background: rgba(30,20,50,0.78); border: 1px solid rgba(255,255,255,0.2); max-width: 74%; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .app[data-view="studio"] #mixoPeek { display: flex; }
+  #mixoPeek .mrow { display: flex; align-items: center; gap: 7px; }
+  #mixoPeek canvas { position: static; inset: auto; width: 44px; height: 44px; flex: none; cursor: default; }
+  #mixoPeek .mt { display: flex; flex-direction: column; line-height: 1.25; font-size: 12px; min-width: 0; }
+  #mixoPeek .mn { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #mixoPeek .mp { opacity: .9; white-space: nowrap; }
+  #mixoPeek .ma { font-size: 11px; line-height: 1.25; max-width: 150px; }
+  #mixoPeek .mgo { flex: none; margin-left: 2px; padding: 9px 12px; border-radius: 12px; border: 1px solid var(--accent); background: rgba(255,170,200,0.18); color: #fff; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+  #mixoPeek .mgo:active { background: rgba(255,170,200,0.4); }
+  #mixoPeek .mmore { display: none; padding: 6px 6px 3px; font-size: 12px; line-height: 1.4; opacity: .92; }
+  #mixoPeek.open .mmore { display: block; }
+  #mixoPeek .mmore b { color: #ffd479; font-weight: 600; }
+  .mx-k { margin: 7px 0; padding: 7px 10px; border-radius: 10px; border-left: 4px solid var(--mxc); background: rgba(255,255,255,0.08); font-size: 14px; line-height: 1.4; color: #fff; }
+  .mx-k b { color: var(--mxc); font-weight: 700; }
+  .mx-k.cub { --mxc: #ff9ec4; }
+  .mx-k.add { --mxc: #b9a0ff; background: rgba(150,120,255,0.14); }
+  .mx-k.rew { --mxc: #ffd479; background: rgba(255,212,121,0.12); }
+  .mx-k.bad { --mxc: #ff9a6c; background: rgba(255,130,80,0.16); }
+  .mixo-pic { position: static; inset: auto; width: 96px; height: 96px; display: block; margin: 6px 0; cursor: default; }
   #sv { display: none; }
   .app[data-view="studio"] #sv { display: block; }
   .app[data-view="studio"] #cv, .app[data-view="studio"] #mainBar { display: none; }
@@ -591,7 +628,7 @@
       <div class="opt-note" id="freeNote">Выключи, чтобы предметы, добавки и цвета открывались за монеты</div>
       <div class="secret" id="secretRow" hidden><input type="password" id="secretIn" placeholder="пароль" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="40"><button type="button" id="secretOk">OK</button></div>
       <div class="vlvl" id="vibeLvl"><button type="button" data-k="1">Слабая</button><button type="button" data-k="2">Средняя</button><button type="button" data-k="4">Сильная</button></div>
-      <button type="button" class="opt sub" id="optAcc" aria-expanded="false"><span>👤 Аккаунт и облако</span><i class="chev">▾</i></button>
+      <button type="button" class="opt" id="optAcc" aria-expanded="false"><span>👤 Аккаунт и облако</span><i class="chev">▾</i></button>
       <div id="accAdv" hidden></div>
       <div class="savebtns"><button type="button" id="saveFileBtn">💾 Сохранить в файл</button><button type="button" id="loadFileBtn">📂 Загрузить</button></div>
       <div class="savebtns" style="margin-top:6px"><button type="button" id="wipeBtn">🗑 Стереть прогресс на этом устройстве</button></div>
@@ -599,7 +636,7 @@
       <div class="opt-note" id="saveNote" hidden></div>
       <div class="opt-note">Прогресс сохраняется сам. Файл нужен, чтобы перенести его на другой телефон или если браузер всё забывает. Если ты вошла в аккаунт, файл хранит и вход: при загрузке ты сразу в аккаунте, поэтому не отправляй его посторонним.</div>
       <div class="opt-note" id="vibeNote" hidden>На этом устройстве вибрация недоступна</div>
-      <div class="ver-tag" id="verTag">v174</div>
+      <div class="ver-tag" id="verTag">v180</div>
       <div id="setMore" hidden>↓ листай ниже, там ещё настройки</div>
     </div>
   </header>
@@ -611,6 +648,7 @@
     <button type="button" id="fsBtn" class="fsbtn" aria-label="Во весь экран" title="Во весь экран">⛶</button>
     <canvas id="cv" aria-label="Игровое поле: предмет на верёвке над горшком с воском"></canvas>
     <canvas id="sv" aria-label="Мастерская: полка с кубиками воска, тарелка для плавки и ведро для смеси"></canvas>
+    <div id="mixoPeek"><div class="mrow"><canvas width="112" height="112"></canvas><div class="mt"><span class="mn"></span><span class="mp"></span><span class="ma"></span></div><button type="button" class="mgo" id="mixoBtn">Сдать</button></div><div class="mmore"></div></div>
     <div class="hint" id="hint">Тяни предмет вниз, в воск</div>
   </div>
 
@@ -1560,7 +1598,7 @@ const OBJECTS = [
   { e: '🍲', toy: 'soup', n: 'Суп', zoom: 1.5 },
   { e: '🥒', toy: 'pickles', n: 'Банка огурцов', zoom: 1.5 },
   { img: 'holodets', n: 'Холодец', zoom: 1.7, sq: true, sqk: 0.5, parts: ['holodetsp', 'holodetsj'] },
-  { e: '🍌', toy: 'banana', n: 'Банан', zoom: 1.9 }
+  { e: '🍌', toy: 'banana', n: 'Банан', zoom: 2.05 }
 ];
 // order of the object chips: the four free ones, then the beer (also free), then the rest
 const BEER_IDX = OBJECTS.findIndex(o => o.img === 'beerobj');
@@ -4621,13 +4659,13 @@ function foodEnd(z) {
 /* ---------- Interactive banana: three strips of peel come off (pull them down) and go back on (pull them up) ---------- */
 // design coordinates 220 x 300; the three strips hang from the tip at the bottom, the stem is at the top
 var BN = { th: [0, 0, 0], tg: [0, 0, 0], vel: [0, 0, 0], k: -1, grab: null, snd: 0, poly: [[], [], []], wob: 0, wobv: 0, fell: [0, 0, 0], ver: 0 };
-var BN_T = { x: 210, y: 236 }; // the tip (where the strips are hinged)
+var BN_T = { x: 193, y: 236 }; // the tip (where the strips are hinged)
 var BN_L = 230;
 var BN_OPEN = 1; // an opened strip is drawn this much shorter along its curl, so it stays inside the picture // length of the body
 var BN_MAX = 1.8;
 function bnReset() { BN.th = [0, 0, 0]; BN.tg = [0, 0, 0]; BN.vel = [0, 0, 0]; BN.k = -1; BN.grab = null; BN.wob = BN.wobv = 0; BN.fell = [0, 0, 0]; BN.snd = 0; }
 // the centre line of the body: t = 0 at the tip, 1 at the stem
-function bnC(t) { return { x: BN_T.x + 28 * t - 36 * Math.sin(Math.PI * t) + BN.wob * 6 * Math.sin(Math.PI * t), y: BN_T.y - BN_L * t }; }
+function bnC(t) { return { x: BN_T.x + 12 * t - 36 * Math.sin(Math.PI * t) + BN.wob * 6 * Math.sin(Math.PI * t), y: BN_T.y - BN_L * t }; }
 function bnN(t) { const a = bnC(Math.max(0, t - 0.01)), b = bnC(Math.min(1, t + 0.01)), dx = b.x - a.x, dy = b.y - a.y, l = Math.hypot(dx, dy) || 1; return { x: -dy / l, y: dx / l }; } // normal (points to the right on the screen when the tip is at the bottom)
 function bnHW(t) { // half width: blunt tip, a long full belly, a short shoulder, then the narrow neck up to the stem
   t = Math.min(1, Math.max(0, t));
@@ -4772,7 +4810,7 @@ function bananaRender(c) {
   g.restore();
 }
 function bnStrip1(k, t, u) { return bnPt(k, t, u); }
-TOYDEF.banana = { W: 380, H: 300, render: bananaRender, hit: bananaHit };
+TOYDEF.banana = { W: 410, H: 300, render: bananaRender, hit: bananaHit };
 
 // where the string meets the banana (the knot on the stem), in the object's own picture coordinates
 function bnHang() { const L = toyLayout(S, { toy: 'banana' }), c = bnC(1); return { x: L.ox + c.x * L.k - S / 2, y: c.y * L.k }; }
@@ -6150,7 +6188,7 @@ const ST = {
   cx: 0, cy: 0, rx: 0, ry: 0, ix: 0, iy: 0, shelfTop: 36, shelfH: 70, bins: [], bk: null, page: 0, pgBtn: null,
   flame: false, flameK: 0, speed: 1.4, tool: TOOLS[0],
   nbin: STCOL.map(() => BIN_START), cubes: [], parts: [], drops: [], bubs: [], rings: [], wisps: [],
-  drag: null, down: null, ptr: null, stirLast: null, spr: false, sprT: 0,
+  drag: null, down: null, ptr: null, stirLast: null, spr: false, sprT: 0, dust: [],
   V: 0, oil: 0, gloss: 0, neon: 0, clear: 0, dep: 0, pp: { ice: 0, lava: 0, soft: 0, glow: 0 }, time: 0, blubT: 0, hintT: 0,
   pouring: false, snap: null, pourK: 0, patT: 0, tool_el: null
 };
@@ -6512,7 +6550,7 @@ function stUpdate(dt) {
     const inside = stInside(ST.ptr.x, ST.ptr.y + 20, 1.05);
     if (inside && ST.parts.length < 1500) {
       ST.sprUse = (ST.sprUse || 0) + dt; if (ST.sprUse > 1.1) { ST.sprUse = 0; if (!stkTake('a:' + tool.id)) ST.down.mode = 'none'; } // one charge lasts about a second of sprinkling
-      const rate = tool.kind === 'pearl' ? 120 : tool.ex === 'sugar' ? 18 : tool.ex === 'flake' ? 9 : tool.ex === 'foam' ? 5 : tool.ex === 'eyes' ? 6 : tool.ex === 'shroom' ? 1.6 : tool.kind === 'ex' ? 34 : 55;
+      const rate = tool.kind === 'pearl' ? 120 : tool.ex === 'sugar' ? 18 : tool.ex === 'flake' ? 9 : tool.ex === 'foam' ? 5 : tool.ex === 'eyes' ? 6 : tool.ex === 'shroom' ? 2.4 : tool.kind === 'ex' ? 34 : 55;
       let n = rate * dt + (ST.sprAcc || 0); const cnt = Math.floor(n); ST.sprAcc = n - cnt;
       const u = stTo(ST.ptr.x, ST.ptr.y + 14);
       for (let q = 0; q < cnt; q++) {
@@ -6520,7 +6558,7 @@ function stUpdate(dt) {
         const col = tool.kind === 'glit' ? tool.cols[(Math.random() * tool.cols.length) | 0] : null;
         if (tool.kind === 'ex') {
           if (tool.ex === 'eyes') { ST.parts.push({ x: u[0] + Math.cos(a) * rr, y: u[1] + Math.sin(a) * rr * 0.8, z: rnd(0.8, 1.2), ex: 'eyes', sz: rnd(5.6, 7), pu: [0, 0.35], pv: [0, 0], lx: null, ly: 0, ph: Math.random() * 6.28, sp: 1 }); continue; }
-          if (tool.ex === 'shroom') { ST.parts.push({ x: u[0] + Math.cos(a) * rr, y: u[1] + Math.sin(a) * rr * 0.8, z: rnd(0.8, 1.2), ex: 'shroom', sz: rnd(6.5, 9), g: 0, v: (Math.random() * 3) | 0, ph: Math.random() * 6.28, sp: 1 }); continue; }
+          if (tool.ex === 'shroom') { ST.parts.push({ x: u[0] + Math.cos(a) * rr, y: u[1] + Math.sin(a) * rr * 0.8, z: rnd(1.4, 1.9), ex: 'shroom', sz: rnd(6.5, 9), g: 0, v: (Math.random() * 3) | 0, ph: Math.random() * 6.28, sp: 1 }); continue; }
           if (tool.ex === 'foam') { ST.parts.push({ x: u[0] + Math.cos(a) * rr, y: u[1] + Math.sin(a) * rr * 0.8, z: rnd(0.8, 1.2), ex: 'foam', c: '#fbfbff', sz: FOAM_SZ * rnd(0.9, 1.08), lv: 0, rot: Math.random() * 6.28, ph: Math.random() * 6.28, sp: 1, vx: 0, vy: 0, jag: [0, 1, 2, 3, 4, 5, 6, 7].map(() => rnd(0.88, 1.1)) }); continue; }
           const pal = tool.ex === 'sugar' ? SUGAR_COLS : tool.ex === 'confetti' ? CONF_COLS : tool.ex === 'flake' ? FLAKE_COLS : FOIL_COLS;
           ST.parts.push({
@@ -6535,10 +6573,15 @@ function stUpdate(dt) {
           tint: tool.tint, sz: tool.kind === 'pearl' ? rnd(0.9, 1.9) : rnd(1.1, 2.6), ph: Math.random() * 6.28, sp: rnd(1.5, 4)
         });
       }
+      if (tool.ex === 'shroom') { // spore dust pours out of the jar and drifts down, mushrooms grow where the bigger spores land
+        let dn = 26 * dt + (ST.dustAcc || 0); const dc = Math.floor(dn); ST.dustAcc = dn - dc;
+        for (let q = 0; q < dc && ST.dust.length < 160; q++) ST.dust.push({ x: u[0] + rnd(-0.07, 0.07), y: u[1] + rnd(-0.05, 0.05), z: rnd(1.2, 2.1), vx: rnd(-0.04, 0.04), sz: rnd(0.8, 1.9), c: Math.random() < 0.5 ? '#f3ead6' : Math.random() < 0.5 ? '#d9b98a' : '#b8d9a0', ph: Math.random() * 6.28 });
+      }
       ST.sprT -= dt;
       if (ST.sprT <= 0) { ST.sprT = rnd(0.05, 0.11); Snd.tick(pn); }
     }
   }
+  for (let i = ST.dust.length - 1; i >= 0; i--) { const d = ST.dust[i]; d.z -= dt * 1.7; d.x += d.vx * dt + Math.sin(ST.time * 3 + d.ph) * 0.02 * dt; if (d.z <= 0) { if (FA[stCell(d.x, d.y)] > 0.15 && Math.random() < 0.25) stWaveAt(d.x, d.y, 0.012, 0.04); ST.dust.splice(i, 1); } }
   for (let i = ST.parts.length - 1; i >= 0; i--) {
     const p = ST.parts[i];
     if (p.z > 0) { p.z -= dt * 2.4; if (p.z <= 0 && FA[stCell(p.x, p.y)] > 0.15) stWaveAt(p.x, p.y, p.ex === 'eyes' || p.ex === 'foam' ? 0.08 : p.ex === 'sugar' || p.ex === 'flake' ? 0.035 : 0.022, 0.05); continue; }
@@ -6966,6 +7009,7 @@ function stDraw() {
     sg.strokeStyle = 'rgba(255,240,200,' + (0.6 * (1 - r.life)) + ')'; sg.lineWidth = 1.5;
     sg.beginPath(); sg.ellipse(p[0], p[1], 4 + r.life * 22, (4 + r.life * 22) * 0.58, 0, 0, 7); sg.stroke();
   }
+  for (const d of ST.dust) { const s = stFrom(d.x, d.y), y = s[1] - d.z * 46; sg.globalAlpha = Math.min(1, d.z * 2.2) * 0.9; sg.fillStyle = d.c; sg.beginPath(); sg.arc(s[0], y, d.sz, 0, 7); sg.fill(); } sg.globalAlpha = 1;
   // glitter and pearl
   for (const p of ST.parts) {
     const s = stFrom(p.x, p.y), y = s[1] - Math.max(0, p.z) * 46;
@@ -7001,7 +7045,10 @@ function stDraw() {
     } else if (p.ex === 'eyes') {
       paintEye(sg, s[0], y, p.sz, p.pu[0], p.pu[1]);
     } else if (p.ex === 'shroom') {
-      paintShroom(sg, s[0], y + p.sz * 0.35, p.sz, p.g, p.v);
+      if (p.z > 0) { // still falling: a plump spore with a soft glow
+        const gr = sg.createRadialGradient(s[0], y, 0, s[0], y, 6); gr.addColorStop(0, 'rgba(255,245,215,0.85)'); gr.addColorStop(1, 'rgba(255,245,215,0)'); sg.fillStyle = gr; sg.beginPath(); sg.arc(s[0], y, 6, 0, 7); sg.fill();
+        sg.fillStyle = '#fff6e0'; sg.beginPath(); sg.arc(s[0], y, 2.1, 0, 7); sg.fill();
+      } else paintShroom(sg, s[0], y + p.sz * 0.35, p.sz, p.g, p.v);
     } else if (p.ex === 'foam') {
       const r = p.sz;
       sg.fillStyle = 'rgba(20,10,30,0.2)'; sg.beginPath(); sg.ellipse(s[0] + 1.5, s[1] + r * 0.55, r * 0.95, r * 0.45, 0, 0, 7); sg.fill();
@@ -7521,11 +7568,11 @@ const Q = {
     const L = G.layers[G.layers.length - 1]; if (!L) return;
     for (const f of layerFx(L)) if (!QS.effects.includes(f)) QS.effects.push(f);
   },
-  save() { perSync(); return { earned: QS.earned, per: QS.per, stock: QS.stock, gift: QS.gift, rr: QS.rr, stats: QS.stats, kinds: QS.kinds, tools: QS.tools, effects: QS.effects, ach: QS.ach, order: QS.order, recent: QS.recent, coins: QS.coins, owned: QS.owned, bg: QS.bg, skin: QS.skin, snd: QS.snd, bfx: QS.bfx, plate: QS.plate, shelf: QS.shelf, rec: QS.rec }; },
+  save() { perSync(); return { earned: QS.earned, per: QS.per, stock: QS.stock, gift: QS.gift, rr: QS.rr, stats: QS.stats, kinds: QS.kinds, tools: QS.tools, effects: QS.effects, ach: QS.ach, order: QS.order, recent: QS.recent, coins: QS.coins, owned: QS.owned, bg: QS.bg, skin: QS.skin, snd: QS.snd, bfx: QS.bfx, plate: QS.plate, shelf: QS.shelf, rec: QS.rec, mixo: QS.mixo, mr: QS.mr }; },
   load(d) {
     if (!d) return;
     Object.assign(QS.stats, d.stats || {}); QS.kinds = d.kinds || []; QS.tools = d.tools || []; QS.effects = d.effects || [];
-    QS.ach = d.ach || {}; QS.order = d.order || null; QS.recent = d.recent || []; QS.coins = d.coins || 0; QS.owned = d.owned || {}; QS.earned = d.earned != null ? d.earned | 0 : earnedGuess(); QS.per = d.per || null; QS.stock = d.stock || null; QS.gift = d.gift || ''; QS.rr = d.rr || null; if (typeof stkBadges === 'function') try { stkBadges(); } catch (e) { } QS.bg = d.bg || 'night'; QS.skin = d.skin || 'plain'; QS.snd = d.snd || 'classic'; QS.bfx = d.bfx || 'none'; QS.plate = d.plate || 'plain'; QS.shelf = d.shelf || []; QS.rec = d.rec && typeof d.rec === 'object' ? { b: d.rec.b | 0, c: d.rec.c | 0, o: d.rec.o | 0 } : null;
+    QS.ach = d.ach || {}; QS.order = d.order || null; QS.recent = d.recent || []; QS.coins = d.coins || 0; QS.owned = d.owned || {}; QS.earned = d.earned != null ? d.earned | 0 : earnedGuess(); QS.per = d.per || null; QS.stock = d.stock || null; QS.gift = d.gift || ''; QS.rr = d.rr || null; if (typeof stkBadges === 'function') try { stkBadges(); } catch (e) { } QS.bg = d.bg || 'night'; QS.skin = d.skin || 'plain'; QS.snd = d.snd || 'classic'; QS.bfx = d.bfx || 'none'; QS.plate = d.plate || 'plain'; QS.shelf = d.shelf || []; QS.mixo = d.mixo && d.mixo.id ? { id: d.mixo.id, h: Array.isArray(d.mixo.h) ? d.mixo.h.slice(-4) : [] } : null; QS.mr = d.mr && d.mr.dk ? { dk: String(d.mr.dk) } : null; QS.rec = d.rec && typeof d.rec === 'object' ? { b: d.rec.b | 0, c: d.rec.c | 0, o: d.rec.o | 0 } : null;
   }
 };
 
@@ -7762,11 +7809,11 @@ function orderNew() {
 }
 // changing the order: free once a day (and always free when the order cannot be done because something ran out), then it costs a little
 const SWAP_COST = 15;
-function swapFree() { const o = QS.order && orderById(QS.order.id); return !QS.rr || QS.rr.dk !== dayKey() || !!(o && stkMissing(o).length); }
+function swapFree() { const o = QS.order && orderById(QS.order.id); return !!prefs.free || !QS.rr || QS.rr.dk !== dayKey() || !!(o && stkMissing(o).length); }
 function swapLabel() { return 'Другой заказ (' + (swapFree() ? 'бесплатно' : SWAP_COST + ' 🪙') + ')'; }
 function orderSwap() {
   if (!swapFree()) { if (QS.coins < SWAP_COST) { Snd.tick(0); showInfo('Смена заказа стоит ' + SWAP_COST + ' 🪙', 2200); return false; } QS.coins -= SWAP_COST; }
-  else { const o = QS.order && orderById(QS.order.id); if (!(o && stkMissing(o).length)) QS.rr = { dk: dayKey() }; }
+  else { const o = QS.order && orderById(QS.order.id); if (!prefs.free && !(o && stkMissing(o).length)) QS.rr = { dk: dayKey() }; }
   orderNew(); saveNow(); return true;
 }
 function orderStatus() {
@@ -7936,6 +7983,7 @@ function renderQuest() {
     row.appendChild(give); row.appendChild(swap); card.appendChild(row);
     questEl.appendChild(card);
   }
+  if (typeof mixoCard === 'function') mixoCard(questEl);
   } else {
   questEl.appendChild(h('div', 'sheet-title', 'Достижения'));
   for (const a of ACH) {
@@ -9207,14 +9255,14 @@ var RELOAD = { away: 0, fn: () => location.reload() };
 // the workshop (or goo still lying on the plate) is not saved: never reload under it, wait until it is free
 function reloadBusy() { try { return !!(ST.on || ST.cubes.length || ST.V > 0.02); } catch (e) { return false; } }
 var reloadWait = 0;
-function reloadFresh(goneSec) {
+function reloadFresh(goneSec, late) {
   if (reloadBusy()) { // try again later, as soon as the workshop is empty and closed
-    if (!reloadWait) reloadWait = setInterval(() => { if (!reloadBusy() && !document.hidden) { clearInterval(reloadWait); reloadWait = 0; reloadFresh(); } }, 3000);
+    if (!reloadWait) reloadWait = setInterval(() => { if (!reloadBusy() && !document.hidden) { clearInterval(reloadWait); reloadWait = 0; reloadFresh(goneSec, true); } }, 3000);
     return;
   }
   if (REC.on || SAVEUI.wiped) return;
   try { const last = +sessionStorage.getItem('waxAsmrReloaded') || 0; if (Date.now() - last < 15000) return; sessionStorage.setItem('waxAsmrReloaded', String(Date.now())); } catch (e) { }
-  saveNow(); try { localStorage.setItem('waxAsmrWhy', JSON.stringify({ t: Date.now(), gone: goneSec | 0, st: ST.on ? 'в мастерской' : 'на главном' })); } catch (e) { } RELOAD.fn();
+  saveNow(); try { localStorage.setItem('waxAsmrWhy', JSON.stringify({ t: Date.now(), gone: goneSec | 0, late: !!late, st: ST.on ? 'в мастерской' : 'на главном' })); } catch (e) { } RELOAD.fn();
 }
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) { RELOAD.away = Date.now(); return; }
@@ -9240,7 +9288,7 @@ document.addEventListener('visibilitychange', () => {
   let log = ls(K) || [], nav = ''; try { nav = (performance.getEntriesByType('navigation')[0] || {}).type || ''; } catch (e) { }
   const why = ls('waxAsmrWhy'), prev = ls('waxAsmrAlive'), now = Date.now(); ls('waxAsmrWhy', null);
   let r;
-  if (why && now - why.t < 30000) r = 'игра сама перезагрузилась: вернулась из фона после ' + why.gone + ' с (' + why.st + ')';
+  if (why && now - why.t < 30000) r = 'игра сама перезагрузилась: вернулась из фона после ' + why.gone + ' с' + (why.late ? ', подождала пока выйдешь из мастерской' : '') + ' (' + why.st + ')';
   else if (prev && now - prev.t < 60000) r = 'страницу перезапустил телефон или приложение; игра работала ' + Math.round((now - prev.t) / 1000) + ' с назад (' + (prev.st || '?') + '), тип: ' + nav;
   else r = 'обычный запуск (' + nav + ')';
   log.push({ t: now, r }); log = log.slice(-8); ls(K, log);
@@ -9620,6 +9668,24 @@ async function chatLoad() {
   } catch (e) { CHAT.err = (e && /PERMISSION_DENIED|Missing or insufficient/.test(String(e.message))) ? 'Чат ещё не включён: нужно вставить новые правила базы (см. firestore-rules.txt)' : fbErrText(e); if (CHAT.view === 'chat') chatDraw(); }
   CHAT.busy = false;
 }
+// an event line; the results of the day / week (several lines in one text) are drawn as a card with rows, the rest as one centred line
+function chatEvNode(m) {
+  const tm = new Date(m.ts).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }), ev = h('div', 'chat-ev'), lines = String(m.text).split('\n');
+  if (lines.length < 2) { ev.appendChild(h('span', 'chat-evx', m.text)); ev.appendChild(h('span', 'chat-et', tm)); return ev; }
+  ev.className = 'chat-ev sum'; const card = h('div', 'sm-card'), tab = lines[0] === 'Кто сколько';
+  card.appendChild(h('div', 'sm-t' + (tab ? ' dim' : ''), lines[0])); card.appendChild(h('span', 'chat-et', tm));
+  if (tab) {
+    const g = h('div', 'sm-tab'); ['', '💥', '📋', '🪙'].forEach(x => g.appendChild(h('span', 'sm-h', x)));
+    lines.slice(1).forEach(ln => { const r = /^(.+?) — 💥(.+?) 📋(.+?) 🪙(.+)$/.exec(ln); if (!r) return; g.appendChild(h('span', 'sm-nm', r[1])); for (let i = 2; i < 5; i++) g.appendChild(h('span', 'sm-v', r[i])); });
+    card.appendChild(g);
+  } else lines.slice(1).forEach(ln => {
+    const r = /^(\S+) ([^—]+?) — (.+) · (.+)$/.exec(ln), row = h('div', 'sm-r');
+    if (r) { row.appendChild(h('span', 'sm-k', r[1] + ' ' + r[2])); row.appendChild(h('span', 'sm-w', r[3])); row.appendChild(h('span', 'sm-v', r[4])); }
+    else { row.className = 'sm-r note'; row.textContent = ln.replace(/^🏆 Самый активный — /, '🏆 Самый активный: '); if (/^🏆/.test(ln)) row.className = 'sm-r top'; }
+    card.appendChild(row);
+  });
+  ev.appendChild(card); return ev;
+}
 function chatDraw() {
   const box = document.getElementById('chatList'); if (!box) return;
   const atEnd = box.scrollHeight - box.scrollTop - box.clientHeight < 40 || !box.childNodes.length;
@@ -9627,7 +9693,7 @@ function chatDraw() {
   if (CHAT.err) box.appendChild(h('div', 'opt-note', '⚠️ ' + CHAT.err));
   else if (!CHAT.msgs.length) box.appendChild(h('div', 'opt-note', CHAT.busy || !CHAT.t ? 'Загружаю…' : 'Пока тихо. Напиши первой!'));
   CHAT.msgs.forEach(m => {
-    if (m.k === 'e') { const ev = h('div', 'chat-ev'); ev.appendChild(h('span', 'chat-evx', m.text)); ev.appendChild(h('span', 'chat-et', new Date(m.ts).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }))); box.appendChild(ev); return; }
+    if (m.k === 'e') { box.appendChild(chatEvNode(m)); return; }
     const me = m.uid === ACC.uid, b = h('div', 'chat-m' + (me ? ' me' : ''));
     const hd = h('div', 'chat-h'); hd.appendChild(h('span', 'chat-n', m.nick)); hd.appendChild(h('span', 'chat-t', new Date(m.ts).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })));
     b.appendChild(hd); b.appendChild(h('div', 'chat-x', m.text)); box.appendChild(b);
@@ -9678,6 +9744,7 @@ function tickInit() {
   const sp = document.createElement('span'); d.appendChild(sp); document.body.appendChild(d); TICK.el = d; TICK.span = sp;
 }
 function tickPush(list) {
+  list = list.filter(m => !/^Кто сколько\n/.test(m.text || ''));
   list.forEach(m => TICK.q.push(m.k === 'e' ? m.text : m.nick + ': ' + m.text));
   if (TICK.q.length > 8) TICK.q = TICK.q.slice(-8);
   tickRun();
@@ -9685,7 +9752,7 @@ function tickPush(list) {
 function tickRun() {
   if (TICK.busy || !TICK.q.length || document.hidden) return;
   if ((typeof REC !== 'undefined' && REC.on) || (typeof FS !== 'undefined' && FS.on)) { setTimeout(tickRun, 4000); return; } // not in recordings and in full screen
-  tickInit(); const t = TICK.q.shift(), sp = TICK.span; TICK.busy = true;
+  tickInit(); const t = String(TICK.q.shift()).replace(/\n+/g, '  ·  '), sp = TICK.span; TICK.busy = true;
   sp.textContent = t; sp.style.visibility = 'visible';
   const W = TICK.el.clientWidth || 360, w = sp.offsetWidth || 100, dur = Math.max(6000, (W + w) / 46 * 1000);
   const done = () => { TICK.busy = false; sp.style.visibility = 'hidden'; setTimeout(tickRun, 900); };
@@ -9769,18 +9836,21 @@ function sumRows(pl, per, key) {
 function sumTexts(rows, per, key, keyEnd) {
   if (!rows.length) return null;
   const title = per === 'd' ? '🏁 Итоги дня ' + sumFmt(key) : '🏁 Итоги недели ' + sumFmt(key) + '–' + sumFmt(keyEnd);
-  const num = r => evFmt(r);
-  if (rows.length === 1) { const r = rows[0]; return [title + ': играл(а) только ' + r.nick + ' — 💥 ' + num(r.b) + ' · 📋 ' + num(r.o) + ' · 🪙 ' + num(r.c)]; }
+  const num = r => evFmt(r), nk = s => String(s).slice(0, 14);
   const best = f => { let m = null; rows.forEach(r => { if (r[f] > 0 && (!m || r[f] > m[f])) m = r; }); return m; };
   const wb = best('b'), wo = best('o'), wc = best('c'), wins = new Map();
   [wb, wo, wc].forEach(m => { if (m) wins.set(m, (wins.get(m) || 0) + 1); });
   let top = null; wins.forEach((n, m) => { if (!top || n > wins.get(top) || (n === wins.get(top) && m.c > top.c)) top = m; });
-  const seg = [];
-  if (wb) seg.push('💥 ' + wb.nick + ' ' + num(wb.b)); if (wo) seg.push('📋 ' + wo.nick + ' ' + num(wo.o)); if (wc) seg.push('🪙 ' + wc.nick + ' ' + num(wc.c));
-  const out = [(title + ': ' + seg.join(' · ') + (top ? '  ·  🏆 самый активный: ' + top.nick : '')).slice(0, 200)];
-  let all = 'Кто сколько:', n = 0; // everybody in one more line, the busiest first
-  rows.slice().sort((x, y) => (y.b + y.o * 3) - (x.b + x.o * 3)).forEach(r => { const t = ' ' + r.nick + ' 💥' + num(r.b) + ' 📋' + num(r.o) + ' 🪙' + num(r.c) + ';'; if (all.length + t.length <= 198) { all += t; n++; } });
-  if (n) out.push(all.replace(/;$/, ''));
+  // the first line: one line per thing ("<emoji> <what> — <who> <number>"), the busiest below; the screen draws it as a card
+  const L = [title];
+  if (wb) L.push('💥 Сломано — ' + nk(wb.nick) + ' · ' + num(wb.b)); if (wo) L.push('📋 Заказы — ' + nk(wo.nick) + ' · ' + num(wo.o)); if (wc) L.push('🪙 Монеты — ' + nk(wc.nick) + ' · ' + num(wc.c));
+  if (rows.length === 1) L.push('Играл(а) только ' + nk(rows[0].nick)); else if (top) L.push('🏆 Самый активный — ' + nk(top.nick));
+  const out = [L.join('\n').slice(0, 200)];
+  if (rows.length > 1) { // everybody in one more message: "<name> — 💥<n> 📋<n> 🪙<n>" per line, the screen draws a table
+    let all = 'Кто сколько', n = 0;
+    rows.slice().sort((x, y) => (y.b + y.o * 3) - (x.b + x.o * 3)).forEach(r => { const t = '\n' + nk(r.nick) + ' — 💥' + num(r.b) + ' 📋' + num(r.o) + ' 🪙' + num(r.c); if (all.length + t.length <= 200) { all += t; n++; } });
+    if (n) out.push(all);
+  }
   return out;
 }
 async function sumPost(per, key, keyEnd, pl) {
@@ -9802,7 +9872,7 @@ async function sumRun() {
     sumSetMark({ d: today, w: wkNow });
   } catch (e) { SUM.next = Date.now() + 10 * 60000; /* the results are a bonus: next time */ } finally { SUM.busy = false; }
 }
-const EV_OVT = { broken: 'по сломанным', earned: 'по заработанным монетам', orders: 'по заказам' };
+const EV_OVT = { broken: 'по сломанным за всё время', earned: 'по заработанным монетам за всё время', orders: 'по заказам за всё время' };
 async function evRun(force) {
   if (!ACC.uid || EV.busy) return; EV.busy = true;
   try {
@@ -9911,7 +9981,7 @@ var STK_BRK = {
   bomb: { n: 'Бомба', e: '💣', start: 10, floor: 0, packs: [[2, 30], [6, 80]] }
 };
 // price of ten uses of an add-in
-var STK_ADD_P = { glitter0: 12, glitter1: 12, glitter2: 12, glitter3: 12, glitter4: 12, glitter5: 12, pearl_blue: 15, pearl_white: 15, sugar: 12, confetti: 12, foil: 15, flake: 15, foam: 15, eyes: 20, shroom: 20, oil: 15, gloss: 20, neon: 30, clear: 25 };
+var STK_ADD_P = { glitter0: 12, glitter1: 12, glitter2: 12, glitter3: 12, glitter4: 12, glitter5: 12, pearl_blue: 15, pearl_white: 15, sugar: 12, confetti: 12, foil: 15, flake: 15, foam: 15, eyes: 15, shroom: 15, oil: 15, gloss: 15, neon: 25, clear: 20 };
 var STK_CUBE_P = [[1, 6], [4, 20], [10, 45]], STK_CUBE_SP = [[1, 10], [4, 36], [10, 80]]; // [pieces, coins]; special colours cost more
 var STK_RAND = [6, 16], STK_RAND_P = [26, 65]; // random cubes: how many, price
 function stkInfo(key) {
@@ -10037,10 +10107,18 @@ function stkGoShop(key) {
   SHOP_OPEN['Расходники'] = true; SHOP_OPEN[sub] = true; STK_FLASH = key; STK_FLASH_T = Date.now() + 2300;
   try { closeSheet(); } catch (e) { }
   openQuest('shop');
-  setTimeout(() => {
-    const r = questEl.querySelector('[data-stk="' + key + '"]'); if (!r) return;
-    r.scrollIntoView({ block: 'center', behavior: 'smooth' }); r.classList.add('flash'); setTimeout(() => { r.classList.remove('flash'); STK_FLASH = ''; }, 2300);
-  }, 80);
+  // the panel is still sliding in and rows can change height while it opens, so one smooth scroll sometimes stopped short:
+  // jump right away, then check a few more times that the row really is in the middle (unless the player starts scrolling herself)
+  let touched = false; const stop = () => { touched = true; };
+  questEl.addEventListener('touchstart', stop, { once: true, passive: true }); questEl.addEventListener('wheel', stop, { once: true, passive: true });
+  let flashed = false;
+  const aim = () => {
+    const r = questEl.querySelector('[data-stk="' + key + '"]'); if (!r || touched) return;
+    const a = r.getBoundingClientRect(), q = questEl.getBoundingClientRect(), dy = (a.top + a.height / 2) - (q.top + q.height / 2);
+    if (Math.abs(dy) > 6) questEl.scrollTop += dy;
+    if (!flashed) { flashed = true; r.classList.add('flash'); setTimeout(() => { r.classList.remove('flash'); STK_FLASH = ''; }, 2300); }
+  };
+  [60, 250, 600, 1100].forEach(t => setTimeout(aim, t));
 }
 // true when the tool is empty (after trying the daily gift) and the player was sent to the shop
 function stkGate(key) {
@@ -10178,6 +10256,248 @@ function renderCases(root) {
     box.appendChild(row);
     const last = CASE_LAST[c.id]; if (last) { const l = h('div', 'cs-last'); l.appendChild(h('span', 'opt-note', 'Последний приз: ')); l.appendChild(caseCard(last, false)); box.appendChild(l); }
   });
+}
+
+/* ---------- Mix orders: make the liquid on the plate look like the picture ----------
+   The plate is a colour field (FA = amount, FR/FG/FB = colour x amount). It is cut into 16x16 cells, each cell gets its average colour,
+   and the cells are compared with the picture of the order (flat colour, gradient, bands, rings, a spot, a glow, a swirl).
+   Where the picture can be turned (gradient, bands, glow, swirl) the best of many turns counts. Add-ins are checked separately. */
+const MIXO_SRC = Object.assign({ glitter: GLIT.map(j => j.id) }, FX_SRC);
+const MIXO_ADD = { glitter: { n: 'Блёстки' }, pearl: { n: 'Перламутр' }, sugar: { n: 'Сахарные шарики' }, confetti: { n: 'Конфетти' }, foil: { n: 'Фольга' }, flake: { n: 'Хлопья воска' }, foam: { n: 'Пенопласт' }, eyes: { n: 'Глазки' }, shroom: { n: 'Грибы' }, neon: { n: 'Неон' }, gloss: { n: 'Глянец' }, clear: { n: 'Прозрачность' }, scent: { n: 'Аромат' } };
+const MIXO_NEED = 0.3;      // how much of an add-in counts as "there is some" (a share of a full dose)
+const MIXO_MIN = 0.3;       // below this match the order is not accepted
+const MIXO_COVER = 0.5;     // how much of the plate must be covered with liquid
+const MIXO_ADD_K = 0.35;    // every add-in makes the pay this much bigger
+const MIXO = [
+  // ★1: one flat colour (two of them have to be mixed first), some with an add-in
+  { id: 'm_pink', d: 1, n: 'Розовая жижа', s: 'Один ровный цвет, без пятен и разводов.', t: 'solid', st: [0] },
+  { id: 'm_mint', d: 1, n: 'Мятная жижа', s: 'Ровная, как зубная паста. Только мятная.', t: 'solid', st: [5] },
+  { id: 'm_sky', d: 1, n: 'Небесная жижа', s: 'Ровный голубой, без облаков.', t: 'solid', st: [8] },
+  { id: 'm_lav', d: 1, n: 'Лавандовое молоко', s: 'Лаванда пополам с белым, размешай до ровного.', t: 'solid', st: [10, 13] },
+  { id: 'm_peach', d: 1, n: 'Персик', s: 'Оранжевый пополам с белым, размешай ровно.', t: 'solid', st: [3, 13] },
+  { id: 'm_mintglit', d: 1, n: 'Мята с блёстками', s: 'Ровная мятная жижа, а в ней блёстки.', t: 'solid', st: [5], add: ['glitter'] },
+  { id: 'm_pinkpearl', d: 1, n: 'Розовый перламутр', s: 'Нежно-розовая жижа с перламутром.', t: 'solid', st: [0], add: ['pearl'] },
+  { id: 'm_lavconf', d: 1, n: 'Лавандовое конфетти', s: 'Лавандовое молоко, а сверху конфетти.', t: 'solid', st: [10, 13], add: ['confetti'] },
+  { id: 'm_peachsugar', d: 1, n: 'Сахарный персик', s: 'Персиковая жижа и сахарные шарики.', t: 'solid', st: [3, 13], add: ['sugar'] },
+  { id: 'm_meadow', d: 1, n: 'Грибная поляна', s: 'Ровная зелёная жижа, на которой выросли грибы.', t: 'solid', st: [6], add: ['shroom'] },
+  // ★2: two colours
+  { id: 'm_lagoon', d: 2, n: 'Лагуна', s: 'Бирюзовая вода переходит в синюю глубину.', t: 'lin', st: [7, 9] },
+  { id: 'm_flamingo', d: 2, n: 'Фламинго', s: 'От нежно-розового к красному.', t: 'lin', st: [0, 1] },
+  { id: 'm_lemonade', d: 2, n: 'Лимонад', s: 'Жёлтый переходит в зелёный.', t: 'lin', st: [4, 6] },
+  { id: 'm_nebula', d: 2, n: 'Туманность', s: 'Лавандовый наплывает на голубой.', t: 'lin', st: [10, 8] },
+  { id: 'm_berry', d: 2, n: 'Ягодный сироп', s: 'Красный темнеет до фиолетового.', t: 'lin', st: [1, 11] },
+  { id: 'm_egg', d: 2, n: 'Яичница', s: 'Жёлтый желток посередине, вокруг белок.', t: 'spot', st: [4, 13] },
+  { id: 'm_bud', d: 2, n: 'Бутон', s: 'В центре красный, к краям светлеет до розового.', t: 'rad', st: [1, 0] },
+  { id: 'm_moon', d: 2, n: 'Лунное озеро', s: 'Белая луна посередине, вокруг синяя вода.', t: 'rad', st: [13, 9] },
+  { id: 'm_icecream', d: 2, n: 'Двойное мороженое', s: 'Половина мятная, половина розовая, а на стыке мягкий переход.', t: 'bands', st: [5, 0] },
+  { id: 'm_lagglit', d: 2, n: 'Лагуна с блёстками', s: 'Бирюза переходит в синий, и всё это в блёстках.', t: 'lin', st: [7, 9], add: ['glitter'] },
+  { id: 'm_flampearl', d: 2, n: 'Перламутровый фламинго', s: 'От розового к красному, и перламутр сверху.', t: 'lin', st: [0, 1], add: ['pearl'] },
+  { id: 'm_glassmint', d: 2, n: 'Мятное стекло', s: 'Мятная жижа переходит в бирюзовую и становится прозрачной.', t: 'lin', st: [5, 7], add: ['clear'] },
+  // ★3: three and more colours, shapes
+  { id: 'm_sunset', d: 3, n: 'Закат', s: 'Жёлтое солнце, оранжевый горизонт, фиолетовое небо. Как на закатной тарелке.', t: 'lin', st: [4, 3, 11] },
+  { id: 'm_dawn', d: 3, n: 'Рассвет', s: 'Голубая ночь, розовая заря, жёлтый свет.', t: 'lin', st: [8, 0, 4] },
+  { id: 'm_aurora', d: 3, n: 'Северное сияние', s: 'Зелёный, бирюзовый и фиолетовый.', t: 'lin', st: [6, 7, 11] },
+  { id: 'm_reef', d: 3, n: 'Коралловый риф', s: 'Коралл, мята и бирюза.', t: 'lin', st: [2, 5, 7] },
+  { id: 'm_flag', d: 3, n: 'Три полосы', s: 'Розовая, белая и бирюзовая полоса, границы мягкие.', t: 'bands', st: [0, 13, 7] },
+  { id: 'm_candy', d: 3, n: 'Радужная конфета', s: 'Четыре полосы: красная, оранжевая, жёлтая и зелёная.', t: 'bands', st: [1, 3, 4, 6] },
+  { id: 'm_target', d: 3, n: 'Мишень', s: 'В центре жёлтое, дальше оранжевое, по краю красное.', t: 'rad', st: [4, 3, 1] },
+  { id: 'm_space', d: 3, n: 'Космос', s: 'В центре фиолетовое, дальше синее, по краю чёрное.', t: 'rad', st: [11, 9, 14] },
+  { id: 'm_sun', d: 3, n: 'Закатное солнце', s: 'Жёлтый свет сбоку, потом оранжевый и фиолетовый. Сторона любая.', t: 'glow', st: [4, 3, 11], pth: 2.4 },
+  { id: 'm_whirl', d: 3, n: 'Вихрь', s: 'Розовый, жёлтый и голубой по кругу, как в леденце.', t: 'swirl', st: [0, 4, 8] },
+  { id: 'm_galaxy', d: 3, n: 'Галактика', s: 'Фиолетовый, синий и розовый закручены вокруг центра.', t: 'swirl', st: [11, 9, 0] },
+  { id: 'm_neonset', d: 3, n: 'Неоновый закат', s: 'Закат, который светится в темноте.', t: 'lin', st: [4, 3, 11], add: ['neon'] },
+  { id: 'm_auraglit', d: 3, n: 'Сияние с блёстками', s: 'Северное сияние, в котором мерцают блёстки.', t: 'lin', st: [6, 7, 11], add: ['glitter'] },
+  { id: 'm_spacefoil', d: 3, n: 'Космос с фольгой', s: 'Фиолетовый, синий и чёрный, а в нём кусочки фольги.', t: 'rad', st: [11, 9, 14], add: ['foil'] },
+  { id: 'm_targetglass', d: 3, n: 'Стеклянная мишень', s: 'Жёлтое, оранжевое и красное кольца, жижа прозрачная.', t: 'rad', st: [4, 3, 1], add: ['clear'] }
+];
+function mixoById(id) { return MIXO.find(o => o.id === id); }
+function mixoCur() { return QS.mixo && mixoById(QS.mixo.id); }
+function mixoRot(o) { return o.t === 'lin' || o.t === 'bands' || o.t === 'glow' || o.t === 'swirl'; }
+function mixoStopRgb(i) { return hexRgb(STCOL[i]); }
+// what is missing to make this order right now: add-ins that ran out, cubes that ran out
+function mixoMissing(o) {
+  const out = [];
+  (o.add || []).forEach(k => { const src = MIXO_SRC[k]; if (src && src.some(t => isOpen('tool:' + t)) && !src.some(t => isOpen('tool:' + t) && stkGet('a:' + t) > 0)) out.push(MIXO_ADD[k].n); });
+  if (o.st.some(i => !binLocked(i) && !(ST.nbin[i] > 0))) out.push('кубики нужного цвета');
+  return out;
+}
+function mixoDoable(o) {
+  if (!o.st.every(i => !binLocked(i) && ST.nbin[i] > 0)) return false;
+  return (o.add || []).every(k => { const src = MIXO_SRC[k]; return !src || src.some(t => isOpen('tool:' + t) && stkGet('a:' + t) > 0); });
+}
+function mixoNew() {
+  const cur = QS.mixo && QS.mixo.id, hist = (QS.mixo && QS.mixo.h || []).concat(cur ? [cur] : []).slice(-4), w = { 1: 3, 2: 4, 3: 4 };
+  let base = MIXO.filter(o => o.id !== cur && mixoDoable(o)), pool = base.filter(o => !hist.includes(o.id));
+  if (!pool.length) pool = base; if (!pool.length) pool = MIXO.filter(o => o.id !== cur);
+  let tot = pool.reduce((a, o) => a + w[o.d], 0), r = Math.random() * tot, pick = pool[0];
+  for (const o of pool) { r -= w[o.d]; if (r <= 0) { pick = o; break; } }
+  QS.mixo = { id: pick.id, h: hist };
+}
+function mixoEnsure() { if (!mixoCur()) mixoNew(); return mixoCur(); }
+const mxSmooth = (a, b, v) => { const t = Math.max(0, Math.min(1, (v - a) / (b - a))); return t * t * (3 - 2 * t); };
+const mxLerp = (A, B, f) => [A[0] + (B[0] - A[0]) * f, A[1] + (B[1] - A[1]) * f, A[2] + (B[2] - A[2]) * f];
+function mxAlong(S, t) { const p = Math.max(0, Math.min(1, t)) * (S.length - 1), i = Math.min(S.length - 2, Math.floor(p)); return mxLerp(S[i], S[i + 1], p - i); }
+// the colour of the picture at the point (x, y) of the plate (the plate radius is 1), turned by th; raw = without the plate's colour boost
+function mixoAt(o, x, y, th, raw) {
+  const vv = raw ? (r, g, b) => [r, g, b] : vivid, S = o.st.map(mixoStopRgb), n = S.length; let c;
+  if (o.t === 'solid') { c = [0, 0, 0]; S.forEach(q => { c[0] += q[0] / n; c[1] += q[1] / n; c[2] += q[2] / n; }); }
+  else if (o.t === 'rad') c = mxAlong(S, Math.hypot(x, y) / 0.95);
+  else if (o.t === 'spot') { const d = Math.hypot(x, y); c = mxLerp(S[0], S[1], mxSmooth(0.36, 0.52, d)); }
+  else if (o.t === 'glow') c = mxAlong(S, Math.hypot(x - 0.95 * Math.cos(th), y - 0.95 * Math.sin(th)) / 1.9);
+  else if (o.t === 'swirl') { const u = (((Math.atan2(y, x) + th) / (2 * Math.PI)) % 1 + 1) % 1, p = u * n, i = Math.floor(p) % n; c = mxLerp(S[i], S[(i + 1) % n], mxSmooth(0.55, 1, p - Math.floor(p))); }
+  else {
+    const u = 0.5 + 0.5 * (x * Math.cos(th) + y * Math.sin(th)) / 0.95;
+    if (o.t === 'bands') { const p = Math.max(0, Math.min(0.9999, u)) * n; c = S[Math.floor(p)]; for (let j = 1; j < n; j++) if (Math.abs(p - j) < 0.16) c = mxLerp(S[j - 1], S[j], mxSmooth(-0.16, 0.16, p - j)); }
+    else c = mxAlong(S, u);
+  }
+  return vv(c[0], c[1], c[2]);
+}
+function mixoLab(c) {
+  const f = v => { v /= 255; return v > 0.04045 ? Math.pow((v + 0.055) / 1.055, 2.4) : v / 12.92; };
+  const r = f(c[0]), g = f(c[1]), b = f(c[2]);
+  const X = (r * 0.4124 + g * 0.3576 + b * 0.1805) / 0.95047, Y = r * 0.2126 + g * 0.7152 + b * 0.0722, Z = (r * 0.0193 + g * 0.1192 + b * 0.9505) / 1.08883;
+  const q = t => t > 0.008856 ? Math.cbrt(t) : 7.787 * t + 16 / 116;
+  return [116 * q(Y) - 16, 500 * (q(X) - q(Y)), 200 * (q(Y) - q(Z))];
+}
+// what lies on the plate now: average colour per cell
+function mixoCells() {
+  const C = 16, B = NG / C, cells = []; let liquid = 0, disc = 0;
+  for (let cj = 0; cj < C; cj++) for (let ci = 0; ci < C; ci++) {
+    let a = 0, r = 0, g = 0, b = 0, m = 0;
+    for (let j = cj * B; j < (cj + 1) * B; j++) for (let i = ci * B; i < (ci + 1) * B; i++) { const k = j * NG + i; if (!MASK[k]) continue; m++; a += FA[k]; r += FR[k]; g += FG[k]; b += FB[k]; }
+    if (m < B * B * 0.5) continue; disc++;
+    if (a / m < 0.35) continue; liquid++;
+    cells.push({ gi: cj * C + ci, x: (ci + 0.5) / C * 2 - 1, y: (cj + 0.5) / C * 2 - 1, lab: mixoLab(vivid(r / a, g / a, b / a)), w: Math.min(1.5, a / m) });
+  }
+  return { cells, cover: liquid / Math.max(1, disc) };
+}
+// how much of every add-in is on the plate: 1 = a full dose; the same measure the bucket gets
+function mixoAmts() {
+  const vf = Math.max(0.12, ST.V / PLATE_FULL), n = { glitter: 0, pearl: 0, sugar: 0, confetti: 0, foil: 0, flake: 0, foam: 0, eyes: 0, shroom: 0 };
+  for (const p of ST.parts) {
+    if (p.ch || p.z > 0) continue;
+    if (p.ex === 'foam') n.foam += (p.sz / FOAM_SZ) ** 2;
+    else if (p.ex === 'shroom') { if (p.g >= 0.8) n.shroom++; }
+    else if (p.ex) n[p.ex]++;
+    else if (p.pearl) n.pearl++;
+    else n.glitter++;
+  }
+  return { glitter: n.glitter / (vf * 220), pearl: n.pearl / (vf * 220), sugar: n.sugar / (vf * 50), confetti: n.confetti / (vf * 110), foil: n.foil / (vf * 110), flake: n.flake / (vf * 90), foam: n.foam / (vf * 14), eyes: n.eyes / (Math.max(vf, 0.3) * 24), shroom: n.shroom / (Math.max(vf, 0.3) * 10), neon: ST.neon, gloss: ST.gloss, clear: ST.clear, scent: ST.oil };
+}
+function mixoAddState(o) { const am = mixoAmts(); return (o.add || []).map(k => ({ k, n: MIXO_ADD[k].n, r: Math.min(1, (am[k] || 0) / MIXO_NEED), ok: (am[k] || 0) >= MIXO_NEED })); }
+// 0..100, how far the plate is filled, and the add-ins
+function mixoScore(o) {
+  const adds = mixoAddState(o), cc = mixoCells(), res = { pct: 0, cover: cc.cover, adds, addsOk: adds.every(a => a.ok) };
+  if (cc.cells.length < 4) return res;
+  const err = (th, cache) => {
+    const key = o.id + ':' + Math.round(th * 100); let tl = cache && MIXO_TL[key];
+    if (!tl) { // the target colour at every place of the 16x16 grid (cached: the places never change)
+      tl = []; for (let gi = 0; gi < 256; gi++) tl.push(mixoLab(mixoAt(o, ((gi % 16) + 0.5) / 8 - 1, (Math.floor(gi / 16) + 0.5) / 8 - 1, th)));
+      if (cache) MIXO_TL[key] = tl;
+    }
+    let s = 0, w = 0; for (const c of cc.cells) { const t = tl[c.gi]; s += c.w * Math.hypot(t[0] - c.lab[0], t[1] - c.lab[1], t[2] - c.lab[2]); w += c.w; } return s / w;
+  };
+  let best = err(0, true);
+  if (mixoRot(o)) { // the direction does not matter: 24 turns, then a finer look around the best one
+    let bt = 0; for (let i = 0; i < 24; i++) { const e = err(Math.round(i * Math.PI / 12 * 100) / 100, true); if (e < best || i === 0) { best = e; bt = Math.round(i * Math.PI / 12 * 100) / 100; } }
+    for (let i = -6; i <= 6; i++) if (i) best = Math.min(best, err(bt + i * 0.0218));
+  }
+  res.pct = Math.round(100 * Math.exp(-best / 22)); return res;
+}
+var MIXO_TL = {};
+function mixoReward(o, pct) { const k = 1 + MIXO_ADD_K * (o.add ? o.add.length : 0); return { coins: Math.round(ORD_COIN[o.d] * 1.5 * k * Math.pow(pct / 100, 1.5)), cubes: pct >= 60 ? ORD_REWARD[o.d] : 0 }; }
+// the picture of the order (a round plate)
+function mixoDraw(cv, o, size) {
+  cv.width = cv.height = size; const g = cv.getContext('2d'), im = g.createImageData(size, size);
+  for (let j = 0; j < size; j++) for (let i = 0; i < size; i++) {
+    const x = (i + 0.5) / size * 2 - 1, y = (j + 0.5) / size * 2 - 1, d = Math.hypot(x, y), k = (j * size + i) * 4;
+    if (d > 1) continue; const c = mixoAt(o, x, y, o.pth || 0);
+    im.data[k] = c[0]; im.data[k + 1] = c[1]; im.data[k + 2] = c[2]; im.data[k + 3] = d > 0.96 ? 255 * (1 - d) / 0.04 : 255;
+  }
+  g.putImageData(im, 0, 0);
+  if (o.add) { // a few dots on top say that an add-in is needed
+    g.fillStyle = 'rgba(255,255,255,0.85)'; for (let q = 0; q < 9; q++) { const a = q * 2.4, r = (0.22 + 0.1 * (q % 4)) * size; g.beginPath(); g.arc(size / 2 + Math.cos(a) * r, size / 2 + Math.sin(a) * r, size * 0.022, 0, 7); g.fill(); }
+  }
+  g.strokeStyle = 'rgba(255,255,255,0.45)'; g.lineWidth = 1.5; g.beginPath(); g.arc(size / 2, size / 2, size / 2 - 1, 0, 7); g.stroke();
+}
+function mixoDeliver() {
+  const o = mixoCur(); if (!o) return; const sc = mixoScore(o), rw = mixoReward(o, sc.pct);
+  addCoins(rw.coins); for (let i = 0; i < rw.cubes; i++) ST.nbin[(Math.random() * ST.nbin.length) | 0]++;
+  Q.stat('orders');
+  ST.parts.length = 0; stEmptyPlate(); ST.V = 0; stSpecReset(); ST.oil = 0; ST.gloss = 0; ST.neon = 0; ST.clear = 0; ST.wisps.length = 0; ST.snap = null;
+  Snd.init(); Snd.chime(); setTimeout(() => Snd.chime(), 180);
+  mixoNew(); saveNow(); mixoPeekDraw();
+  showInfo('Жижа сдана: совпадение ' + sc.pct + '%! +' + rw.coins + ' 🪙' + (rw.cubes ? ', +' + rw.cubes + ' ' + (rw.cubes < 5 ? 'кубика' : 'кубиков') + ' на полку' : ''), 4200);
+}
+function mixoHandIn() {
+  const o = mixoEnsure(); Snd.init(); if (ST.pouring) return;
+  const sc = mixoScore(o);
+  if (sc.cover < MIXO_COVER) { Snd.tick(0); showInfo('Жижи маловато: нужно залить тарелку побольше (сейчас закрыто ' + Math.round(sc.cover * 100) + '%, надо хотя бы ' + Math.round(MIXO_COVER * 100) + '%)', 3800); return; }
+  if (!sc.addsOk) { Snd.tick(0); showInfo('Не хватает добавки: ' + sc.adds.filter(a => !a.ok).map(a => a.n).join(', ') + '. Насыпь ещё и дождись, пока она осядет', 3800); return; }
+  if (sc.pct < Math.round(MIXO_MIN * 100)) { Snd.tick(0); showInfo('Пока совсем не то: совпадение ' + sc.pct + '%. Нужно хотя бы ' + Math.round(MIXO_MIN * 100) + '%. Размешивай дальше', 3800); return; }
+  const rw = mixoReward(o, sc.pct);
+  askConfirm('«' + o.n + '»: совпадение ' + sc.pct + '% → +' + rw.coins + ' 🪙' + (rw.cubes ? ' и ' + rw.cubes + ' куб' : '') + '. Тарелка опустеет. Сдать?', mixoDeliver, null, ['Сдать', 'Ещё помешаю']);
+}
+// changing the order: free once a day, always free when something for it ran out, always free in the "all open" mode, otherwise a little coin
+function mixoSwapFree() { const o = mixoCur(); return !!prefs.free || !QS.mr || QS.mr.dk !== dayKey() || !!(o && mixoMissing(o).length); }
+function mixoSwapLabel() { return 'Другая жижа (' + (mixoSwapFree() ? 'бесплатно' : SWAP_COST + ' 🪙') + ')'; }
+function mixoSwap() {
+  const o = mixoCur();
+  if (!mixoSwapFree()) { if (QS.coins < SWAP_COST) { Snd.tick(0); showInfo('Смена заказа стоит ' + SWAP_COST + ' 🪙', 2200); return false; } QS.coins -= SWAP_COST; }
+  else if (!prefs.free && !(o && mixoMissing(o).length)) QS.mr = { dk: dayKey() };
+  mixoNew(); saveNow(); mixoPeekDraw(); return true;
+}
+// the small card over the workshop: the picture to repeat, the live match and what it pays, the hand-in button; a tap on the card opens the details
+var MIXO_OPEN = false;
+function mixoPeekDraw() {
+  const el = document.getElementById('mixoPeek'); if (!el) return; const o = mixoEnsure();
+  el.querySelector('.mn').textContent = o.n; mixoDraw(el.querySelector('canvas'), o, 56 * 2);
+  el.dataset.id = o.id; mixoPeekLive();
+}
+function mixoPeekLive() {
+  const el = document.getElementById('mixoPeek'); if (!el || !el.offsetParent) return; const o = mixoCur(); if (!o) return;
+  if (el.dataset.id !== o.id) { mixoPeekDraw(); return; }
+  const sc = mixoScore(o), rw = mixoReward(o, sc.pct), thin = sc.cover < MIXO_COVER, low = sc.pct < Math.round(MIXO_MIN * 100), ma = el.querySelector('.ma');
+  el.querySelector('.mp').textContent = thin ? 'мало жижи на тарелке' : low ? sc.pct + '% · ещё не то' : sc.pct + '% · +' + rw.coins + ' 🪙';
+  ma.style.display = sc.adds.length ? '' : 'none';
+  ma.textContent = sc.adds.map(a => (a.ok ? '✓ ' : '+ ') + a.n + (a.ok ? '' : ' (' + Math.round(a.r * 100) + '%)')).join(', ');
+  ma.style.color = sc.addsOk ? '#9fe6b0' : '#ffd479';
+  el.querySelector('.mgo').style.opacity = thin || low || !sc.addsOk ? '0.55' : '1';
+  el.classList.toggle('open', MIXO_OPEN);
+  if (MIXO_OPEN) el.querySelector('.mmore').innerHTML = o.s + '<br>Совпадение: <b>' + sc.pct + '%</b> (принимаем от ' + Math.round(MIXO_MIN * 100) + '%)<br>Жижа закрывает <b>' + Math.round(sc.cover * 100) + '%</b> тарелки (нужно от ' + Math.round(MIXO_COVER * 100) + '%)' +
+    (sc.adds.length ? '<br>Добавки: ' + sc.adds.map(a => '<b>' + a.n + '</b> ' + (a.ok ? '✓' : 'ещё мало')).join(', ') : '') +
+    '<br>Монеты: <b>' + rw.coins + ' 🪙</b>, максимум ' + mixoReward(o, 100).coins + '<br>Кубики на полку: ' + (sc.pct >= 60 ? '<b>+' + rw.cubes + '</b>' : 'от 60% совпадения (+' + ORD_REWARD[o.d] + ')') + '<br><span style="opacity:.7">Тарелка после сдачи опустеет. Тапни по рамке, чтобы свернуть</span>';
+}
+setInterval(() => { if (appEl.dataset.view === 'studio' && !document.hidden) mixoPeekLive(); }, 700);
+{
+  const pk = document.getElementById('mixoPeek');
+  if (pk) {
+    mixoPeekDraw();
+    pk.addEventListener('click', e => { if (e.target.closest('.mgo')) return; MIXO_OPEN = !MIXO_OPEN; try { Snd.init(); Snd.tick(0); } catch (er) { } mixoPeekLive(); });
+    pk.querySelector('.mgo').addEventListener('click', e => { e.stopPropagation(); mixoHandIn(); });
+    ['pointerdown', 'touchstart', 'mousedown'].forEach(ev => pk.addEventListener(ev, e => e.stopPropagation()));
+  }
+}
+// the card in the Orders tab
+function mixoCard(parent) {
+  const o = mixoEnsure();
+  parent.appendChild(h('div', 'sheet-title', 'Заказ на жижу'));
+  const card = h('div', 'ord');
+  card.appendChild(h('div', 'ord-n', o.n)); card.appendChild(h('div', 'opt-note', o.s));
+  const cv = document.createElement('canvas'); cv.className = 'mixo-pic'; mixoDraw(cv, o, 120); card.appendChild(cv);
+  const rw = mixoReward(o, 100), miss = mixoMissing(o);
+  const how = { solid: 'Нужен ровный цвет, как на круге.', lin: 'Нужен плавный переход цвета, как на круге. Направление любое: слева направо, сверху вниз, наискосок.', bands: 'Нужны полосы, как на круге. Направление любое, границы можно слегка размыть.', rad: 'Цвет меняется от центра к краю, как на круге.', spot: 'Пятно посередине и другой цвет вокруг, как на круге.', glow: 'Свет с одной стороны, как на круге. Сторона любая.', swirl: 'Цвета идут по кругу вокруг центра, как на круге. Откуда начинать, неважно.' }[o.t];
+  card.appendChild(h('div', 'opt-note', how));
+  // the important lines are drawn as coloured plates so that they do not melt into the text
+  const key = (cls, label, html) => { const d = h('div', 'mx-k ' + cls); d.innerHTML = '<b>' + label + '</b> ' + html; card.appendChild(d); };
+  key('cub', 'Из кубиков:', o.st.map(i => '<span style="color:' + STCOL[i] + '">●●</span>').join(' ') + (o.t === 'solid' && o.st.length > 1 ? ' смешай до одного цвета' : ''));
+  if (o.add) key('add', 'Добавка:', o.add.map(k => MIXO_ADD[k].n).join(', ') + '. Насыпь на жижу и дождись, пока осядет. Награда ×' + (1 + MIXO_ADD_K * o.add.length).toFixed(2).replace(/0$/, ''));
+  key('rew', 'Награда:', 'до ' + rw.coins + ' 🪙 за процент совпадения и ' + rw.cubes + ' кубиков на полку от 60% · ' + '★'.repeat(o.d));
+  if (miss.length) key('bad', '⚠️ Закончилось:', miss.join(', ') + '. Поменяй заказ бесплатно или пополни запас в магазине.');
+  card.appendChild(h('div', 'opt-note', 'Намешай в мастерской: рядом с тарелкой висит рамка с образцом и живым процентом, в ней же кнопка «Сдать». Тапни по рамке, чтобы увидеть подробности.'));
+  const row = h('div', 'savebtns'), sw = h('button', null, mixoSwapLabel()); sw.type = 'button';
+  sw.addEventListener('click', () => { if (!mixoSwap()) return; Snd.tick(0); if (typeof renderQuest === 'function') renderQuest(); });
+  row.appendChild(sw); card.appendChild(row); parent.appendChild(card);
 }
 /* ---------- Ragdoll ---------- */
 // joint: spring stiffness, damping, how far it may swing outward / inward, and which side it sits on
